@@ -140,3 +140,7 @@ Built during EVOLVE with AI coding tools (Claude Code; Eve agents), which the ru
 ## Team notes
 
 Latest implementation and deployment handoff: [NOTE_FOR_CONNOR_AGENT.md](NOTE_FOR_CONNOR_AGENT.md). Teammate setup and API variables: [docs/SETUP.md](docs/SETUP.md). Earlier editor task: [NEXT_FOR_CONNOR.md](NEXT_FOR_CONNOR.md).
+
+## Current two-person demo
+
+Use [the fictional portfolio scenario](docs/DEMO-SCENARIO.md) and [the five-minute runbook](docs/DEMO-VIDEO.md). Anushka creates Meridian Frontier Fund and Pelagic Robotics; Connor creates Helioforge Energy using the fund company invitation. Save workflow briefs only after those company records exist.

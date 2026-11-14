@@ -2,6 +2,8 @@
 
 The user authorized **blank workspace histories for both Anushka and Connor**, including their old and newly created companies and funds. Keep Google identities and credentials. Connor will execute the hosted purge from his authorized environment. It has NOT been executed from Anushka's machine.
 
+Use [DEMO-SCENARIO.md](DEMO-SCENARIO.md) for the new fictional portfolio and exact company briefs. If the purge has already completed, continue with company creation; do not repeat it after new onboarding.
+
 ## Deploy the fix
 
 1. Pull `main` and run `npm ci`, `npm run check`, `npm --prefix site test`.

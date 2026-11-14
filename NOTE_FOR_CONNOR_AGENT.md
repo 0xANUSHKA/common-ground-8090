@@ -1,3 +1,11 @@
+# Current next action: create the fictional portfolio, then save briefs
+
+User reports your HydraDB production credentials are configured and working. Do not restore old companies to make the brief save succeed: **after a purge, no companies is the expected state**. Anushka creates **Meridian Frontier Fund**, then **Pelagic Robotics** in it. Connor uses that fund's **company invitation** to create **Helioforge Energy**. Only then map each sample and save the company briefs.
+
+Read **docs/DEMO-SCENARIO.md** for the exact names, briefs, build prompt and order, and **docs/DEMO-VIDEO.md** for the five-minute run. Both are fictional companies using public NOAA/NREL data. Keep your existing identities; do not change names to Fabio/Maya. Confirm extension 0.1.3 and its matching deployed API. If the purge already finished, **do not run it again after the new setup**. Credentials working does not mean a company's not-yet-created brief is indexed.
+
+---
+
 # Return handoff: onboarding, recommendations and editor delivery
 
 November 14, 2026. This builds on your `dbf2150` handoff on `main` and preserves the software-factory direction.
