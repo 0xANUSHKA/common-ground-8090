@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Common Ground</title>
+<meta name="description" content="Shared ontologies for your portfolio companies. A VS Code and Cursor extension that offers the tools your agents finish to the teammates, and the portfolio companies, who need them.">
+<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="./base.css">
+<link rel="stylesheet" href="./film/section.css">
+<link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="nav-brand" href="./"><img class="logo" src="./logo.svg" alt=""><span>Common Ground</span></a>
+  <nav class="nav-tabs" aria-label="Pages"><a href="./" aria-current="page">Overview</a><a href="./dashboard/" data-dash-tab>Dashboard</a></nav>
+  <div class="nav-links"></div>
+  <div class="nav-user" data-nav-user data-root="./"></div>
+</header>
+
+<main>
+  <section class="hero" id="top">
+    <div class="hero-copy">
+      <h1>Shared ontologies for your portfolio companies.</h1>
+      <div class="hero-act">
+        <a class="btn is-primary is-lg" href="./join/">Join</a>
+        <a class="btn is-lg" href="https://github.com/0xANUSHKA/common-ground-8090#run-the-v0"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10"/></svg>Download for VS Code</a>
+      </div>
+    </div>
+    <div class="hero-film">
+<section class="film" id="film" data-tour-root data-driver="manual" data-captions="off" aria-label="Common Ground, a short film">
+  <div class="film-stage" data-tour-stage>
+    <p class="film-mark"><img class="logo" src="./logo.svg" alt="">Common Ground</p>
+    <div class="film-intro" aria-hidden="true">
+      <p class="fi-line fi-c"><img class="logo" src="./logo.svg" alt=""><span>Common Ground</span></p>
+      <p class="fi-line fi-a">Every day, agents at your portfolio companies build new tools.</p>
+      <p class="fi-line fi-b">Most never leave the laptop they were built on.</p>
+    </div>
+    <div class="tour-rig">
+      <div class="cg-win" data-tour-window data-chrome="none" data-size="1200x750" data-size-tall="440x820">
+        <div class="cg-app" data-tour="app">
+
+          <!-- ════ VS Code ════ -->
+          <div class="vs" data-tour="vs">
+            <div class="vs-title">
+              <span class="vs-lights"><i></i><i></i><i></i></span>
+              <span class="vs-nav"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg><svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></span>
+              <span class="vs-search"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4"/><path d="m10 10 3 3"/></svg><span data-tour="title-text">telemetry-qc</span></span>
+              <span class="vs-layout"><i></i><i></i><i></i></span>
+            </div>
+
+            <div class="vs-main">
+              <nav class="vs-act" aria-hidden="true">
+                <svg class="is-on" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v13M10 7h8v14h-9a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>
+                <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 6 6"/></svg>
+                <svg viewBox="0 0 24 24"><circle cx="7" cy="5" r="2"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="8" r="2"/><path d="M7 7v10M17 10c0 4-10 3-10 7"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 13h7v7h-7zM4 13h7v7H4zM15 3l5 5-5 5-5-5z"/></svg>
+                <span class="vs-act-cg" title="Common Ground"><img class="logo" src="./logo.svg" alt=""></span>
+              </nav>
+
+              <!-- Scene 1: Fabio's repo, deep into a long agent session -->
+              <div class="vs-ide" data-tour="ide">
+                <aside class="vs-side">
+                  <p class="vs-side-h">Explorer</p>
+                  <p class="vs-side-repo"><svg viewBox="0 0 16 16"><path d="m5 6 3 3 3-3"/></svg>TELEMETRY-QC</p>
+                  <ul class="vs-tree">
+                    <li class="is-dir"><svg viewBox="0 0 16 16"><path d="m5 6 3 3 3-3"/></svg>data</li>
+                    <li class="is-in1"><span class="vs-ic is-csv">≡</span>mission_1045.csv</li>
+                    <li class="is-in1 is-u"><span class="vs-ic is-csv">≡</span>mission_1045_gaps.csv<b>U</b></li>
+                    <li class="is-dir"><svg viewBox="0 0 16 16"><path d="m5 6 3 3 3-3"/></svg>src</li>
+                    <li class="is-in1 is-m"><span class="vs-ic is-ts">TS</span>binding.ts<b>M</b></li>
+                    <li class="is-in1 is-u"><span class="vs-ic is-ts">TS</span>grid.ts<b>U</b></li>
+                    <li class="is-in1 is-u is-sel"><span class="vs-ic is-ts">TS</span>inspector.ts<b>U</b></li>
+                    <li class="is-in1 is-u"><span class="vs-ic is-ts">TS</span>parse.ts<b>U</b></li>
+                    <li class="is-dir"><svg viewBox="0 0 16 16"><path d="m5 6 3 3 3-3"/></svg>tests</li>
+                    <li class="is-in1 is-u"><span class="vs-ic is-ts">TS</span>grid.test.ts<b>U</b></li>
+                    <li class="is-in1 is-u"><span class="vs-ic is-ts">TS</span>inspector.test.ts<b>U</b></li>
+                    <li class="is-m"><span class="vs-ic is-json">{}</span>package.json<b>M</b></li>
+                    <li class="is-m" data-tour="readme-file"><span class="vs-ic is-md">M↓</span>README.md<b>M</b></li>
+                  </ul>
+                </aside>
+
+                <main class="vs-editor" data-tour="editor">
+                  <div class="vs-tabs">
+                    <span class="vs-tab"><span class="vs-ic is-ts">TS</span>binding.ts</span>
+                    <span class="vs-tab"><span class="vs-ic is-ts">TS</span>grid.ts</span>
+                    <span class="vs-tab is-on"><span class="vs-ic is-ts">TS</span>inspector.ts</span>
+                    <span class="vs-tab"><span class="vs-ic is-ts">TS</span>inspector.test.ts</span>
+                  </div>
+                  <p class="vs-crumbs">telemetry-qc › src › inspector.ts</p>
+                  <div class="vs-code" data-tour="code">
+                    <p class="cl"><i>1</i><span class="c-k">import</span> <span class="c-t">type</span> { Binding, Report } <span class="c-k">from</span> <span class="c-s">'./binding'</span>;</p>
+                    <p class="cl"><i>2</i><span class="c-k">import</span> { grid, parseTime } <span class="c-k">from</span> <span class="c-s">'./grid'</span>;</p>
+                    <p class="cl"><i>3</i><span class="c-k">import</span> { readValue } <span class="c-k">from</span> <span class="c-s">'./parse'</span>;</p>
+                    <p class="cl"><i>4</i></p>
+                    <p class="cl"><i>5</i><span class="c-c">// Completeness for one day of minute data. Missing values are not zeros.</span></p>
+                    <p class="cl"><i>6</i><span class="c-k">export function</span> <span class="c-f">inspect</span>(rows: <span class="c-t">string</span>[][], b: <span class="c-t">Binding</span>): <span class="c-t">Report</span> {</p>
+                    <p class="cl"><i>7</i>  <span class="c-k">const</span> header = rows[<span class="c-n">0</span>];</p>
+                    <p class="cl"><i>8</i>  <span class="c-k">const</span> ti = header.<span class="c-f">indexOf</span>(b.timeColumn), vi = header.<span class="c-f">indexOf</span>(b.signalColumn);</p>
+                    <p class="cl" data-tour="edit-a"><i>9</i>  <span class="c-k">const</span> body = rows.<span class="c-f">slice</span>(b.skipUnitsRow ? <span class="c-n">2</span> : <span class="c-n">1</span>);</p>
+                    <p class="cl"><i>10</i>  <span class="c-k">const</span> seen = <span class="c-k">new</span> <span class="c-t">Map</span>&lt;<span class="c-t">string</span>, <span class="c-t">number</span>&gt;();</p>
+                    <p class="cl"><i>11</i>  <span class="c-k">let</span> missingValues = <span class="c-n">0</span>, zeroValues = <span class="c-n">0</span>, malformed = <span class="c-n">0</span>;</p>
+                    <p class="cl"><i>12</i>  <span class="c-k">let</span> duplicateRows = <span class="c-n">0</span>, outsideGrid = <span class="c-n">0</span>;</p>
+                    <p class="cl"><i>13</i></p>
+                    <p class="cl"><i>14</i>  <span class="c-k">for</span> (<span class="c-k">const</span> row <span class="c-k">of</span> body) {</p>
+                    <p class="cl"><i>15</i>    <span class="c-k">const</span> t = <span class="c-f">parseTime</span>(row[ti], b.timeBasis);</p>
+                    <p class="cl"><i>16</i>    <span class="c-k">if</span> (!t) { malformed++; <span class="c-k">continue</span>; }</p>
+                    <p class="cl"><i>17</i>    <span class="c-k">if</span> (seen.<span class="c-f">has</span>(t)) duplicateRows++;</p>
+                    <p class="cl"><i>18</i>    seen.<span class="c-f">set</span>(t, (seen.<span class="c-f">get</span>(t) ?? <span class="c-n">0</span>) + <span class="c-n">1</span>);</p>
+                    <p class="cl" data-tour="edit-b"><i>19</i>    <span class="c-k">const</span> v = <span class="c-f">readValue</span>(row[vi]);</p>
+                    <p class="cl" data-tour="edit-c"><i>20</i>    <span class="c-k">if</span> (v === <span class="c-k">null</span>) missingValues++;</p>
+                    <p class="cl"><i>21</i>    <span class="c-k">else if</span> (v === <span class="c-n">0</span>) zeroValues++;</p>
+                    <p class="cl"><i>22</i>  }</p>
+                    <p class="cl"><i>23</i></p>
+                    <p class="cl"><i>24</i>  <span class="c-k">const</span> expected = <span class="c-f">grid</span>(b.start, b.end, b.cadenceSeconds);</p>
+                    <p class="cl"><i>25</i>  <span class="c-k">const</span> missingTimestamps = expected.<span class="c-f">filter</span>((t) =&gt; !seen.<span class="c-f">has</span>(t));</p>
+                    <p class="cl" data-tour="edit-d"><i>26</i>  <span class="c-k">for</span> (<span class="c-k">const</span> t <span class="c-k">of</span> seen.<span class="c-f">keys</span>()) <span class="c-k">if</span> (!expected.<span class="c-f">includes</span>(t)) outsideGrid++;</p>
+                    <p class="cl"><i>27</i></p>
+                    <p class="cl"><i>28</i>  <span class="c-k">return</span> {</p>
+                    <p class="cl"><i>29</i>    rows: body.length, uniqueTimestamps: seen.size, duplicateRows,</p>
+                    <p class="cl"><i>30</i>    missingTimestamps, outsideGrid, missingValues, zeroValues,</p>
+                    <p class="cl"><i>31</i>    malformedValues: malformed, physicalValidity: <span class="c-s">'not_assessed'</span>,</p>
+                    <p class="cl"><i>32</i>  };</p>
+                    <p class="cl"><i>33</i>}</p>
+                    <p class="cl"><i>34</i></p>
+                    <p class="cl"><i>35</i><span class="c-c">// Units live in row two of the Saildrone export; never count them as data.</span></p>
+                    <p class="cl"><i>36</i><span class="c-k">export const</span> marine: <span class="c-t">Binding</span> = { timeColumn: <span class="c-s">'time'</span>, signalColumn: <span class="c-s">'WIND_SPEED_MEAN'</span>, skipUnitsRow: <span class="c-k">true</span> };</p>
+                  </div>
+                </main>
+
+                <aside class="vs-agent" data-tour="agent">
+                  <header class="ag-head"><b>Agent</b><span class="ag-state" data-tour="ag-state"><i class="ag-spin"></i><span data-tour="timer">Working · 2:14:06</span></span></header>
+                  <div class="ag-thread" data-tour="thread" data-tour-follow>
+                    <div class="ag-earlier">▸ Earlier in this session · 63 tool calls · 11 files</div>
+                    <div class="ag-msg is-user is-in"><p>Keep going until every check passes. Handle the units row and the minute grid, and keep missing values separate from zeros.</p></div>
+                    <div class="ag-msg is-ai is-in">
+                      <p>On it. Splitting parsing and the time grid out of the inspector first.</p>
+                      <ol class="ag-tools" data-tour="tools">
+                        <li class="is-in"><span class="ag-tool">Write</span><code>src/grid.ts</code><small class="is-add">+38</small></li>
+                        <li class="is-in"><span class="ag-tool">Edit</span><code>src/inspector.ts</code><small class="is-add">+21 −9</small></li>
+                        <li class="is-in"><span class="ag-tool">Run</span><code>npm test</code><small class="is-bad">5 passed · 2 failed</small></li>
+                        <li class="is-in"><span class="ag-tool">Read</span><code>data/mission_1045.csv</code><small>1,441 lines</small></li>
+                        <li class="is-in"><span class="ag-tool">Edit</span><code>src/parse.ts</code><small class="is-add">+14 −2</small></li>
+                        <li><span class="ag-tool">Run</span><code>npm test</code><small class="is-bad">6 passed · 1 failed</small></li>
+                        <li><span class="ag-tool">Edit</span><code>src/inspector.ts</code><small class="is-add">+3 −1</small></li>
+                        <li><span class="ag-tool">Run</span><code>npm test</code><small class="is-ok">7 passed</small></li>
+                        <li><span class="ag-tool">Edit</span><code>README.md</code><small class="is-add">+18</small></li>
+                      </ol>
+                    </div>
+                    <div class="ag-msg is-ai" data-tour="ai-2"><p data-tour="ai-2-text"></p></div>
+                  </div>
+                  <div class="ag-composer" data-tour="composer">
+                    <div class="ag-input"><span data-placeholder="Ask the agent…"></span></div>
+                    <div class="ag-tools-row"><span class="ag-pill">Agent</span><span class="ag-hint">⌘ ⏎</span><button class="ag-send" type="button" tabindex="-1" aria-label="Send"><svg viewBox="0 0 16 16"><path d="M8 13V3M4 7l4-4 4 4"/></svg></button></div>
+                  </div>
+                </aside>
+
+                <!-- VS Code notification toasts, as the extension would raise them -->
+                <div class="vs-toasts">
+                  <div class="vs-toast" data-tour="pop" role="dialog" aria-label="Common Ground">
+                    <div class="vs-toast-msg">
+                      <span class="vs-toast-ic is-info">i</span>
+                      <p>Your agent finished <b>telemetry-inspector</b> and all 7 checks passed. Theo and Ines on your team work with the same kind of data. Share this version with them?</p>
+                      <span class="vs-toast-tools"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></span>
+                    </div>
+                    <div class="vs-toast-foot">
+                      <span class="vs-toast-src">Source: Common Ground (Extension)</span>
+                      <button type="button" class="vs-btn is-primary" data-tour="share" tabindex="-1">Share</button>
+                      <button type="button" class="vs-btn" tabindex="-1">Not Now</button>
+                    </div>
+                  </div>
+                  <div class="vs-toast" data-tour="toast-done" role="status">
+                    <div class="vs-toast-msg">
+                      <span class="vs-toast-ic is-info">i</span>
+                      <p>Shared <b>telemetry-inspector</b> with Theo and Ines. Only they can open this exact version.</p>
+                      <span class="vs-toast-tools"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></span>
+                    </div>
+                    <div class="vs-toast-foot"><span class="vs-toast-src">Source: Common Ground (Extension)</span><button type="button" class="vs-btn" tabindex="-1">Manage Access</button></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Scene 2: Theo's Welcome page -->
+              <div class="vs-welcome" data-tour="welcome">
+                <div class="vs-tabs"><span class="vs-tab is-on"><span class="vs-ic is-vs">⟩</span><em>Welcome</em><span class="vs-x">×</span></span></div>
+                <div class="wl">
+                  <div class="wl-left">
+                    <h3 class="wl-h">Visual Studio Code</h3>
+                    <p class="wl-sub">Editing evolved</p>
+                    <h4 class="wl-sec">Start</h4>
+                    <ul class="wl-start">
+                      <li><svg viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4zM9 2v3h3M8 8v4M6 10h4"/></svg>New File…</li>
+                      <li><svg viewBox="0 0 16 16"><path d="M3 3h6l3 3v8H3zM6 8l2 2 2-2"/></svg>Open File…</li>
+                      <li><svg viewBox="0 0 16 16"><path d="M2 4h4l1 1h7v8H2z"/></svg>Open Folder…</li>
+                      <li><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="6" r="1.5"/><path d="M5 5.5v5M11 7.5c0 2.5-6 2-6 3"/></svg>Clone Git Repository…</li>
+                    </ul>
+                    <h4 class="wl-sec">Recent</h4>
+                    <ul class="wl-recent" data-tour="recent">
+                      <li class="wl-row is-shared is-new" data-tour="row-new">
+                        <span class="who" data-tour="who-fabio"><span class="cg-lg" data-lilguy="fabio-sd"></span>
+                          <span class="who-card" data-tour="card-fabio"><span class="cg-lg is-big" data-lilguy="fabio-sd"></span><span><b>Fabio</b><small>@fabio-sd on GitHub</small><small>Saildrone · your team</small></span></span></span>
+                        <a>telemetry-inspector</a><small>shared by Fabio · 7 checks passed</small></li>
+                      <li class="wl-row"><span class="who is-none"></span><a>glider-dashboard</a><small>~/code</small></li>
+                      <li class="wl-row is-shared" data-tour="row-fav">
+                        <span class="who is-fav" data-tour="who-maya"><img class="fav" src="./film/favicons/palmetto.png" alt=""><span class="cg-lg is-peek" data-tour="peek-maya" data-lilguy="maya-sun"></span>
+                          <span class="who-card" data-tour="card-maya"><span class="cg-lg is-big" data-lilguy="maya-sun"></span><span><b>Maya</b><small>@maya-sun on GitHub</small><small><img class="fav is-sm" src="./film/favicons/palmetto.png" alt="">Palmetto · portfolio company</small></span></span></span>
+                        <a>pv-gap-finder</a><small>shared from Palmetto</small></li>
+                      <li class="wl-row"><span class="who is-none"></span><a>ocean-models</a><small>~/code/sim</small></li>
+                      <li class="wl-row"><span class="who is-none"></span><a>mission-planner</a><small>~/work</small></li>
+                    </ul>
+                  </div>
+                  <div class="wl-right">
+                    <h4 class="wl-sec">Walkthroughs</h4>
+                    <div class="wl-card is-star"><b>Get Started with VS Code</b><small>Customize your editor, learn the basics, and start coding</small><i style="--w:30%"></i></div>
+                    <div class="wl-card"><b>Learn the Fundamentals</b><i style="--w:18%"></i></div>
+                    <div class="wl-card"><b>Get Started with Common Ground</b><span class="wl-badge">New</span><i style="--w:60%"></i></div>
+                    <div class="wl-card"><b>Get Started with Python Development</b><i style="--w:24%"></i></div>
+                  </div>
+                </div>
+                <p class="wl-foot"><span class="wl-box">✓</span>Show welcome page on startup</p>
+              </div>
+            </div>
+
+            <footer class="vs-status">
+              <span class="vs-remote">⟩⟨</span><span>⎇ inspector*</span><span>⊗ 0 ⚠ 0</span><span class="vs-st-agent" data-tour="st-agent">⟳ Agent working</span>
+              <span class="vs-st-cg" data-tour="status-cg"><b class="cg-dot"></b><span data-tour="status-text">Common Ground</span></span>
+            </footer>
+          </div>
+
+          <!-- Scene 3: the fund's view, an ontology map. Built by film/section.js from film/fund.js -->
+          <div class="cg-fund" data-tour="fund"></div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+    </div>
+  </section>
+
+  <section class="sec" id="standard">
+    <div class="wrap">
+      <h2>One standard. Everyone joins through it.</h2>
+      <div class="anchor reveal">
+        <div class="anchor-side">
+          <div class="an-co is-in"><img class="fav" src="./film/favicons/saildrone.png" alt=""><span><b>Saildrone</b><small>built it</small></span></div>
+          <div class="an-co is-in"><img class="fav" src="./film/favicons/palmetto.png" alt=""><span><b>Palmetto</b><small>reuses it</small></span></div>
+          <div class="an-co is-wait"><img class="fav" src="./film/favicons/mast.png" alt=""><span><b>Mast Reforestation</b><small>invited</small></span></div>
+        </div>
+        <div class="anchor-core">
+          <div class="core-card">
+            <p class="core-eye"><img class="logo" src="./logo.svg" alt="">Held by the fund</p>
+            <h3>Sensor time-series v1</h3>
+            <ul><li><span>Format</span>time · value · unit · time basis · cadence</li><li><span>Contract</span><code>inspect(rows, binding)</code></li><li><span>Checks</span>7</li><li><span>Grants</span>named · exact version · expiring</li></ul>
+          </div>
+        </div>
+        <div class="anchor-side is-out">
+          <div class="an-co"><img class="fav" src="./film/favicons/groq.svg" alt=""><span><b>Groq</b><small>other standard</small></span></div>
+          <div class="an-co"><img class="fav" src="./film/favicons/intercom.png" alt=""><span><b>Intercom</b><small>other standard</small></span></div>
+          <div class="an-co"><img class="fav" src="./film/favicons/netskope.webp" alt=""><span><b>Netskope</b><small>other standard</small></span></div>
+          <div class="an-co"><img class="fav" src="./film/favicons/slack.png" alt=""><span><b>Slack</b><small>other standard</small></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="security">
+    <div class="wrap">
+      <h2>Who gets it?</h2>
+      <div class="gate" data-gate>
+        <div class="gate-left">
+          <div class="gate-tool"><span class="cg-lg" data-lilguy="fabio-sd"></span><span><b>telemetry-inspector</b><small><code>a1f3c9e</code> · Fabio · <img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</small></span><em class="is-ok">7/7</em></div>
+          <div class="gate-people" role="radiogroup" aria-label="Recipient">
+            <button type="button" role="radio" aria-checked="true" data-who="theo"><span class="cg-lg" data-lilguy="theo-tides"></span><b>Theo</b><img class="fav" src="./film/favicons/saildrone.png" alt=""></button>
+            <button type="button" role="radio" aria-checked="false" data-who="maya"><span class="cg-lg" data-lilguy="maya-sun"></span><b>Maya</b><img class="fav" src="./film/favicons/palmetto.png" alt=""></button>
+            <button type="button" role="radio" aria-checked="false" data-who="elli"><span class="cg-lg" data-lilguy="elli-ops"></span><b>Elli</b><img class="fav" src="./film/favicons/palmetto.png" alt=""></button>
+            <button type="button" role="radio" aria-checked="false" data-who="leo"><span class="cg-lg" data-lilguy="leo-billing"></span><b>Leo</b><img class="fav" src="./film/favicons/palmetto.png" alt=""></button>
+          </div>
+          <div class="gate-flips">
+            <label class="flip"><input type="checkbox" data-flip="off"><span></span>Maya turns receiving off</label>
+            <label class="flip"><input type="checkbox" data-flip="revoke"><span></span>Fabio revokes it</label>
+          </div>
+        </div>
+        <ol class="gate-checks" aria-live="polite" data-checks></ol>
+        <div class="gate-out" data-out></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec end">
+    <div class="wrap">
+      <a class="btn is-primary is-lg" href="./join/">Join</a>
+      <a class="btn is-lg" href="https://github.com/0xANUSHKA/common-ground-8090#run-the-v0">Download for VS Code</a>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <span>EVOLVE 2026 · MIT · <a href="https://github.com/0xANUSHKA/common-ground-8090">Source</a></span>
+    <span>Favicons belong to their companies. Public Social Capital investment references; people and sharing are illustrative.</span>
+  </div>
+</footer>
+
+<script type="module" src="./nav.js"></script>
+<script type="module" src="./site.js"></script>
+</body>
+</html>

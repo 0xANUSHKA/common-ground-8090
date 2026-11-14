@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard · Common Ground</title>
+<link rel="icon" href="../logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../base.css">
+<link rel="stylesheet" href="./app.css">
+</head>
+<body class="wb-page is-gated">
+<header class="nav"><a class="nav-brand" href="../"><img class="logo" src="../logo.svg" alt=""><span>Common Ground</span></a><nav class="nav-tabs" aria-label="Pages"><a href="../">Overview</a><a href="./" aria-current="page" data-dash-tab>Dashboard</a></nav><div class="nav-links"></div><div class="nav-user" data-nav-user data-root="../"></div></header>
+
+<div class="wb" id="wb">
+  <div class="wb-title">
+    <button type="button" class="wb-burger" id="wb-burger" aria-label="Explorer" aria-expanded="false"><svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></svg></button>
+    <span class="wb-lights" aria-hidden="true"><i></i><i></i><i></i></span>
+    <button type="button" class="wb-search" id="wb-search"><img src="../logo.svg" alt=""><span id="wb-scope">Common Ground</span><kbd>⌘K</kbd></button>
+    <div class="wb-mode" id="wb-mode" role="tablist" aria-label="Mode"></div>
+  </div>
+  <div class="wb-main">
+    <nav class="wb-act" id="wb-act" aria-label="Views"></nav>
+    <aside class="wb-side" id="wb-side" aria-label="Explorer"></aside>
+    <section class="wb-ed" aria-label="Editor">
+      <div class="wb-tabs" id="wb-tabs" role="tablist" aria-label="Open editors"></div>
+      <p class="wb-crumbs" id="wb-crumbs"></p>
+      <div class="wb-view" id="wb-view" tabindex="-1"></div>
+    </section>
+  </div>
+  <footer class="wb-status" id="wb-status"></footer>
+  <div class="wb-toasts" id="wb-toasts" aria-live="polite"></div>
+  <div class="qi-wrap" id="qi" hidden><div class="qi" role="dialog" aria-label="Quick input"><input class="qi-in" id="qi-in" autocomplete="off" spellcheck="false"><p class="qi-msg" id="qi-msg"></p><ul class="qi-list" id="qi-list" role="listbox"></ul></div></div>
+</div>
+
+<script type="module" src="../nav.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

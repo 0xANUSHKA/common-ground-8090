@@ -1,0 +1,60 @@
+/* Common Ground: shared by every page. Tokens, the top bar with its Overview / Dashboard tabs, buttons, logo,
+   favicons and lil guys. Page styles live in site.css (overview) and dashboard/dashboard.css. */
+:root{
+  --bg:#0a0a0b;--bg-2:#111114;--panel:#141418;--panel-2:#1a1a1f;--fg:#ededed;--mute:#a1a1aa;--faint:#6b6b74;--line:#222226;--line-2:#2c2c33;
+  --accent:#3794ff;--accent-2:#0078d4;--need:#3fb68b;--warn:#e2c08d;--bad:#f48771;
+  --font:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;--mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --gutter:clamp(16px,3vw,36px);--max:1180px;
+}
+*{box-sizing:border-box}
+html{background:var(--bg);color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.5 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+button{font:inherit}
+
+/* logo: two circles and the ground they share */
+.logo{flex:none;display:block;width:24px;height:24px}
+
+/* top bar */
+.nav{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:20px;height:60px;padding:0 var(--gutter);
+  background:rgba(10,10,11,.78);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--line)}
+.nav-brand{display:flex;align-items:center;gap:9px;text-decoration:none;font:600 15px/1 var(--font);letter-spacing:-.01em;white-space:nowrap}
+.nav-tabs{display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line)}
+.nav-tabs a{padding:6px 13px;border-radius:7px;text-decoration:none;font:500 13.5px/1 var(--font);color:var(--mute);white-space:nowrap}
+.nav-tabs a:hover{color:var(--fg)}
+.nav-tabs a[aria-current="page"]{background:var(--panel-2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line-2)}
+.nav-links{display:flex;gap:18px;margin-left:auto}
+.nav-links a{text-decoration:none;font-size:13.5px;color:var(--mute)}.nav-links a:hover{color:var(--fg)}
+.nav .btn{margin-left:4px}
+@media (max-width:860px){.nav-links{display:none}.nav .btn{margin-left:auto}}
+@media (max-width:520px){.nav{gap:10px}.nav-brand span{display:none}.nav .btn{padding:0 12px}}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 15px;border:0;border-radius:8px;cursor:pointer;text-decoration:none;white-space:nowrap;
+  font:600 13.5px/1 var(--font);letter-spacing:-.005em;background:var(--panel-2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line-2);transition:background .15s,box-shadow .15s,transform .15s}
+.btn:hover{background:#202026}
+.btn:focus-visible,.nav-tabs a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.is-primary{background:var(--fg);color:var(--bg);box-shadow:none}
+.btn.is-primary:hover{background:#fff}
+.btn.is-blue{background:var(--accent-2);color:#fff;box-shadow:none}
+.btn.is-blue:hover{background:#026ec1}
+.btn.is-lg{height:48px;padding:0 22px;font-size:15px;border-radius:999px}
+.btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* favicons (each company's own, from its website) and lil guys (drawn from a GitHub handle by film/lilguy.js) */
+.fav{display:block;flex:none;width:16px;height:16px;border-radius:3px;object-fit:cover;background:#fff}
+.fav.is-mono{display:grid;place-items:center;background:#2a2a31;color:var(--fg);font:600 10px/1 var(--font)}
+.cg-lg{display:inline-block;flex:none;width:18px;height:18px}
+.cg-lg svg.lg{display:block;width:100%;height:100%;stroke:none;overflow:visible}
+
+.eyebrow{margin:0 0 14px;font:500 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* signed-in / signed-out corner of the top bar (nav.js) */
+.nav-user{display:flex;align-items:center;gap:14px;margin-left:4px}
+.nav-link{text-decoration:none;font-size:13.5px;color:var(--mute)}.nav-link:hover{color:var(--fg)}
+.nav-me{display:flex;align-items:center;gap:8px;height:34px;padding:0 12px 0 5px;border-radius:999px;text-decoration:none;font:500 13.5px/1 var(--font);background:var(--panel);box-shadow:inset 0 0 0 1px var(--line-2)}
+.nav-me .cg-lg{width:24px;height:24px}
+.nav-me:hover{background:var(--panel-2)}
+@media (max-width:860px){.nav-user{margin-left:auto}}
+@media (max-width:520px){.nav-link{display:none}.nav-me span:last-child{display:none}.nav-me{padding:0 5px}}
