@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Common Ground</title>
-<meta name="description" content="Shared ontologies for your portfolio companies. A VS Code and Cursor extension that offers the tools your agents finish to the teammates, and the portfolio companies, who need them.">
+<meta name="description" content="Your portfolio is building the same tools twice. Common Ground offers each internal tool your companies' agents finish to the people across the portfolio who would otherwise rebuild it.">
 <link rel="icon" href="./logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap">
@@ -24,11 +24,13 @@
 <main>
   <section class="hero" id="top">
     <div class="hero-copy">
-      <h1>Shared ontologies for your portfolio companies.</h1>
+      <h1>Your portfolio is building the same tools twice.</h1>
+      <p class="lede">Agents at your companies finish new internal tools every day. Common Ground offers each one to the people across your portfolio who would otherwise rebuild it.</p>
       <div class="hero-act">
         <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
-        <a class="btn is-lg" href="https://github.com/0xANUSHKA/common-ground-8090#run-the-v0"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10"/></svg>Download for VS Code</a>
+        <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
       </div>
+      <p class="more"><a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a><span>The extension also runs in Cursor.</span></p>
     </div>
     <div class="hero-film">
 <section class="film" id="film" data-tour-root data-driver="manual" data-captions="off" aria-label="Common Ground, a short film">
@@ -242,59 +244,103 @@
     </div>
   </section>
 
-  <section class="sec" id="standard">
+  <section class="sec" id="reuse">
     <div class="wrap">
-      <h2>One standard. Everyone joins through it.</h2>
-      <div class="anchor reveal">
-        <div class="anchor-side">
-          <div class="an-co is-in"><img class="fav" src="./film/favicons/saildrone.png" alt=""><span><b>Saildrone</b><small>built it</small></span></div>
-          <div class="an-co is-in"><img class="fav" src="./film/favicons/palmetto.png" alt=""><span><b>Palmetto</b><small>reuses it</small></span></div>
-          <div class="an-co is-wait"><img class="fav" src="./film/favicons/mast.png" alt=""><span><b>Mast Reforestation</b><small>invited</small></span></div>
-        </div>
-        <div class="anchor-core">
-          <div class="core-card">
-            <p class="core-eye"><img class="logo" src="./logo.svg" alt="">Held by the fund</p>
-            <h3>Sensor time-series v1</h3>
-            <ul><li><span>Format</span>time · value · unit · time basis · cadence</li><li><span>Contract</span><code>inspect(rows, binding)</code></li><li><span>Checks</span>7</li><li><span>Grants</span>named · exact version · expiring</li></ul>
-          </div>
-        </div>
-        <div class="anchor-side is-out">
-          <div class="an-co"><img class="fav" src="./film/favicons/groq.svg" alt=""><span><b>Groq</b><small>other standard</small></span></div>
-          <div class="an-co"><img class="fav" src="./film/favicons/intercom.png" alt=""><span><b>Intercom</b><small>other standard</small></span></div>
-          <div class="an-co"><img class="fav" src="./film/favicons/netskope.webp" alt=""><span><b>Netskope</b><small>other standard</small></span></div>
-          <div class="an-co"><img class="fav" src="./film/favicons/slack.png" alt=""><span><b>Slack</b><small>other standard</small></span></div>
-        </div>
+      <h2>Built once at Saildrone. <span>Running at Palmetto.</span></h2>
+      <ol class="trace">
+        <li class="tr-step">
+          <p class="tr-where"><img class="fav" src="./film/favicons/saildrone.png" alt=""><b>Saildrone</b>ocean data</p>
+          <h3>Fabio’s agent builds telemetry-inspector.</h3>
+          <p>It finds missing, duplicate and off-grid readings before they reach a model, and passes all seven checks on real NOAA ocean and NREL solar data.</p>
+        </li>
+        <li class="tr-step">
+          <p class="tr-where"><img class="fav" src="./film/favicons/palmetto.png" alt=""><b>Palmetto</b>solar data</p>
+          <h3>Maya is offered it, and adapts it.</h3>
+          <p>Her inverter data already maps to the fund’s standard, so only the binding changes. The code is the exact version that passed.</p>
+        </li>
+        <li class="tr-step is-sum">
+          <p class="tr-where">Not rebuilt</p>
+          <p class="tr-big">16<span>hours</span></p>
+          <p>The time it took to build. Reused three times in the demo fund so far, 48 hours in all.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec" id="standard">
+    <div class="wrap std">
+      <div class="std-copy">
+        <h2>The fund holds the standard.</h2>
+        <p class="sub">Each company maps its data to it once. After that, a tool built at one company runs at the next without a rewrite.</p>
+        <dl class="std-cos">
+          <div><dt class="is-ok">Mapped</dt><dd><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span><span><img class="fav" src="./film/favicons/mast.png" alt="">Mast Reforestation</span></dd></div>
+          <div><dt class="is-wait">Invited</dt><dd><span><img class="fav" src="./film/favicons/groq.svg" alt="">Groq</span><span><img class="fav" src="./film/favicons/netskope.webp" alt="">Netskope</span></dd></div>
+        </dl>
       </div>
+      <figure class="std-map">
+        <figcaption><img class="logo" src="./logo.svg" alt=""><b>Sensor time-series v1</b><span>held by the fund</span></figcaption>
+        <table class="map">
+          <thead><tr><th scope="col">Field</th><th scope="col"><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span></th><th scope="col"><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span></th></tr></thead>
+          <tbody>
+            <tr><th scope="row">time</th><td>time</td><td>measured_on</td></tr>
+            <tr><th scope="row">value</th><td>WIND_<wbr>SPEED_<wbr>MEAN</td><td>ac_power_<wbr>_423</td></tr>
+            <tr><th scope="row">unit</th><td>m s-1, in row two</td><td>kept separately</td></tr>
+            <tr><th scope="row">time basis</th><td>UTC</td><td>local</td></tr>
+            <tr><th scope="row">cadence</th><td>1 minute</td><td>1 minute</td></tr>
+          </tbody>
+        </table>
+        <p class="std-note">Copy Saildrone’s units-row setting to Palmetto and one solar reading disappears. The binding check refuses it.</p>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec" id="spread">
+    <div class="wrap">
+      <h2>One link from the fund reaches every engineer.</h2>
+      <ol class="spread">
+        <li><span class="sp-n">1</span><h3>The fund</h3><p>Sets the standard and sends one link to its portfolio companies.</p></li>
+        <li><span class="sp-n">2</span><h3>Each company</h3><p>Maps its data once and sends its own link to its engineers.</p></li>
+        <li><span class="sp-n">3</span><h3>Their engineers</h3><p>Install the extension. When an agent finishes a tool, it is checked and offered to the people who could use it, in the company or across the portfolio.</p></li>
+      </ol>
+      <p class="more spread-more">Every shared tool, reuse and hour saved shows up in the fund’s console. <a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
     </div>
   </section>
 
   <section class="sec" id="security">
     <div class="wrap">
       <h2>Who gets it?</h2>
+      <p class="sub">Nothing moves without a name on it. Pick a person to run the same check the server runs.</p>
       <div class="gate" data-gate>
         <div class="gate-left">
-          <div class="gate-tool"><span class="cg-lg" data-lilguy="fabio-sd"></span><span><b>telemetry-inspector</b><small><code>a1f3c9e</code> · Fabio · <img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</small></span><em class="is-ok">7/7</em></div>
-          <div class="gate-people" role="radiogroup" aria-label="Recipient">
-            <button type="button" role="radio" aria-checked="true" data-who="theo"><span class="cg-lg" data-lilguy="theo-tides"></span><b>Theo</b><img class="fav" src="./film/favicons/saildrone.png" alt=""></button>
-            <button type="button" role="radio" aria-checked="false" data-who="maya"><span class="cg-lg" data-lilguy="maya-sun"></span><b>Maya</b><img class="fav" src="./film/favicons/palmetto.png" alt=""></button>
-            <button type="button" role="radio" aria-checked="false" data-who="elli"><span class="cg-lg" data-lilguy="elli-ops"></span><b>Elli</b><img class="fav" src="./film/favicons/palmetto.png" alt=""></button>
-            <button type="button" role="radio" aria-checked="false" data-who="leo"><span class="cg-lg" data-lilguy="leo-billing"></span><b>Leo</b><img class="fav" src="./film/favicons/palmetto.png" alt=""></button>
+          <p class="gate-tool"><span class="cg-lg" data-lilguy="fabio-sd"></span><span><b>telemetry-inspector</b><small>a1f3c9e · Fabio · <img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</small></span><em>7 of 7 checks</em></p>
+          <p class="gate-l" id="gate-l">Share with</p>
+          <div class="gate-people" role="radiogroup" aria-labelledby="gate-l">
+            <button type="button" role="radio" aria-checked="true" data-who="theo"><span class="cg-lg" data-lilguy="theo-tides"></span><b>Theo</b><img class="fav" src="./film/favicons/saildrone.png" alt="Saildrone"></button>
+            <button type="button" role="radio" aria-checked="false" data-who="maya"><span class="cg-lg" data-lilguy="maya-sun"></span><b>Maya</b><img class="fav" src="./film/favicons/palmetto.png" alt="Palmetto"></button>
+            <button type="button" role="radio" aria-checked="false" data-who="elli"><span class="cg-lg" data-lilguy="elli-ops"></span><b>Elli</b><img class="fav" src="./film/favicons/palmetto.png" alt="Palmetto"></button>
+            <button type="button" role="radio" aria-checked="false" data-who="leo"><span class="cg-lg" data-lilguy="leo-billing"></span><b>Leo</b><img class="fav" src="./film/favicons/palmetto.png" alt="Palmetto"></button>
           </div>
           <div class="gate-flips">
             <label class="flip"><input type="checkbox" data-flip="off"><span></span>Maya turns receiving off</label>
             <label class="flip"><input type="checkbox" data-flip="revoke"><span></span>Fabio revokes it</label>
           </div>
         </div>
-        <ol class="gate-checks" aria-live="polite" data-checks></ol>
-        <div class="gate-out" data-out></div>
+        <div class="gate-right">
+          <ol class="gate-checks" aria-live="polite" data-checks></ol>
+          <div class="gate-out" data-out></div>
+        </div>
       </div>
     </div>
   </section>
 
   <section class="sec end">
     <div class="wrap">
-      <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
-      <a class="btn is-lg" href="https://github.com/0xANUSHKA/common-ground-8090#run-the-v0">Download for VS Code</a>
+      <h2>Your portfolio already built it.</h2>
+      <div class="hero-act">
+        <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
+        <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
+      </div>
+      <p class="more"><a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
     </div>
   </section>
 </main>
@@ -302,7 +348,7 @@
 <footer class="foot">
   <div class="wrap">
     <span>EVOLVE 2026 · MIT · <a href="https://github.com/0xANUSHKA/common-ground-8090">Source</a></span>
-    <span>Favicons belong to their companies. Public Social Capital investment references; people and sharing are illustrative.</span>
+    <span>Favicons belong to their companies. Public Social Capital investment references; people and sharing are illustrative. Sample data: NOAA PMEL (CC0), NREL PVDAQ (CC BY 4.0).</span>
   </div>
 </footer>
 

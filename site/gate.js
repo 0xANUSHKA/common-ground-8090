@@ -1,16 +1,16 @@
 // "Who gets it?": the permission check from server/policy.ts (canReceive + fit), run on the repo's seed people.
-// Pick a person; the checks run in order and stop at the first that fails, the way the server does.
-import { lilGuy } from './film/lilguy.js';
-
+// Pick a person; the checks run in order and stop at the first that fails, the way the server does. Each row ends in a
+// plain status word, and the outcome is one sentence.
 const PEOPLE = {
   theo: { name: 'Theo', company: 'saildrone', named: true, receiver: true, fit: true },
   maya: { name: 'Maya', company: 'palmetto', named: true, receiver: true, fit: true },
   elli: { name: 'Elli', company: 'palmetto', named: true, receiver: false, fit: true },
   leo: { name: 'Leo', company: 'palmetto', named: true, receiver: true, fit: false },
 };
+const WORD = { pass: 'passes', fail: 'fails', skip: 'not checked' };
 const CHECKS = [
   ['In the standard', () => true],
-  ['Exact version, 7/7 checks', () => true],
+  ['Exact version, 7 of 7 checks', () => true],
   ['Not revoked', (p, f) => !f.revoke],
   ['Named in the grant', (p) => p.named],
   ['Company lets them receive', (p) => p.receiver],
@@ -29,14 +29,13 @@ export function gate(el) {
     let failed = -1;
     list.innerHTML = CHECKS.map(([label, test], i) => {
       const state = failed >= 0 ? 'skip' : test(p, f) ? 'pass' : (failed = i, 'fail');
-      return `<li class="is-${state}" style="--i:${i}"><i aria-hidden="true"></i><span>${label}</span><span class="sr-only">${state === 'pass' ? 'passes' : state === 'fail' ? 'fails' : 'not checked'}</span></li>`;
+      return `<li class="is-${state}" style="--i:${i}"><span>${label}</span><em>${WORD[state]}</em></li>`;
     }).join('');
-    const ok = failed < 0, same = p.company === 'saildrone';
-    out.className = 'gate-out ' + (ok ? 'is-ok' : 'is-no');
-    out.innerHTML = `<p class="go-h">${p.name}’s Recent</p>` + (ok
-      ? `<div class="go-row">${same ? `<span class="cg-lg">${lilGuy('fabio-sd')}</span>` : `<img class="fav" src="./film/favicons/saildrone.png" alt="">`}<a>telemetry-inspector</a></div>`
-        + `<div class="go-row is-dim"><span></span><a>${same ? 'glider-dashboard' : 'pv-gap-finder'}</a></div>`
-      : `<div class="go-row is-dim"><span></span><a>${same ? 'glider-dashboard' : 'pv-gap-finder'}</a></div><div class="go-none">Nothing new.</div>`);
+    const ok = failed < 0;
+    out.className = 'gate-out ' + (ok ? 'is-delivered' : 'is-blocked');
+    out.innerHTML = ok
+      ? `<p class="go-h"><span class="is-ok">Delivered.</span> ${p.name} sees it.</p><p class="go-sub">telemetry-inspector appears in ${p.name}’s Recent list in VS Code, this exact version only.</p>`
+      : `<p class="go-h"><span class="is-bad">Not delivered.</span> ${p.name} sees nothing.</p><p class="go-sub">It stopped at “${CHECKS[failed][0]}”, so nothing is sent.</p>`;
     list.classList.remove('is-run'); out.classList.remove('is-run'); void list.offsetWidth; list.classList.add('is-run'); out.classList.add('is-run');
   };
 
