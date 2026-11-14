@@ -12,6 +12,8 @@ const fail = (status, message) => Object.assign(new Error(message), { status });
 const HANDLE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
 const KINDS = ['fund', 'company'];
 const clean = (s, n = 80) => String(s ?? '').trim().slice(0, n);
+// a crisp, square company icon from its domain (Google's favicon service picks the best size the site offers)
+const icon = (host) => `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
 const STANDARD = { name: 'Sensor time-series v1', version: '1.0' };
 const DEFAULTS = {
   fund: { enabled: true, crossCompany: true, maxOpenOffers: 2, expiryDays: 7 },
@@ -106,7 +108,7 @@ on('POST', 'orgs', async (req, res, me) => {
   if (!KINDS.includes(kind)) throw fail(400, 'Pick a fund or a company.');
   if (!name) throw fail(400, 'Give it a name.');
   const org = { id: rid(10), kind, name, site: clean(b.site, 120), github: clean(b.github, 39), iconUrl: '', createdAt: now(), owner: me.id, settings: { ...DEFAULTS[kind] } };
-  if (org.site) { try { const h = new URL(/^https?:/.test(org.site) ? org.site : `https://${org.site}`).hostname; org.iconUrl = `https://${h}/favicon.ico`; } catch {} }
+  if (org.site) { try { const h = new URL(/^https?:/.test(org.site) ? org.site : `https://${org.site}`).hostname; org.iconUrl = icon(h); } catch {} }
   if (kind === 'fund') org.standard = STANDARD;
   if (kind === 'company') org.status = 'unaffiliated';
   await setJSON(K.org(org.id), org); await addMember(org, me.id, 'owner');
@@ -155,7 +157,7 @@ on('PATCH', 'orgs/:id', async (req, res, me, p) => {
   const org = await getJSON(K.org(p.id)); if (!org || !isAdmin(await membership(org.id, me.id))) throw fail(404, 'Not found.');
   const b = req.body || {};
   if (b.name != null) org.name = clean(b.name, 60) || org.name;
-  if (b.site != null) { org.site = clean(b.site, 120); try { org.iconUrl = org.site ? `https://${new URL(/^https?:/.test(org.site) ? org.site : `https://${org.site}`).hostname}/favicon.ico` : ''; } catch {} }
+  if (b.site != null) { org.site = clean(b.site, 120); try { org.iconUrl = org.site ? icon(new URL(/^https?:/.test(org.site) ? org.site : `https://${org.site}`).hostname) : ''; } catch {} }
   if (b.github != null) org.github = clean(b.github, 39);
   if (b.settings) {
     const s = { ...DEFAULTS[org.kind], ...org.settings };
@@ -254,7 +256,7 @@ on('POST', 'invites/:code/accept', async (req, res, me, p) => {
   // a company joining a fund: link a company you own, or create one
   let co;
   if (b.companyId) { co = await getJSON(K.org(b.companyId)); if (!co || co.kind !== 'company' || !isAdmin(await membership(co.id, me.id))) throw fail(403, 'You need to be an admin of that company.'); }
-  else { const name = clean(b.companyName, 60); if (!name) throw fail(400, 'Name your company.'); co = { id: rid(10), kind: 'company', name, site: clean(b.site, 120), github: clean(b.github, 39), iconUrl: '', createdAt: now(), owner: me.id, settings: { ...DEFAULTS.company } }; if (co.site) { try { co.iconUrl = `https://${new URL(/^https?:/.test(co.site) ? co.site : `https://${co.site}`).hostname}/favicon.ico`; } catch {} } await setJSON(K.org(co.id), co); await addMember(co, me.id, 'owner'); }
+  else { const name = clean(b.companyName, 60); if (!name) throw fail(400, 'Name your company.'); co = { id: rid(10), kind: 'company', name, site: clean(b.site, 120), github: clean(b.github, 39), iconUrl: '', createdAt: now(), owner: me.id, settings: { ...DEFAULTS.company } }; if (co.site) { try { co.iconUrl = icon(new URL(/^https?:/.test(co.site) ? co.site : `https://${co.site}`).hostname); } catch {} } await setJSON(K.org(co.id), co); await addMember(co, me.id, 'owner'); }
   if (co.fundId && co.fundId !== org.id) throw fail(400, 'That company is already in another fund.');
   co.fundId = org.id; co.status = co.mapping?.result?.state === 'verified' ? 'joined' : 'invited';
   await pipeline([['SET', K.org(co.id), JSON.stringify(co)], ['SADD', K.fundcos(org.id), co.id]]);
@@ -362,7 +364,7 @@ on('POST', 'auth/demo', async (req, res) => {
   const sx = rid(6), at = (daysAgo) => new Date(Date.now() - daysAgo * DAY).toISOString(), cmds = [];
   const me = { id: `demo-${sx}`, email: 'Demo account', name: 'You', handle: 'you-demo', picture: '', createdAt: now(), demo: true, pref: { mode: 'portfolio', muted: [] } };
   cmds.push(['SET', K.user(me.id), JSON.stringify(me)]);
-  const fund = { id: `f${sx}`, kind: 'fund', name: 'Social Capital', site: 'socialcapital.com', iconUrl: '', createdAt: at(30), owner: me.id, demo: true, settings: { ...DEFAULTS.fund }, standard: STANDARD };
+  const fund = { id: `f${sx}`, kind: 'fund', name: 'Social Capital', site: 'socialcapital.com', iconUrl: icon('socialcapital.com'), createdAt: at(30), owner: me.id, demo: true, settings: { ...DEFAULTS.fund }, standard: STANDARD };
   const mem = (org, uid, role, extra = {}) => cmds.push(['HSET', K.mem(org.id), uid, JSON.stringify({ role, publisher: true, exporter: role !== 'member', receiver: true, at: org.createdAt, ...extra })], ['SADD', K.uorgs(uid), org.id]);
   cmds.push(['SET', K.org(fund.id), JSON.stringify(fund)]); mem(fund, me.id, 'owner');
   const map = (src, ok) => ({ source: src, binding: { timeColumn: 'time', signalColumn: 'value', unit: '', skipUnitsRow: false, timeBasis: 'utc', cadenceSeconds: 60 }, columns: [], result: { state: ok ? 'verified' : 'draft', detail: ok ? '1,440 observations · 0 missing timestamps' : 'Waiting for a sample' }, at: at(20) });
@@ -374,8 +376,8 @@ on('POST', 'auth/demo', async (req, res) => {
     ['netskope', 'Netskope', 'netskope.com', 'netskope.webp', '', false, []],
   ];
   const co = {}, ppl = {};
-  for (const [key, name, site, icon, src, ok, people] of COS) {
-    const c = { id: `c${sx}${key.slice(0, 3)}`, kind: 'company', name, site, iconUrl: `/film/favicons/${icon}`, createdAt: at(25), owner: null, demo: true, fundId: fund.id, status: ok ? 'joined' : 'invited', settings: { ...DEFAULTS.company }, ...(src ? { mapping: map(src, ok) } : {}) };
+  for (const [key, name, site, , src, ok, people] of COS) {
+    const c = { id: `c${sx}${key.slice(0, 3)}`, kind: 'company', name, site, iconUrl: icon(site), createdAt: at(25), owner: null, demo: true, fundId: fund.id, status: ok ? 'joined' : 'invited', settings: { ...DEFAULTS.company }, ...(src ? { mapping: map(src, ok) } : {}) };
     co[key] = c;
     for (const [pname, gh, role] of people) { const u = { id: `u${sx}${gh}`, email: `${gh}@example.com`, name: pname, handle: gh, picture: '', createdAt: at(25), demo: true }; ppl[gh] = u; cmds.push(['SET', K.user(u.id), JSON.stringify(u)]); mem(c, u.id, role); if (role === 'owner') c.owner = u.id; }
     cmds.push(['SADD', K.fundcos(fund.id), c.id]);

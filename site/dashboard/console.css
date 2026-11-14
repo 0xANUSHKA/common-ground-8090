@@ -60,8 +60,11 @@ code,.mono{font-family:var(--mono);font-size:.92em}
 .brand svg{color:var(--c-fg)}
 
 /* icons, avatars, favicons */
-.i{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.av{flex:none;display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--c-sunk);overflow:hidden}
+.i{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.av{flex:none;display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--c-sunk);overflow:hidden;object-fit:cover}
+.av.is-init{display:inline-grid;place-items:center;font:600 10px/1 var(--font);letter-spacing:.02em;color:hsl(var(--h) 45% 32%);background:hsl(var(--h) 60% 92%)}
+@media (prefers-color-scheme:dark){.av.is-init{color:hsl(var(--h) 70% 82%);background:hsl(var(--h) 30% 22%)}}
+.av.is-lg.is-init{font-size:15px}
 .av svg{display:block;width:100%;height:100%}
 .av.is-lg{width:40px;height:40px}
 .fav{flex:none;display:block;width:22px;height:22px;border-radius:6px;object-fit:contain;background:#fff;box-shadow:0 0 0 1px var(--c-line)}

@@ -44,7 +44,7 @@ async function invite(code) {
   };
   render();
   form.onclick = (e) => { const b = e.target.closest('[data-co]'); if (b) { pick = b.dataset.co; render(); } };
-  form.oninput = () => { const n = F('name')?.value || 'Your company', s = F('site')?.value || ''; draw(`<p class="pv-l">Joining</p>${card(fav(host(s) && `https://${host(s)}/favicon.ico`, n), n, host(s) || 'Map your data next', [ME])}`); };
+  form.oninput = () => { const n = F('name')?.value || 'Your company', s = F('site')?.value || ''; draw(`<p class="pv-l">Joining</p>${card(fav(host(s) && `https://www.google.com/s2/favicons?domain=${host(s)}&sz=128`, n), n, host(s) || 'Map your data next', [ME])}`); };
   form.onsubmit = async (e) => { e.preventDefault();
     const body = pick ? { companyId: pick } : { companyName: F('name').value, site: F('site').value };
     try { const r = await api(`invites/${encodeURIComponent(code)}/accept`, { method: 'POST', body }); location.href = dash(r.orgId, 'data'); } catch (x) { err(x.message); } };
@@ -68,7 +68,7 @@ function start() {
     draw();
   };
   const draw = () => { if (!ME) return; const nm = F('name')?.value || (fund ? 'Your fund' : 'Your company'), st = F('site')?.value || '', h = F('handle')?.value.trim().replace(/^@/, '');
-    preview.innerHTML = `<p class="pv-l">You’re setting up</p>${card(fav(host(st) && `https://${host(st)}/favicon.ico`, nm), nm, fund ? 'Sensor time-series v1' : host(st) || '1 person', [{ ...ME, handle: h }])}<p class="pv-l">Next</p><div class="pv-card" style="background:none;box-shadow:inset 0 0 0 1px var(--line)"><p style="margin:0;color:var(--mute);font-size:14px">${fund ? 'Copy your company link from the dashboard and send it to every founder or engineering lead in the portfolio.' : 'Map a sample of your data, then send your team its link.'}</p></div>`; };
+    preview.innerHTML = `<p class="pv-l">You’re setting up</p>${card(fav(host(st) && `https://www.google.com/s2/favicons?domain=${host(st)}&sz=128`, nm), nm, fund ? 'Sensor time-series v1' : host(st) || '1 person', [{ ...ME, handle: h }])}<p class="pv-l">Next</p><div class="pv-card" style="background:none;box-shadow:inset 0 0 0 1px var(--line)"><p style="margin:0;color:var(--mute);font-size:14px">${fund ? 'Copy your company link from the dashboard and send it to every founder or engineering lead in the portfolio.' : 'Map a sample of your data, then send your team its link.'}</p></div>`; };
   render();
   form.oninput = draw;
   form.onclick = async (e) => { if (!e.target.closest('[data-demo]')) return; e.preventDefault(); await api('auth/demo', { method: 'POST' }); location.href = '/dashboard/'; };
