@@ -1,0 +1,7 @@
+{
+  "output": "common-ground-submission.mp4",
+  "clips": [
+    {"path": "anushka.mp4", "in": 0, "duration": 20, "role": "anushka"},
+    {"path": "connor.mp4", "in": 0, "duration": 30, "role": "connor"}
+  ]
+}

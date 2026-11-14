@@ -1,3 +1,13 @@
+# Latest: record the two-laptop Devpost demo
+
+Read **docs/REHEARSAL-AND-CAPTURE.md** first. Install **0.1.6**, run `npm run package:site`, deploy `site/` from your authorized Vercel environment, and reload the editor. New in 0.1.6: an explicit fresh-rehearsal-copies option so old reuse history does not suppress the next recommendation. Do not purge the fund/company DB.
+
+**Connor's next task:** record his real receiving flow while Anushka approves one fresh weather share: correct company → Refresh companies → shared tool → Open in editor → Save project here → NEW editor window → Common Ground: Open Start → Opened from Common Ground → Open project → Run project → wind 8 to 4 → Run project → source hash. Use Shift-Command-5 or `scripts/demo-capture/record.sh`. Keep 3 seconds of stillness around actions. Transfer the raw MP4 to Anushka via AirDrop; do not commit footage. The repo includes a trim/assembly helper. Do not submit the mock rehearsal as live product proof.
+
+**Selective matcher:** no separate Jev classifier. Real permissions + company workflow briefs + recorded reuse + optional Hydra retrieval. `node scripts/rehearse-routing.mjs --serve` creates a safe isolated five-company browser rehearsal and verifies that unrelated/opted-out recipients are excluded. These fictional companies are not added to production. Company labels in the mock are Saildrone (demo)/Palmetto (demo), based on public business context; production Pelagic/Helioforge need not be recreated.
+
+---
+
 # Four-project portfolio demo — extension 0.1.5
 
 Read **docs/FOUR-PROJECT-DEMO.md**. Four runnable prepared examples now ship in the editor: weather windows, revenue reconciliation, battery bench review and inference capacity planning. They have synthetic inputs, editable assumptions and 28 actual acceptance cases. They are explicitly reference examples, not claimed live generations. The original ocean-to-solar generated tool remains supported.

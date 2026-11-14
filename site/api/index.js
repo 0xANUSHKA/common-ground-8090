@@ -476,7 +476,7 @@ on('POST', 'suggest', async (req, res, me) => {
       if (overlap.length) evidence.push({ kind: 'company-brief', source: `${company.name} · shared workflow brief`, text: company.needs, matched: overlap });
       if (prior?.count) evidence.push({ kind: 'reuse', source: 'Recorded adoption', text: `Previously ${prior.e.kind === 'adapt' ? 'adapted' : 'downloaded'} ${prior.e.tool}.`, at: prior.e.at });
       const map = company.mapping?.binding;
-      const reasons = [...evidence.map(e => `${e.source}: ${e.text}`), portfolio && map ? `Compatible mapping: ${map.timeColumn} → time; ${map.signalColumn} → value.` : 'Same company; receiving is enabled.'];
+      const reasons = [...evidence.map(e => `${e.source}: ${e.text}`), candidate.contract === 'decision-report/v1' ? 'Shared input contract: decision-report/v1; the recipient supplies their own inputs.' : portfolio && map ? `Compatible mapping: ${map.timeColumn} → time; ${map.signalColumn} → value.` : 'Same company; receiving is enabled.'];
       out.push({ kind: 'person', target, user: pub(u), company: { id: company.id, name: company.name, iconUrl: company.iconUrl }, portfolio, score: overlap.length + (prior?.count || 0) * 2 + (retrieval?.score||0), reasons, evidence, basis: 'workflow-and-reuse' });
     }
   }

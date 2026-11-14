@@ -1,5 +1,7 @@
 # Common Ground
 
+**Current rehearsal and recording guide:** [Five-minute flow, selective routing, fresh copies, and two-laptop capture](docs/REHEARSAL-AND-CAPTURE.md).
+
 **Your software factory finished a tool. Someone else in your portfolio needed it yesterday.**
 
 Common Ground is an ontological software factory for venture portfolios. Agents build tools against the fund's shared data standard rather than one company's columns, so any tool that passes the factory's checks can run at every company that has mapped its data. A fund sets the standard and sends one link to its portfolio. Each company maps its data once. Engineers build, check and share tools from VS Code or Cursor, and the fund's console shows recorded reuse alongside author-supplied build estimates. The current factory builds one bounded telemetry-checking function; arbitrary repositories are not supported.

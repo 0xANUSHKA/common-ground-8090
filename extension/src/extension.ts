@@ -84,6 +84,9 @@ export function activate(context:vscode.ExtensionContext){
   if(!vscode.workspace.isTrusted)throw new Error('Trust the workspace before checking example code.');
   const w=await workspace();if(!w.companyId)throw new Error('Select your working company first.');
   const co=await hosted(`orgs/${w.companyId}`);
+  const mode=await vscode.window.showQuickPick([{label:'Reuse existing examples',description:'Keeps their sharing and reuse history',fresh:false},{label:'Create fresh rehearsal copies',description:'New tool records; previous projects and company setup stay intact',fresh:true}],{title:'Prepare example projects',placeHolder:'For a fresh recommendation and first-time handoff, choose fresh rehearsal copies.'});
+  if(!mode)return {cancelled:true};
+  const suffix=mode.fresh?'-rehearsal-'+Date.now().toString(36):'';
   const choices=[{label:`My team at ${co.org.name}`,description:'Same-company sharing',body:{orgId:w.companyId},picked:true},...(co.peerPeople||[]).filter((x:any)=>x.user.id!==w.user.id).map((x:any)=>({label:x.user.name,description:(co.peers||[]).find((p:any)=>p.id===x.companyId)?.name||'Portfolio company',body:{userId:x.user.id,companyId:x.companyId},picked:false}))];
   const selected=await vscode.window.showQuickPick(choices,{canPickMany:true,title:'Add four prepared examples — choose who receives them',placeHolder:'Existing sharing policies apply. These are curated demo shares, not automatic recommendations.'});
   if(!selected)return {cancelled:true};
@@ -92,8 +95,9 @@ export function activate(context:vscode.ExtensionContext){
    const checked=await projectWorker(join(context.extensionPath,'dist','project-worker.cjs'),{verify:true,project:p});
    if(checked.checks.length!==7||checked.checks.some((c:any)=>!c.passed))throw new Error(p.title+' failed its acceptance checks. Nothing will be shared for this project.');
    const hash=createHash('sha256').update(p.source).digest('hex');
-   const existing=co.tools.find((t:any)=>t.owner===w.user.id&&t.name===p.id+'-example'&&t.hash===hash);
-   const tool=existing||(await hosted('tools','POST',{orgId:w.companyId,name:p.id+'-example',description:p.description+' Prepared example with synthetic inputs.',hash,checks:checked.checks,provenance:'reference-template',hours:0,files:{'inspector.js':p.source,'common-ground.json':JSON.stringify(manifest(p),null,2),'checks.json':JSON.stringify(checked.checks,null,2),'README.md':`# ${p.title}\n\n${p.description}\n\n${p.story}\n\nPrepared reference example with synthetic inputs, not a live agent-generated build or real customer deployment. Run it in Common Ground 0.1.5 or later. Uses decision-report/v1 JSON inputs, not the sensor CSV mapping. Seven project-specific cases were executed locally before publication; the hosted service validates the source hash and records this attestation. No build-time savings are measured.\n`}})).tool;
+   const name=p.id+'-example'+suffix;
+   const existing=!mode.fresh&&co.tools.find((t:any)=>t.owner===w.user.id&&t.name===name&&t.hash===hash);
+   const tool=existing||(await hosted('tools','POST',{orgId:w.companyId,name,description:p.description+' Prepared example with synthetic inputs.',hash,checks:checked.checks,provenance:'reference-template',hours:0,files:{'inspector.js':p.source,'common-ground.json':JSON.stringify(manifest(p),null,2),'checks.json':JSON.stringify(checked.checks,null,2),'README.md':`# ${p.title}\n\n${p.description}\n\n${p.story}\n\nPrepared reference example with synthetic inputs, not a live agent-generated build or real customer deployment. Run it in Common Ground 0.1.5 or later. Uses decision-report/v1 JSON inputs, not the sensor CSV mapping. Seven project-specific cases were executed locally before publication; the hosted service validates the source hash and records this attestation. No build-time savings are measured.\n`}})).tool;
    for(const target of selected){
     const prior=(co.grants||[]).some((g:any)=>g.toolId===tool.id&&!g.revoked&&Date.parse(g.expiresAt)>Date.now()&&(target.body.orgId?g.target.orgId===target.body.orgId:g.target.userId===target.body.userId&&g.target.companyId===target.body.companyId));
     if(!prior)try{await hosted(`tools/${tool.id}/grants`,'POST',target.body);}catch(e){warnings.push(`${p.title} → ${target.label}: ${e instanceof Error?e.message:'share rejected'}`);}
