@@ -70,7 +70,7 @@
 .is-ok{color:var(--need)}.is-wait{color:var(--warn)}.is-bad{color:var(--bad)}
 
 /* the factory line: seven steps on one hairline, a small tick where each begins */
-.line{list-style:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));margin:64px 0 0;padding:0;
+.line{list-style:none;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));margin:64px 0 0;padding:0;
   background:linear-gradient(90deg,var(--line-2),rgba(55,148,255,.6) 50%,rgba(63,182,139,.75)) top/100% 1px no-repeat}
 .line li{position:relative;padding:24px 18px 0 0}
 .line li::before{content:"";position:absolute;left:0;top:-4px;width:1px;height:9px;background:var(--mute)}

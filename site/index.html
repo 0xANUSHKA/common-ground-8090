@@ -25,7 +25,7 @@
   <section class="hero has-bg bg-night" id="top">
     <div class="hero-copy">
       <h1>One software factory for the whole portfolio.</h1>
-      <p class="lede">Agents at your companies build tools against the fund’s shared ontology. A tool that passes the checks at one company runs at any other that has mapped its data.</p>
+      <p class="lede">Agents at your companies build tools against the fund’s shared ontology. The factory checks each one, seals it, and suggests who else in the portfolio should have it.</p>
       <div class="hero-act">
         <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
         <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
@@ -257,16 +257,17 @@
 
   <section class="sec" id="factory">
     <div class="wrap">
-      <h2>The factory line.</h2>
-      <p class="sub">Every tool goes through the same seven stations before anyone else can open it.</p>
+      <h2>Building software is cheap now. <span>Getting it to the right people isn’t.</span></h2>
+      <p class="sub">So the factory doesn’t stop when the code passes. Every tool runs the same line, and the line ends by deciding who else should have it.</p>
       <ol class="line">
-        <li><span class="ln-n">1</span><h3>Brief</h3><p>“Find missing timestamps and duplicates in a sensor CSV. Never guess a timezone.” Recorded as a requirement in 8090’s Software Factory.</p></li>
-        <li><span class="ln-n">2</span><h3>Built against the standard</h3><p>The agent writes one function that sees only time and value from Sensor time-series v1, never Saildrone’s column names.</p></li>
-        <li><span class="ln-n">3</span><h3>Seven checks</h3><p>In a sandbox the agent can’t touch, on real NOAA ocean and NREL solar data. Wrong units row: 1,439 rows, expected 1,440. <span class="is-bad">Fails.</span> Repaired: <span class="is-ok">7 of 7.</span></p></li>
-        <li><span class="ln-n">4</span><h3>Sealed</h3><p>The exact code that passed gets a SHA-256 fingerprint, c54c31b. Change a byte and it is no longer the checked version.</p></li>
-        <li><span class="ln-n">5</span><h3>Shared by name</h3><p>Fabio shares this version with Maya at Palmetto. No one else can open it.</p></li>
-        <li><span class="ln-n">6</span><h3>Rebound</h3><p>Palmetto’s mapping swaps in: measured_on for time, ac_power__423 for value, local time kept local. Same hash.</p></li>
-        <li><span class="ln-n">7</span><h3>Counted</h3><p>The fund console records one reuse, about 16 hours not spent rebuilding.</p></li>
+        <li><span class="ln-n">1</span><h3>Requirement</h3><p>“Find missing timestamps and duplicates in a sensor CSV. Never guess a timezone.” Filed in 8090’s Software Factory before any code.</p></li>
+        <li><span class="ln-n">2</span><h3>Blueprint</h3><p>The agent plans against the standard first: it reads time and value, returns the completeness report, and must pass seven named checks.</p></li>
+        <li><span class="ln-n">3</span><h3>Built</h3><p>One function, written to the blueprint. It never sees Saildrone’s column names.</p></li>
+        <li><span class="ln-n">4</span><h3>Seven checks</h3><p>In a sandbox the agent can’t touch, on real NOAA ocean and NREL solar data. Wrong units row: 1,439 rows. <span class="is-bad">Fails.</span> Repaired: <span class="is-ok">7 of 7.</span></p></li>
+        <li><span class="ln-n">5</span><h3>Sealed</h3><p>The code that passed is fixed by its hash, c54c31b, and linked back to its requirement and blueprint.</p></li>
+        <li><span class="ln-n">6</span><h3>Suggested</h3><p>The factory reads the fund’s ontology. Palmetto maps its solar readings to the same standard, and Maya adapted a tool like this last month. It suggests Maya.</p></li>
+        <li><span class="ln-n">7</span><h3>Rebound</h3><p>At Palmetto the mapping swaps in: measured_on for time, ac_power__423 for value. Same hash.</p></li>
+        <li><span class="ln-n">8</span><h3>Counted</h3><p>The fund sees one reuse and about 16 hours not rebuilt. A copy that drifts from the sealed version is flagged.</p></li>
       </ol>
     </div>
   </section>

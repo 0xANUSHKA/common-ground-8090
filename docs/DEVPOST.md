@@ -19,7 +19,7 @@ Spoken version: "One software factory for the whole portfolio."
 
 ## What it does
 
-Common Ground is an ontological software factory for venture portfolios. Agents build tools against the fund's shared data standard, not one company's columns, so any tool that passes the factory's checks can run at every company that has mapped its data.
+Building software is cheap now. Getting it to the right people isn't. Common Ground is an ontological software factory for venture portfolios: agents build tools against the fund's shared data standard, not one company's columns, so any tool that passes the factory's checks can run at every company that has mapped its data. And the factory doesn't stop when the code passes: at the end of every cycle it reads the fund's ontology and suggests who else in the portfolio should have the tool.
 
 Here's the line, from idea to implementation:
 1. An engineer describes a tool in VS Code or Cursor.
