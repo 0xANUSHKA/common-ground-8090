@@ -15,3 +15,21 @@ Saturday 14 November 2026, morning. Connor's words, verbatim:
 - Distribution suggestions ("who should get it, and why"): `POST /api/suggest` in `site/api/index.js`; shown in the editor (`web/main.ts`, share step) and the console tool page.
 - Hackathon rules, thesis review and submission drafts: `docs/THESIS-REVIEW.md`, `docs/DEVPOST.md`, `docs/DEMO-VIDEO.md`.
 - The demo fund's companies (Saildrone, Palmetto, Mast Reforestation, Groq, Netskope) are seeded in `site/api/index.js` (`auth/demo`) and named on the overview page (`site/index.html`).
+
+## Deploying the site (Vercel)
+
+- The live site is the Vercel project **common-ground** in Connor's team **42connor-gmailcoms-projects**, served at https://common-ground-theta.vercel.app. Connor is adding Anushka to that team; accept the email invite from Vercel first.
+- Deploy from `site/` (it's the project root; there is no build step):
+  ```sh
+  npm i -g vercel        # if needed
+  vercel login           # as Anushka
+  cd site
+  vercel link --yes --project common-ground --scope 42connor-gmailcoms-projects
+  vercel deploy --prod --yes
+  ```
+  `vercel deploy` without `--prod` gives a preview URL first if you want to check.
+- Pushing to GitHub does **not** deploy yet (the project isn't connected to the repo). If you'd like push-to-deploy, connect it in the Vercel dashboard (Project → Settings → Git → Connect `0xANUSHKA/common-ground-8090`, root directory `site`); GitHub will ask Anushka to approve Vercel's access to the repo.
+- Environment variables are already set on the project (production): `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and the Upstash Redis ones (`KV_REST_API_URL`, `KV_REST_API_TOKEN`, …). Nothing secret is needed locally: `cd site && npm run dev` runs the real API on an in-memory database with a local sign-in.
+- Google sign-in only accepts the redirect `https://common-ground-theta.vercel.app/api/auth/callback` (Connor's Google Cloud project). Preview URLs and other domains will fail sign-in unless that URI is added there; use "Explore a demo fund" on previews.
+- The extension download is `site/download/common-ground.vsix` (git-ignored). After changing `extension/` or `web/`, run `npm run package:extension` at the repo root (Node 26) and copy `common-ground-0.1.0.vsix` to `site/download/common-ground.vsix` before deploying.
+- Before deploying: `cd site && npm test` (hosted permission checks) and, at the root, `npm test` (factory tests).
