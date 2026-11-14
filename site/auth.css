@@ -48,3 +48,9 @@
   .join{grid-template-columns:minmax(0,1fr);gap:28px}
   .preview{position:static;order:-1}
 }
+
+/* a quiet satellite view of a patchwork of fields behind sign-in and join (NASA Earth Observatory, public domain) */
+body{background:var(--bg) }
+.auth,.join{position:relative;isolation:isolate}
+.auth::before,.join::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:url('../img/fields.webp') center/cover no-repeat;opacity:.16;filter:saturate(.2) contrast(1.1);
+  -webkit-mask-image:radial-gradient(80% 70% at 50% 50%,transparent 25%,#000 85%);mask-image:radial-gradient(80% 70% at 50% 50%,transparent 25%,#000 85%)}

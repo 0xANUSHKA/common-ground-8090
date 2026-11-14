@@ -183,3 +183,18 @@
   .std-cos > div{grid-template-columns:minmax(0,1fr);gap:8px}
 }
 @media (prefers-reduced-motion:reduce){.gate-checks.is-run li,.gate-out.is-run{animation:none}}
+
+/* backgrounds: public-domain and CC images from Wikimedia Commons (credits in the footer), full-bleed and quiet,
+   fading into the page at the edges so text always sits on near-black */
+.has-bg{position:relative;isolation:isolate}
+.has-bg::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--img) var(--pos,center)/cover no-repeat;opacity:var(--o,.3);filter:saturate(var(--sat,.85)) contrast(1.05);
+  -webkit-mask-image:var(--mask,linear-gradient(180deg,transparent,#000 24%,#000 72%,transparent));mask-image:var(--mask,linear-gradient(180deg,transparent,#000 24%,#000 72%,transparent))}
+.hero.has-bg{max-width:none;padding-left:max(var(--gutter),calc((100vw - 1360px)/2 + var(--gutter)));padding-right:max(var(--gutter),calc((100vw - 1360px)/2 + var(--gutter)))}
+.bg-night{--img:url('./img/night.webp');--pos:center 78%;--o:.55;--sat:1;--mask:linear-gradient(180deg,transparent 0,#000 40%,#000 80%,transparent)}
+.bg-streams{--img:url('./img/streams.webp');--o:.2;--sat:.25;--mask:linear-gradient(90deg,transparent 30%,#000 75%)}
+.bg-veins{--img:url('./img/veins.webp');--o:.22;--sat:0;--mask:radial-gradient(70% 80% at 18% 50%,#000,transparent)}
+.bg-outflow{--img:url('./img/outflow.webp');--o:.17;--sat:.75;--mask:linear-gradient(180deg,transparent,#000 30%,#000 70%,transparent)}
+.bg-deep{--img:url('./img/deepfield.webp');--o:.6;--sat:1;--mask:radial-gradient(60% 75% at 50% 50%,#000 30%,transparent)}
+.end.has-bg{padding:clamp(120px,20vh,200px) 0}
+@media (prefers-reduced-transparency:reduce){.has-bg::before{opacity:calc(var(--o) * .6)}}
+.hero.has-bg::before{inset:0;height:auto}
