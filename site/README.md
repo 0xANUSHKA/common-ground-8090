@@ -50,6 +50,15 @@ company link to the portfolio, and each company sends its own link to its engine
   Every read re-checks permissions, so those take effect immediately.
 - Env vars: `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`.
 
+## The editor extension
+
+`extension/` and `web/` (repo root). It signs in through the browser (`GET /api/auth/extension` → Google → a
+`vscode://common-ground-demo.common-ground/auth?token=…` link back) and then talks to this API with a Bearer token.
+Building and the seven checks run in the local builder (`npm start` at the repo root, Node 26); sharing, receiving and
+downloads go through Common Ground: `POST /api/tools` with the checked files (hash-verified), `POST
+/api/tools/:id/grants`, `GET /api/shared`, `GET /api/tools/:id/package`. Rebuild with `npm run package:extension`
+and copy the `.vsix` to `site/download/common-ground.vsix` so the site serves the new one.
+
 ## Deploying and accounts
 
 - Deploy: `vercel deploy --prod --yes` from `site/`. Pushing to GitHub does not deploy yet; the Vercel project

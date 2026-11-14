@@ -82,6 +82,8 @@ ok('outsider cannot download', (await p('nush', 'GET', `tools/${pub.tool.id}/pac
 const d = await fetch(`${B}/api/auth/demo`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }); jar.demo = d.headers.get("set-cookie").split(";")[0];
 const dme = await p("demo", "GET", "me"), dfund = await p("demo", "GET", `orgs/${dme.orgs.find((o) => o.kind === "fund").id}`);
 ok("demo fund is seeded", dfund.companies.length === 5 && dfund.portfolioTools.length === 5 && dfund.stats.reuses === 7, JSON.stringify(dfund.stats));
+const dt = dfund.portfolioTools.find((t) => t.name === 'telemetry-inspector'), dpk = await p("demo", "GET", `tools/${dt.id}/package`);
+ok("demo tools download with a matching hash", dpk.hash === dt.hash && createHash('sha256').update(dpk.files['inspector.js']).digest('hex') === dt.hash);
 close();
 console.log(failed ? `${failed} failed` : 'All passed');
 process.exit(failed ? 1 : 0);

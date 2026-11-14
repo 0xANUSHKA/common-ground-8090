@@ -4,6 +4,7 @@
 import { randomBytes } from 'node:crypto';
 import { cmd, pipeline, getJSON, setJSON, getMany, kvReady } from './_kv.js';
 import { createHash } from 'node:crypto';
+import { INSPECTOR } from './_demo-tool.js';
 import { authReady, sessionUser, startSession, endSession, googleStart, googleFinish, safeNext, extensionToken } from './_auth.js';
 
 const DAY = 86400000;
@@ -423,7 +424,9 @@ on('POST', 'auth/demo', async (req, res) => {
   ];
   const reuse = { [fund.id]: [] };
   for (const [name, ck, gh, desc, hours, uses] of TOOLS) {
-    const c = co[ck], author = ppl[gh], t = { id: `t${sx}${name.slice(0, 6)}`, name, description: desc, owner: author.id, orgId: c.id, createdAt: at(15), hash: randomBytes(8).toString('hex'), checks: 7, hours, uses: [], demo: true };
+    const code = `// ${name}: ${desc}\n${INSPECTOR}`, hash = createHash('sha256').update(code).digest('hex');
+    const c = co[ck], author = ppl[gh], t = { id: `t${sx}${name.slice(0, 6)}`, name, description: desc, owner: author.id, orgId: c.id, createdAt: at(15), hash, checks: 7, hours, uses: [], demo: true, fromEditor: true };
+    cmds.push(['SET', K.pkg(t.id), JSON.stringify({ name, hash, files: { 'inspector.js': code, 'README.md': `# ${name}\n\n${desc}\n\nBuilt at ${c.name} by ${author.name}. Shared through Common Ground: this is the exact version that passed all seven checks.\n\nSample data from the Common Ground demo fund.\n` } })]);
     const grant = (target, scope, d) => { const g = { id: rid(10), toolId: t.id, issuer: author.id, revoked: false, at: at(d + 0.5), scope, target, expiresAt: new Date(Date.now() + (scope === 'portfolio' ? 7 : 30) * DAY).toISOString() }; cmds.push(['SET', K.grant(g.id), JSON.stringify(g)], ['SADD', K.tgrants(t.id), g.id], target.type === 'org' ? ['SADD', K.ogrants(target.orgId), g.id] : ['SADD', K.ugrants(target.userId), g.id]); };
     grant({ type: 'org', orgId: c.id }, 'team', 14);
     for (const [tk, ugh, kind, d] of uses) {
