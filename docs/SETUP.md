@@ -2,7 +2,7 @@
 
 ## First run: no API keys required
 
-SocialAcolyte has been invited with GitHub **write** permission. Accept the repository invitation in GitHub before pushing. Work on the existing `main` branch.
+SocialAcolyte's GitHub **write** access is confirmed. Authenticate with your own GitHub account before pushing. Work on the existing `main` branch.
 
 ```sh
 git clone https://github.com/0xANUSHKA/common-ground-8090.git

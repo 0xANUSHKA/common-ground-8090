@@ -6,6 +6,8 @@ Common Ground finds that second use, checks the permission boundary, binds the t
 
 Built for EVOLVE, November 13–14, 2026. MIT licensed. Public demo data; illustrative company roles and permissions.
 
+**Positioning:** software reuse across investment portfolios, delivered as one IDE extension. The buyer is a fund's operating/platform team; the users are engineers at its portfolio companies. See [the agreed pitch, implementation status, API readiness, and demo/product ship plan](docs/PRODUCT_BRIEF.md).
+
 ## Run the v0
 
 Requires Node **26.x** (uses built-in SQLite), npm, and optionally VS Code/Cursor.

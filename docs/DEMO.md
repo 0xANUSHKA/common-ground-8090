@@ -1,5 +1,7 @@
 # Five minutes, one surface
 
+**Audience and promise:** pitch to a fund's operating/platform team; show the portfolio-company engineer's IDE workflow. “Software factories build tools. Common Ground makes those tools useful across the portfolio.” Our demo is marine → solar, using public data and illustrative participation. See [the shared product brief](PRODUCT_BRIEF.md) for precise claims and release gates.
+
 ## Before the room
 Start the backend; install the VSIX; open Common Ground: Start. Enlarge editor font/zoom if needed. Use two editor windows (or switch demo identities) representing Fabio and Maya. Both use the SAME extension. Explain that identities and participation are illustrative. Run a full rehearsal once. Prefer an already verified live-generated artifact if a live model is configured; explicitly label any offline reference run.
 

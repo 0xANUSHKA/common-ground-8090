@@ -8,8 +8,8 @@ This document is an implementation assignment, not a description of features alr
 
 ## Start here
 
-1. Accept the GitHub invitation to `0xANUSHKA/common-ground-8090` with write permission.
-2. Read `AGENTS.md`, `README.md`, `docs/SETUP.md`, `docs/ARCHITECTURE.md`, and `docs/DEMO.md`.
+1. SocialAcolyte's write access to `0xANUSHKA/common-ground-8090` is confirmed. Authenticate your local Git client with your own account.
+2. Read `AGENTS.md`, `README.md`, `docs/PRODUCT_BRIEF.md`, `docs/SETUP.md`, `docs/ARCHITECTURE.md`, and `docs/DEMO.md`. The product brief fixes the buyer (fund platform teams), delivery (one IDE extension) and accurate marine-to-solar story.
 3. Run `npm ci`, `npm run check`, `npm run doctor`, and `npm start` with Node 26.x. Reference mode requires no keys and is sufficient for your entire assignment.
 4. Package/install the extension with `npm run package:extension`; use **Common Ground: Open Start** in VS Code or Cursor.
 5. Work directly on existing `main`. You are not alone in the repository: preserve others' changes, pull before starting, and inspect remote changes before pushing. No force pushes, branch/worktree creation, unrelated refactors or overwriting local work.
