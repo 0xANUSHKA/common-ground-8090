@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { newOffers } from './offers.js';
 import { randomBytes,createHash } from 'node:crypto';
 import { mkdir,writeFile,readFile } from 'node:fs/promises';
 import { join,basename } from 'node:path';
@@ -10,7 +11,8 @@ type Receipt={name:string;uri:string;hash:string;toolId?:string;at:string};
 const FILE_OK=/^[A-Za-z0-9_.-]{1,80}\.(js|json|md|csv|txt)$/;
 export function activate(context:vscode.ExtensionContext){
  let panel:vscode.WebviewPanel|undefined;
- let signInState='';
+ let signInState='',signInServer='';
+ let offerToken='',offerIds:Set<string>|null=null,offerPolling=false,notificationOpen=false;
  const recents=()=>context.globalState.get<Recent[]>('recents',[]);
  async function track(){const f=vscode.workspace.workspaceFolders?.[0];if(f)await context.globalState.update('recents',[{name:f.name,uri:f.uri.toString()},...recents().filter(r=>r.uri!==f.uri.toString())].slice(0,10));}
  void track();context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(track));
@@ -32,7 +34,7 @@ export function activate(context:vscode.ExtensionContext){
   // The hosted routes the view needs, and nothing else.
   if(!/^(me|shared|suggest|tools|tools\/[a-z0-9]+\/(grants|package|uses)|grants\/[a-z0-9]+|orgs\/[a-z0-9]+)$/.test(path))throw new Error('Unsupported route');
   if(!['GET','POST','DELETE'].includes(method))throw new Error('Unsupported method');
-  const token=await context.secrets.get('hostedToken');if(!token)throw Object.assign(new Error('Sign in to Common Ground first.'),{status:401});
+  const token=await context.secrets.get('hostedToken');if(token && await context.secrets.get('hostedServer')!==server())throw new Error('Sign in again to connect this Common Ground server.');if(!token)throw Object.assign(new Error('Sign in to Common Ground first.'),{status:401});
   const response=await fetch(`${server()}/api/${path}`,{method,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:method==='GET'?undefined:JSON.stringify(body??{}),signal:AbortSignal.timeout(30000)});
   const data=await response.json().catch(()=>({})) as any;
   if(response.status===401){await context.secrets.delete('hostedToken');throw new Error('Your Common Ground sign-in expired. Sign in again.');}
@@ -56,14 +58,17 @@ export function activate(context:vscode.ExtensionContext){
   await vscode.commands.executeCommand('vscode.openFolder',uri,{forceNewWindow:true});return {ok:true};
  }
  async function signIn(){
-  signInState=randomBytes(16).toString('hex');
+  const endpoint=new URL(server());
+  if(endpoint.protocol!=='https:' && !(endpoint.protocol==='http:' && ['127.0.0.1','localhost'].includes(endpoint.hostname)))throw new Error('Common Ground requires HTTPS, except on localhost.');
+  signInServer=server();signInState=randomBytes(16).toString('hex');
   await vscode.env.openExternal(vscode.Uri.parse(`${server()}/api/auth/extension?state=${signInState}&scheme=${encodeURIComponent(vscode.env.uriScheme)}`));
  }
  context.subscriptions.push(vscode.window.registerUriHandler({async handleUri(uri){
   if(uri.path!=='/auth')return;
   const q=new URLSearchParams(uri.query);
   if(!signInState||q.get('state')!==signInState){vscode.window.showWarningMessage('Common Ground: that sign-in link didn’t come from this window. Try signing in again.');return;}
-  signInState='';await context.secrets.store('hostedToken',q.get('token')||'');
+  if(signInServer!==server()){vscode.window.showWarningMessage('Common Ground server changed during sign-in. Please try again.');return;}
+  signInState='';await context.secrets.store('hostedToken',q.get('token')||'');await context.secrets.store('hostedServer',signInServer);
   vscode.window.showInformationMessage('Signed in to Common Ground.');
   await show();await panel?.webview.postMessage({action:'signedIn'});
  }}));
@@ -114,6 +119,27 @@ export function activate(context:vscode.ExtensionContext){
   vscode.commands.registerCommand('commonGround.signIn',signIn),
   vscode.commands.registerCommand('commonGround.signOut',async()=>{await context.secrets.delete('hostedToken');await panel?.webview.postMessage({action:'signedIn'});}),
   vscode.commands.registerCommand('commonGround.settings',async()=>{await show();await panel?.webview.postMessage({action:'showSettings'});}));
+ // One quiet native notification for newly arriving approved versions. Never notify on initial login.
+ async function pollOffers(){
+  if(offerPolling || notificationOpen)return;offerPolling=true;
+  try{
+   const token=await context.secrets.get('hostedToken');
+   if(!token){offerToken='';offerIds=null;return;}
+   if(token!==offerToken){offerToken=token;offerIds=null;}
+   const result=await hosted('shared');
+   if(token!==await context.secrets.get('hostedToken'))return;
+   const next=newOffers(offerIds,result.shared);offerIds=next.current;
+   if(!next.fresh.length)return;
+   await panel?.webview.postMessage({action:'offersChanged'});
+   if(panel?.visible || !vscode.workspace.getConfiguration('commonGround').get<boolean>('notifications',true))return;
+   const first=next.fresh[0];notificationOpen=true;
+   const choice=await vscode.window.showInformationMessage(`${first.owner.name} shared ${first.tool.name} with you${next.fresh.length>1?` (+${next.fresh.length-1} more)`:''}.`,'Open Common Ground');
+   if(choice && token===await context.secrets.get('hostedToken'))await show();
+  }catch{/* An expired session or offline service must not spam the editor. */}
+  finally{offerPolling=false;notificationOpen=false;}
+ }
+ const offerTimer=setInterval(()=>void pollOffers(),15000);
+ context.subscriptions.push({dispose:()=>clearInterval(offerTimer)});void pollOffers();
  // first run: open Start so a fresh install isn't a blank slate
  if(!context.globalState.get('welcomed')){void context.globalState.update('welcomed',true);void show();}
 }

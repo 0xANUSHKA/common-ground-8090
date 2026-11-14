@@ -11,7 +11,7 @@ const nodeOk = Number(process.versions.node.split('.')[0]) === 26;
 report('Node', nodeOk, nodeOk ? '26.x' : 'Install Node 26.x for the SQLite runtime', true);
 report('.env', existsSync('.env'), existsSync('.env') ? 'Local configuration found' : 'Copy .env.example to .env; offline mode also works without it');
 const provider = process.env.BUILD_PROVIDER || 'reference';
-report('Build mode', ['reference', 'eve'].includes(provider), provider === 'reference' ? 'Hand-authored reference template; no model generation' : provider === 'eve' ? 'Live Eve worker requested' : 'Use reference or eve', true);
+report('Build mode', ['reference', 'eve', 'claude'].includes(provider), provider === 'reference' ? 'Hand-authored reference template; no model generation' : provider === 'eve' ? 'Live Eve worker requested' : provider === 'claude' ? 'Live Claude Code worker requested; CLI must be signed in' : 'Use reference, claude or eve', true);
 const gateway = Boolean(process.env.AI_GATEWAY_API_KEY);
 report('AI Gateway', gateway, gateway ? 'Key present; successful generation must still be verified' : 'Missing; required only for live Eve generation', provider === 'eve');
 for (const [name, key, purpose] of [

@@ -52,5 +52,17 @@
 /* a quiet satellite view of a patchwork of fields behind sign-in and join (NASA Earth Observatory, public domain) */
 body{background:var(--bg) }
 .auth,.join{position:relative;isolation:isolate}
-.auth::before,.join::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:url('../img/fields.webp') center/cover no-repeat;opacity:.16;filter:saturate(.2) contrast(1.1);
+.auth::before,.join::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:url('./img/fields.webp') center/cover no-repeat;opacity:.16;filter:saturate(.2) contrast(1.1);
   -webkit-mask-image:radial-gradient(80% 70% at 50% 50%,transparent 25%,#000 85%);mask-image:radial-gradient(80% 70% at 50% 50%,transparent 25%,#000 85%)}
+
+/* Guided setup: a short decision on the left, ownership made explicit on the right. */
+.setup-kicker{font:500 11px/1.5 var(--font);letter-spacing:.12em;color:var(--accent);margin:0 0 20px}
+.join h1{font-size:clamp(30px,3.5vw,44px);line-height:1.08;max-width:430px}
+.setup-intro{font-size:15px;line-height:1.7;color:var(--mute);margin:0 0 28px}
+.onboarding-progress{display:flex;list-style:none;padding:0;margin:0 0 40px;gap:16px;font-size:11px;color:var(--faint)}
+.onboarding-progress li{display:flex;flex-direction:column;gap:8px;flex:1}.onboarding-progress span{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--line-2);border-radius:50%}
+.onboarding-progress [aria-current]{color:var(--fg)}.onboarding-progress [aria-current] span{background:var(--accent);color:#fff;border-color:var(--accent)}.onboarding-progress .done{color:var(--need)}
+.setup-promise{font-size:clamp(28px,3vw,38px);line-height:1.15;letter-spacing:-.04em;margin:6px 0 28px}
+.setup-hierarchy{border-left:1px solid var(--line-2);padding-left:28px;display:grid;gap:26px}.setup-hierarchy>div{position:relative}.setup-number{position:absolute;left:-42px;top:2px;width:26px;background:var(--bg);font-size:11px;color:var(--accent);text-align:center}.setup-hierarchy h3{font-size:16px;margin:0 0 6px;font-weight:550}.setup-hierarchy p{font-size:14px;line-height:1.6;color:var(--mute);margin:0;max-width:300px}
+.setup-note{font-size:12px;line-height:1.65;color:var(--mute);margin:20px 0}.sharing-choices{display:grid;gap:12px}.sharing-choices label{display:flex;gap:12px;align-items:flex-start;padding:18px;border:1px solid var(--line-2);border-radius:12px;cursor:pointer}.sharing-choices label:has(:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}.sharing-choices input{margin-top:3px;accent-color:var(--accent)}.sharing-choices b{font-size:14px;font-weight:550}.sharing-choices small{display:block;font-size:13px;line-height:1.6;color:var(--mute);margin-top:7px}.next-owner{margin:28px 0;padding-top:22px;border-top:1px solid var(--line);font-size:14px}.next-owner p{line-height:1.6;color:var(--mute)}
+@media(max-width:860px){.join .preview{order:1;padding-top:25px;border-top:1px solid var(--line)}.join-form{max-width:100%}.onboarding-progress{margin-bottom:28px}}

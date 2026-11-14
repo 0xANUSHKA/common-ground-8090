@@ -1,13 +1,32 @@
 # Teammate setup
 
-## First run: no API keys required
+Work on `main`. SocialAcolyte has GitHub write access. No credentials are included in a clone.
 
-SocialAcolyte's GitHub **write** access is confirmed. Authenticate with your own GitHub account before pushing. Work on the existing `main` branch.
+## Engineer: receive tools
+
+1. Join your company using its invitation and Google sign-in.
+2. Install the VSIX from https://common-ground-theta.vercel.app/download/common-ground.vsix.
+3. Run **Common Ground: Open Start** in VS Code/Cursor, then sign in with the same account.
+4. An approved share appears in Start. Choose where to save it; the extension verifies the source hash and opens a fresh
+   project folder. Nothing runs automatically. Receiving needs no local factory or model API key.
+
+New approved versions are polled every 15 seconds. Initial login is quiet; later shares notify while Start is hidden.
+Use `commonGround.notifications` to disable notifications. Personal receiving preferences and company policy remain
+separate from notification preferences. Existing installations must sign in once again after the credential-origin fix.
+
+## Admin: configure the network
+
+A fund admin uses `/join/` to name the network, choose company-only or cross-company sharing, and obtain a company link.
+Company admins join, map a sample, save a **shared workflow brief**, and invite engineers. The Get started checklist in
+the console explains each step. Give Publisher/Exporter rights only to authorized curators. Matching uses the shared
+brief and actual reuse records; mapping a schema alone will not produce a recommendation.
+
+## Engineer: build tools
 
 ```sh
 git clone https://github.com/0xANUSHKA/common-ground-8090.git
 cd common-ground-8090
-# Use Node 26.x.
+# Node 26.x required
 npm ci
 cp .env.example .env
 npm run check
@@ -15,47 +34,64 @@ npm run doctor
 npm start
 ```
 
-Visit http://127.0.0.1:4317. Follow [the five-minute demo](DEMO.md). This mode exercises real verification, permissions, adaptation and downloads using a clearly labeled hand-authored tool. It does not generate source with a model.
+Keep the factory at http://127.0.0.1:4317 running, then use Build inside the extension. Port 4317's browser page only
+points you to the editor. The local factory uses selectable demo source identities; they are separate from hosted
+Google identities. The extension publishes the resulting package under the signed-in hosted author's company.
 
-For the editor surface, in another terminal:
+| Provider | Setup | Result |
+|---|---|---|
+| `BUILD_PROVIDER=reference` | No model key | Hand-authored template; real checks, visibly labeled |
+| `BUILD_PROVIDER=claude` | Install Claude Code, run `claude auth login`; optional `CLAUDE_BIN` override | Live blueprint, generation and repair |
+| `BUILD_PROVIDER=eve` | `AI_GATEWAY_API_KEY`, `EVE_URL=http://127.0.0.1:8000`, then `npm run agent:dev` | Alternative live agent worker |
+
+Restart the factory after changing `.env`. `claude auth status` alone does not prove inference works; an actual build
+must pass. OAuth failures now explicitly request `claude auth login` instead of showing an empty subprocess error.
+
+## Develop and package
 
 ```sh
-npm run package:extension
-code --install-extension common-ground-0.1.0.vsix
-# Or: cursor --install-extension common-ground-0.1.0.vsix
+npm --prefix site run dev   # localhost:3000, disposable in-memory data, fake Google login
+npm --prefix site test     # original hosted permission suite + 25 regression checks
+npm run check              # typecheck, 13 factory/editor tests, build
+npm run package:site       # VSIX and site/download/common-ground.vsix
+code --install-extension common-ground-0.1.0.vsix --force
+# or cursor --install-extension common-ground-0.1.0.vsix --force
 ```
 
-Open the command palette and select **Common Ground: Open Start**. Keep the backend running. After restarting it, select your demo identity again. Run `npm run doctor -- --server` to check configuration and backend reachability without exposing secrets or calling paid providers.
+For local hosted API testing set the extension's machine-scoped `commonGround.server` to `http://127.0.0.1:3000` and
+sign in anew. Restore the hosted URL and sign in again before a live rehearsal. The dev database resets on restart.
 
-## API configuration
+The site is deployed on Connor's Vercel account. Git push does not deploy. The generated VSIX is ignored by Git and
+must be rebuilt before deployment. Preserve the existing project/domain because Google OAuth's configured callback is
+`https://common-ground-theta.vercel.app/api/auth/callback`. See [site/README.md](../site/README.md) and the latest
+[return handoff](../NOTE_FOR_CONNOR_AGENT.md).
 
-All keys go in your local ignored `.env`, never GitHub, browser code, screenshots or chat. A clone does **not** contain Anushka's credentials. Use a separately scoped key or an approved private secret-sharing channel. Restart both backend and worker after changes.
+## Live build verified on this machine
 
-| Feature | Environment | Setup and activation | If absent |
-|---|---|---|---|
-| 8090 requirements | `SOFTWARE_FACTORY_API_KEY` | In Software Factory, create/select a private project and create its project-scoped external API key. Each requested build writes a FEATURE requirements document through `https://api.factory.8090.dev/v2/external-api`. | Build works without requirements recording. |
-| Live generation | `AI_GATEWAY_API_KEY`, `BUILD_PROVIDER=eve`, `EVE_URL=http://127.0.0.1:8000` | Create a Vercel AI Gateway key with a spending limit and access to the model selected in `agent/agent.ts`. Start `npm run agent:dev` in a second terminal, then restart the backend. | Keep `BUILD_PROVIDER=reference`. |
-| Audio brief | `ELEVENLABS_API_KEY` | Create a restricted ElevenLabs key with Speech to Text permission. In Build, select **Audio brief**, upload audio, review the transcript, then build. Uses Scribe v2. | Type the brief. |
-| Retrieval evidence | `HYDRADB_API_KEY`, `HYDRADB_DATABASE=common_ground_demo` | When separately authorized and provisioned, add a HydraDB key and run `npm run hydra:seed`. Collections are company-scoped and selected by server policy. | Local public evidence; permission checks still work. |
+On November 14, after refreshing Claude's OAuth login, an actual Claude build generated a blueprint and source,
+repaired a failed candidate, passed all seven independent checks, and detected three missing timestamps plus one
+duplicate in the recipient solar challenge (1,438 rows). The source differed from the hand-authored reference.
+8090 created the requirement successfully. The run took 92 seconds; this is one observed run, not a latency promise.
+Local `.env` now selects `BUILD_PROVIDER=claude`. Proof is saved locally in `.local/live-build-verification.json`.
 
-HydraDB's recurring subscription was explicitly declined. Do not activate billing as part of setup. Composio, a GitHub runtime token, and a Vercel deployment are not required. 8090 is requirements storage in this version, not the build executor.
+## Optional integrations
 
-## Verified integration status on the development machine
+All secrets stay in local ignored `.env` or Vercel's server environment; never put them in client code or Git.
 
-As of November 14, 2026:
+| Integration | Variables / purpose | Verified status before this handoff |
+|---|---|---|
+| 8090 | `SOFTWARE_FACTORY_API_KEY`; FEATURE requirement through external API | Live requirements write verified |
+| ElevenLabs | `ELEVENLABS_API_KEY`; Scribe recording → editable brief | Real transcription verified |
+| Vercel AI Gateway | `AI_GATEWAY_API_KEY`; alternative Eve inference | Key exists locally; first inference blocked by billing verification |
+| HydraDB | `HYDRADB_API_KEY`, `HYDRADB_DATABASE`; optional local evidence adapter | Not connected; recurring subscription explicitly declined |
+| Hosted service | `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Connor's deployment; local tests do not prove production configuration |
 
-- 8090: project-scoped key installed locally; authenticated health and requirements creation succeeded.
-- ElevenLabs: restricted key installed locally; a real Scribe transcription of a synthetic spoken brief succeeded.
-- AI Gateway: account-owner email verification completed and a key is installed locally with a $1 non-refreshing budget. The first inference request returned `403 customer_verification_required`: Vercel requires a valid payment method before serving requests. No payment method or subscription was added. Live model generation is **not yet verified**; keep reference mode until an actual generated candidate passes the checks.
-- HydraDB: adapter and seed script implemented; no key, subscription or live query. Connection deliberately deferred.
-- Editor: VSIX packaged and installed in Cursor. Browser preview and API flow verified; a complete native-editor download rehearsal remains to be performed.
+8090 stores requirements, not execution. HydraDB is not the hosted database (Upstash is). Composio has no runtime role.
+There is no need to activate a paid subscription to test reference mode or receive an approved package.
 
-Configuration presence is not a successful integration check. `doctor` makes this distinction and never submits provider requests. For a live rehearsal, create a build and inspect its events: an 8090 requirement ID confirms that write; `eve-generated` provenance plus passing checks confirms generation. Provider failures surface as failures, never as fallback success.
+## Sharing transport
 
-## How sharing actually works
-
-The GitHub repository distributes **Common Ground itself**. Tools produced within the application travel over its authenticated API as a source bundle: `inspector.js`, the recipient's `binding.json`, `provenance.json` with source/check hashes, a public demo CSV, README and data licenses. The editor verifies the core source hash, permits only known filenames and saves into a new folder. It does not clone Git history, transfer agent sessions, install dependencies or auto-run code.
-
-In this v0, sender and recipient are selectable identities on one loopback backend. This demonstrates policy and recipient experience; it is not yet a deployed cross-company delivery service. Already downloaded source cannot be recalled. Future fetches are blocked by opt-out or grant revocation.
-
-Keep this transport for the demo. Git can later provide source history behind immutable artifact versions without changing the UI. Remote production delivery needs authenticated company identities, hosted artifact storage and policy enforcement before any recommendation metadata or bytes are released. Agent-session merging is a different product and outside this build.
+Git distributes Common Ground itself. Generated tools travel over the authenticated hosted API as source bundles,
+not Git clones or agent sessions. The core source stays byte-identical while the recipient's binding changes. Grant
+revocation blocks future access but cannot recall local files. See [architecture](ARCHITECTURE.md) for the important
+hosted-verifier and production limitations.

@@ -2,7 +2,7 @@
 
 **Your software factory finished a tool. Someone else in your portfolio needed it yesterday.**
 
-Common Ground is an ontological software factory for venture portfolios. Agents build tools against the fund's shared data standard rather than one company's columns, so any tool that passes the factory's checks can run at every company that has mapped its data. A fund sets the standard and sends one link to its portfolio. Each company maps its data once. Engineers build, check and share tools from VS Code or Cursor, and the fund's console shows what was reused and roughly how many hours it saved.
+Common Ground is an ontological software factory for venture portfolios. Agents build tools against the fund's shared data standard rather than one company's columns, so any tool that passes the factory's checks can run at every company that has mapped its data. A fund sets the standard and sends one link to its portfolio. Each company maps its data once. Engineers build, check and share tools from VS Code or Cursor, and the fund's console shows recorded reuse alongside author-supplied build estimates. The current factory builds one bounded telemetry-checking function; arbitrary repositories are not supported.
 
 Built for EVOLVE (8090), November 13–14, 2026. MIT licensed. The demo fund is sample data with illustrative companies and people. The datasets are public NOAA and NREL data.
 
@@ -52,6 +52,14 @@ code --install-extension common-ground-0.1.0.vsix     # or: cursor --install-ext
 
 The extension signs in to the hosted service through the browser. It requires workspace trust before building or downloading, and never installs dependencies or runs downloaded code.
 
+## Onboarding and recommendations
+
+Fund admins choose company-only or cross-company sharing and invite company admins. Company admins map a sample, write a short **shared workflow brief**, and grant Publisher/Exporter roles selectively. Engineers sign into the extension with the same account. The console's **Get started** checklist explains each handoff.
+
+Recommendations cite words from the destination company's shared brief or a person's recorded reuse. Current membership, company policy, publisher/exporter roles and personal receiving preferences are checked before candidates are returned. A compatible schema alone is insufficient; the service may recommend nobody. This is an explainable deterministic matcher, not inferred knowledge of every employee's work.
+
+The extension polls approved shares every 15 seconds. Initial sign-in stays quiet; subsequent new versions produce one native editor notification when Start is hidden. Disable it with `commonGround.notifications`. No code is automatically downloaded or executed. A changed service URL requires signing in again.
+
 ## Architecture
 
 - **Hosted service:** a static site plus one Vercel function (`site/api/index.js`), on Upstash Redis, with Google OAuth sign-in. It handles funds, companies, invites, roles, the standard and company mappings, sharing policy, grants, package delivery with rebinding, and reuse counts. Every read re-checks permission.
@@ -65,7 +73,7 @@ More detail: [architecture and limitations](docs/ARCHITECTURE.md), [product brie
 | Service | Implemented role | Status | Setup |
 |---|---|---|---|
 | 8090 Software Factory | Records a FEATURE requirements document for each build brief and execution contract | Live call verified | `SOFTWARE_FACTORY_API_KEY` |
-| Claude Code (headless) | Live build agent: writes the function, gets back the failing checks, repairs (up to 3 attempts) | Verified: 7 of 7 on the first attempt | `BUILD_PROVIDER=claude` |
+| Claude Code (headless) | Live build agent: writes the function, gets back the failing checks, repairs (up to 3 attempts) | Verified here: generated source, repair, 7/7 checks and recipient fault challenge (14 Nov) | `BUILD_PROVIDER=claude` |
 | ElevenLabs Scribe | Audio brief → editable transcript → build. Never grants sharing permission by voice. | Live call verified | `ELEVENLABS_API_KEY`, then **use a recording…** in Build |
 | Vercel | Hosting and the API function | Live | `site/`, `vercel deploy --prod` |
 | Eve + Vercel AI Gateway | Alternative live agent: generates source, calls `submit_candidate`, repairs on failures | Wired; Gateway blocked by billing verification | `AI_GATEWAY_API_KEY`, `BUILD_PROVIDER=eve`, `npm run agent:dev` |
@@ -88,11 +96,11 @@ fund network on + cross-company sharing on (for portfolio shares)
 
 The hosted API recomputes this **on every read**: listing, opening a tool, and downloading a package. Removing a person, removing a company from the fund, revoking a grant, or switching receiving off takes effect on the next request. The fund can see what is shared and reused, but it can't download a company's code. A tool registered by hand in the console has zero checks and can't be shared. No model or voice input can add a recipient, edit a grant or mark checks passed. Revocation stops future access, but it can't erase files someone already saved.
 
-Not yet built: company SSO and verified organization identity, independent export approval by the source company, server-side re-running of checks at publish, versioned updates, and notifications. See [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Not yet built: company SSO and verified organization identity, independent export approval by the source company, server-side re-running of checks at publish, version update delivery and signed package attestations. Editor notifications for newly shared versions are implemented; Slack/email delivery is not. See [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Checks
 
-9 builder tests (`npm test`) and 46 hosted permission checks (`cd site && npm test`).
+13 factory/editor tests (`npm test`), the original hosted permission suite, and 25 additional sharing/onboarding regression checks (`cd site && npm test`).
 - `npm run check` typechecks, runs the builder's API, policy and execution tests on real data and denial paths, and builds the view and extension.
 - The site tests run against the real API on a fresh in-memory database. They cover invites, kicking, revoking, removing companies, fund and company policy, receiving off, rejected hashes and file names, outsiders denied downloads, rebinding, and the demo seed.
 
@@ -123,4 +131,4 @@ Built during EVOLVE with AI coding tools (Claude Code; Eve agents), which the ru
 
 ## Team notes
 
-Teammate setup and API variables: [docs/SETUP.md](docs/SETUP.md). Connor's editor handoff: [NEXT_FOR_CONNOR.md](NEXT_FOR_CONNOR.md).
+Latest implementation and deployment handoff: [NOTE_FOR_CONNOR_AGENT.md](NOTE_FOR_CONNOR_AGENT.md). Teammate setup and API variables: [docs/SETUP.md](docs/SETUP.md). Earlier editor task: [NEXT_FOR_CONNOR.md](NEXT_FOR_CONNOR.md).

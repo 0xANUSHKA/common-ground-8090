@@ -37,7 +37,8 @@ function fakeRedis() {
 const listen = (server, port) => new Promise((ok) => server.listen(port, '127.0.0.1', () => ok(server.address().port)));
 
 export async function start({ port = +process.env.PORT || 3000, quiet = false } = {}) {
-  const kvPort = await listen(fakeRedis(), 0);
+  const kvServer = fakeRedis();
+  const kvPort = await listen(kvServer, 0);
   Object.assign(process.env, { KV_REST_API_URL: `http://127.0.0.1:${kvPort}`, KV_REST_API_TOKEN: 'local', SESSION_SECRET: 'local-dev-only', GOOGLE_CLIENT_ID: 'local', GOOGLE_CLIENT_SECRET: 'local' });
   const { default: handler } = await import(path.join(SITE, 'api/index.js'));
   const { startSession, safeNext } = await import(path.join(SITE, 'api/_auth.js'));
@@ -67,6 +68,6 @@ export async function start({ port = +process.env.PORT || 3000, quiet = false } 
   });
   const p = await listen(server, port);
   if (!quiet) console.log(`Common Ground (local, empty database): http://localhost:${p}`);
-  return { url: `http://127.0.0.1:${p}`, close: () => server.close() };
+  return { url: `http://127.0.0.1:${p}`, close: async () => { for (const s of [server, kvServer]) s.closeAllConnections(); await Promise.all([server, kvServer].map(s => new Promise(resolve => s.close(resolve)))); } };
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) start();

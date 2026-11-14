@@ -52,8 +52,8 @@ async function load(orgId) {
 function navItems() {
   const id = V.org.id;
   return isFund()
-    ? [['overview', 'Overview', 'home'], ['portfolio', 'Portfolio', 'building', V.companies?.length], ['tools', 'Tools', 'tool', V.portfolioTools?.length], ['people', 'People', 'people'], ['standard', 'Standard', 'standard'], ['settings', 'Settings', 'gear']]
-    : [['overview', 'Overview', 'home'], ['team', 'Team', 'people', V.members.length], ['tools', 'Tools', 'tool', V.tools.length + SHARED.length], ['data', 'Data', 'data'], ['sharing', 'Sharing', 'shield'], ['settings', 'Settings', 'gear']].filter(([k]) => V.myRole !== 'fund' || ['overview', 'team', 'tools', 'data'].includes(k))
+    ? [['setup', 'Get started', 'check'], ['overview', 'Overview', 'home'], ['portfolio', 'Portfolio', 'building', V.companies?.length], ['tools', 'Tools', 'tool', V.portfolioTools?.length], ['people', 'People', 'people'], ['standard', 'Standard', 'standard'], ['settings', 'Settings', 'gear']]
+    : [['setup', 'Get started', 'check'], ['overview', 'Overview', 'home'], ['team', 'Team', 'people', V.members.length], ['tools', 'Tools', 'tool', V.tools.length + SHARED.length], ['data', 'Data', 'data'], ['sharing', 'Sharing', 'shield'], ['settings', 'Settings', 'gear']].filter(([k]) => V.myRole !== 'fund' || ['overview', 'team', 'tools', 'data'].includes(k))
     ;
 }
 function side() {
@@ -84,6 +84,25 @@ const reuseList = (evs, limit = 8, byPerson = false) => evs.length ? `<ul class=
 // ── fund pages ──
 const site = (s) => s ? `<a href="https://${esc(s)}" target="_blank" rel="noopener">${esc(s)}</a>` : '<span class="pill">None</span>';
 const coRow = (c) => `<li data-go="${href(V.org.id, 'portfolio', c.id)}">${fav(c)}<span class="grow"><b>${esc(c.name)}</b><small>${plural(c.memberCount, 'person', 'people')} · ${plural(c.tools, 'tool')}</small></span>${statusPill(c.status)}</li>`;
+function setupPage() {
+  const o=V.org, fund=isFund(), isLead=admin(), inv=fund?companyInv():memberInv();
+  const row=(done,title,description,action)=>`<li class="${done?'is-done':''}"><span class="t"><b>${title.replace(/^\d+\. /,'')}</b><small>${description}</small></span>${action||''}</li>`;
+  const link=inv?`<button class="b is-accent" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy ${fund?'company':'team'} invitation</button>`:`<button class="b is-accent" data-act="mk-inv" data-kind="${fund?'company':'member'}">Create invitation</button>`;
+  if(fund){
+    const cos=V.companies||[], mapped=cos.filter(c=>c.status==='joined'), receiving=cos.filter(c=>c.settings?.participating!==false), policy=o.settings?.crossCompany;
+    return header('Give good work a way to travel.', 'You set up the network. Company admins set up their teams. Engineers stay in the IDE.')
+      + `<div class="setup-summary"><span><b>${cos.length}</b> companies registered</span><span><b>${mapped.length}</b> mapped to the standard</span><span><b>${V.stats.reuses}</b> recorded reuses</span></div>`
+      + card('Your next steps',`<ol class="steps">${row(true,'1. Network created',esc(o.name)+' · your fund does not acquire blanket download access to company code.')}${row(true,'2. Choose the sharing boundary',policy?'Named cross-company shares are allowed, subject to both companies and the recipient.':'Cross-company sharing is paused. Companies can set up and share within their own teams.',`<a class="b" href="${href(o.id,'standard')}">Review policy</a>`)}${row(cos.length>0,'3. Invite a company admin','Send the link privately. They create their company, map data, and invite engineers.',isLead?link:'Ask a fund admin for an invitation.')}${row(mapped.length>0,'4. See companies become ready',`${mapped.length} of ${cos.length} companies mapped; ${receiving.length} participating. Compatibility is limited to the supported time-series contract.`,`<a class="b" href="${href(o.id,'portfolio')}">View readiness</a>`)}</ol>`)
+      + `<div class="setup-principle"><b>The engineer sees one useful introduction.</b><p>After a checked tool is built, the factory suggests eligible people using shared workflow briefs and recorded reuse. Its author decides whether to share. The tool then appears in the recipient's editor.</p><a href="${href(o.id,'tools')}">Inspect shared work →</a></div>`;
+  }
+  const mapped=o.mapping?.result?.state==='verified';
+  const membership=ORGS.find(x=>x.id===o.id)?.membership;
+  return header(isLead?'Set your engineers up once.':'Your next stop is the editor.', `${esc(o.name)}${V.fund?' · '+esc(V.fund.name):' · not linked to a fund'}`)
+    + card('Your role',`<div class="setup-principle"><b>${isLead?'Company admin': 'Engineer'} · ${esc(ME.name)}</b><p>${isLead?'You control the company mapping, shared workflow context, and publishing permissions.':'You can receive approved tools. A company admin grants publishing and export permissions separately.'}</p><p>Receive: ${membership?.receiver?'on':'off'} · Share with team: ${membership?.publisher?'allowed':'not granted'} · Cross-company export: ${membership?.exporter?'allowed':'not granted'}</p></div>`)
+    + (isLead?card('Company setup',`<ol class="steps">${row(mapped,'1. Map a sample','Only time/value mappings and check results are saved. Raw CSV data stays in your browser.',`<a class="b" href="${href(o.id,'data')}">${mapped?'Review':'Map'} data</a>`)}${row(!!o.needs,'2. Describe what your team needs','This shared brief is evidence for recommendations. Do not put confidential customer information here.')}</ol><div class="workflow-brief"><label for="workflow-brief">What should another engineer know your team is trying to solve?</label><textarea id="workflow-brief" maxlength="500" rows="3" placeholder="e.g. Find gaps and duplicate timestamps in our inverter telemetry before daily reporting.">${esc(o.needs||'')}</textarea><button class="b is-primary" data-act="save-needs">Save shared workflow brief</button></div><ol class="steps" style="counter-reset:s 2">${row(V.members.length>1,'3. Invite engineers and grant roles','New members can receive. Enable Publisher or Exporter only for the people you authorize.',link)}${row(false,'4. Review receiving and publishing rules','The company and each engineer can narrow access at any time.',`<a class="b" href="${href(o.id,'team')}">Team roles</a><a class="b" href="${href(o.id,'sharing')}">Sharing</a>`)}</ol>`):'')
+    + card('Open Common Ground in your editor',`<ol class="steps">${row(false,'1. Install the extension','VS Code or Cursor → Extensions → Install from VSIX.',`<a class="b is-accent" href="${VSIX}" download>${ic('download')}Download extension</a>`)}${row(false,'2. Sign in from Common Ground: Open Start','Use the same account you joined with. Browser sign-in returns you to the editor.')}${row(false,'3. Receive a checked version','Receiving needs no local builder. Building requires Node 26 and the local factory; see the repository setup.',`<a class="b" href="https://github.com/0xANUSHKA/common-ground-8090#run-it" target="_blank" rel="noopener">Builder setup</a>`)}</ol>`);
+}
+
 function fundOverview() {
   const s = V.stats, cos = V.companies || [], inv = companyInv(), std = esc(V.org.standard?.name || 'Sensor time-series v1');
   if (!cos.length) return header('Welcome to Common Ground')
@@ -91,10 +110,10 @@ function fundOverview() {
     + card('Set up your portfolio', `<ol class="steps"><li class="is-done"><span class="t"><b>Create your fund</b><small>You hold the shared standard every company maps to.</small></span></li>`
       + `<li><span class="t"><b>Send one link to your portfolio companies</b><small>Each company signs in with Google, names itself and maps its data.</small></span>${inv ? `<button type="button" class="b is-accent" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy company link</button>` : `<button type="button" class="b is-accent" data-act="mk-inv" data-kind="company">Create company link</button>`}</li>`
       + `<li><span class="t"><b>Companies invite their engineers</b><small>Engineers install the extension. Tools they finish can go to named people across the portfolio.</small></span><a class="b" href="${VSIX}" download>${ic('download')}Extension</a></li>`
-      + `<li><span class="t"><b>Watch reuse add up</b><small>Every download and adaptation is counted here, with the hours it saved.</small></span></li></ol>`);
+      + `<li><span class="t"><b>Watch reuse add up</b><small>Downloads and adaptations are counted. Hours are author estimates, not measured savings.</small></span></li></ol>`);
   const top = [...(V.portfolioTools || [])].sort((a, b) => (b.uses?.length || 0) - (a.uses?.length || 0)).slice(0, 5);
   return header('Overview', '', admin() ? `<button type="button" class="b" data-act="invite-dlg">${ic('link')}Invite companies</button>` : '')
-    + lede(s.reuses ? `${em(plural(s.tools, 'tool'))} shared across the portfolio have been reused ${em(plural(s.reuses, 'time'))}, saving an estimated ${em(plural(s.hours, 'engineering hour'))}. ${em(n(s.joined))} of ${n(s.companies)} companies are live on ${std}.`
+    + lede(s.reuses ? `${em(plural(s.tools, 'tool'))} shared across the portfolio have been reused ${em(plural(s.reuses, 'time'))}, representing an author-estimated ${em(plural(s.hours, 'engineering hour'))}. ${em(n(s.joined))} of ${n(s.companies)} companies are live on ${std}.`
       : `${em(n(s.joined))} of ${n(s.companies)} companies are live on ${std}, with ${em(plural(s.tools, 'tool'))} shared so far. Reuse shows up here as engineers pick them up.`)
     + `<div class="grid2">${card('Recent reuse', reuseList(V.reuse || []), `<a class="b is-ghost" href="${href(V.org.id, 'tools')}">All tools</a>`)}`
     + `<div class="stack">${card('Most reused', top.length ? `<ul class="list">${top.map((t) => `<li data-go="${href(V.org.id, 'tools', t.id)}">${fav(t.company, 'is-sm')}<span class="grow"><b class="tool-n">${esc(t.name)}</b><small>${esc(t.company.name)}</small></span><span class="meta">${plural(t.uses?.length || 0, 'reuse')}</span></li>`).join('')}</ul>` : empty('No tools yet'))}`
@@ -185,8 +204,8 @@ function companyOverview() {
     [V.tools.length > 0, 'Install the extension', 'When an agent finishes a tool, share it with your team or named people in the portfolio.', `<a class="b" href="${VSIX}" download>${ic('download')}Extension</a>`],
   ];
   const todo = !fundView && admin() && steps.some(([d]) => !d);
-  return header('Overview')
-    + lede(`Your engineers have shared ${em(plural(s.tools, 'tool'))}${s.reuses ? `, reused ${em(plural(s.reuses, 'time'))}: an estimated ${em(plural(s.hours, 'hour'))} nobody spent rebuilding them` : ''}. ${SHARED.length ? `${em(plural(SHARED.length, 'tool'))} from ${V.fund ? `${esc(V.fund.name)}’s portfolio` : 'others'} ${SHARED.length === 1 ? 'is' : 'are'} shared with you.` : 'Nothing is shared with you yet.'}`)
+  return header('Overview', '', !fundView ? `<a class="b is-accent" href="${href(V.org.id,'setup')}">Get started →</a>` : '')
+    + lede(`Your engineers have shared ${em(plural(s.tools, 'tool'))}${s.reuses ? `, reused ${em(plural(s.reuses, 'time'))}: an estimated ${em(plural(s.hours, 'hour'))} of potential rebuild effort` : ''}. ${SHARED.length ? `${em(plural(SHARED.length, 'tool'))} from ${V.fund ? `${esc(V.fund.name)}’s portfolio` : 'others'} ${SHARED.length === 1 ? 'is' : 'are'} shared with you.` : 'Nothing is shared with you yet.'}`)
     + (todo ? `<div style="margin-bottom:56px">${card('Get set up', `<ol class="steps">${steps.map(([d, t, sm, act]) => `<li class="${d ? 'is-done' : ''}"><span class="t"><b>${t}</b><small>${sm}</small></span>${d ? '' : act}</li>`).join('')}</ol>`, '', `${steps.filter(([d]) => d).length} of ${steps.length} done`)}</div>` : '')
     + `<div class="grid2">${card('Recent reuse', reuseList(V.reuse || []))}<div class="stack">`
     + card('Shared with you', SHARED.length ? `<ul class="list">${SHARED.map((x) => `<li data-go="${href(V.org.id, 'tools', x.tool.id)}">${x.grant.scope === 'portfolio' ? fav(x.from, 'is-sm') : av(x.owner)}<span class="grow"><b class="tool-n">${esc(x.tool.name)}</b><small>${esc(x.owner.name)}${x.from ? ` · ${esc(x.from.name)}` : ''}</small></span><time>${ago(x.grant.at)}</time></li>`).join('')}</ul>` : empty('Nothing yet', 'Tools shared with you appear here and in your editor.'))
@@ -256,15 +275,15 @@ function companySharing() {
 }
 
 // ── render ──
-const PAGES = { fund: { overview: fundOverview, portfolio: fundPortfolio, tools: fundTools, people: fundPeople, standard: fundStandard, settings: settingsPage }, company: { overview: companyOverview, team: companyTeam, tools: companyTools, data: companyData, sharing: companySharing, settings: settingsPage } };
+const PAGES = { fund: { setup: setupPage, overview: fundOverview, portfolio: fundPortfolio, tools: fundTools, people: fundPeople, standard: fundStandard, settings: settingsPage }, company: { setup: setupPage, overview: companyOverview, team: companyTeam, tools: companyTools, data: companyData, sharing: companySharing, settings: settingsPage } };
 function render() {
   const r = R(), fn = PAGES[V.org.kind][r.page] || PAGES[V.org.kind].overview;
   $('#side').innerHTML = side();
   const fundBanner = V.myRole === 'fund' ? `<div class="banner">${ic('building')}<span>You’re viewing ${esc(V.org.name)} as its fund. Only its own admins can change it.</span><a class="b" href="${href(V.fund?.id || ORGS.find((o) => o.kind === 'fund')?.id, 'portfolio')}">Back to portfolio</a></div>` : '';
-  const demo = ME.id.startsWith('demo-') ? `<div class="banner">${ic('data')}<span>A private demo fund with sample data. Change anything; it’s yours.</span><a class="b" href="/join/">Set up your real fund${ic('arrow')}</a></div>` : '';
+  const demo = V.org.demo ? `<div class="banner">${ic('data')}<span>Illustrative network: company names are public references; people, needs, tools and reuse are seeded examples, not customer activity.</span><a class="b" href="/join/">Set up your real fund${ic('arrow')}</a></div>` : '';
   $('#page').innerHTML = demo + fundBanner + fn(r.sub);
   $('#top-title').textContent = V.org.name;
-  document.title = `${({ overview: 'Overview', portfolio: 'Portfolio', tools: 'Tools', people: 'People', standard: 'Standard', settings: 'Settings', team: 'Team', data: 'Data', sharing: 'Sharing' })[r.page] || 'Overview'} · ${V.org.name} · Common Ground`;
+  document.title = `${({ setup: 'Get started', overview: 'Overview', portfolio: 'Portfolio', tools: 'Tools', people: 'People', standard: 'Standard', settings: 'Settings', team: 'Team', data: 'Data', sharing: 'Sharing' })[r.page] || 'Overview'} · ${V.org.name} · Common Ground`;
   document.body.classList.remove('is-loading');
   lazy(r);
 }
@@ -272,7 +291,7 @@ function render() {
 function suggestList(t) {
   const s = CACHE[`sug:${t.id}`];
   if (!s) return `<p class="note" style="padding:12px 0">Reading the portfolio’s ontology…</p>`;
-  if (!s.suggestions.length) return `<p class="note" style="padding:12px 0">${esc(s.note || 'Everyone who could use it already has it.')}</p>`;
+  if (!s.suggestions.length) return `<p class="note" style="padding:12px 0">${esc(s.note || 'No eligible person has enough evidence of need yet.')}</p>`;
   return `<ul class="list">${s.suggestions.map((x, i) => `<li>${x.user ? av(x.user) : fav(x.company, 'is-sm')}<span class="grow"><b>${esc(x.user?.name || x.label)}${x.portfolio ? `<span style="color:var(--c-faint);font-weight:400"> · ${esc(x.company.name)}</span>` : ''}</b><small style="white-space:normal">${x.reasons.map(esc).join(' ')}</small></span><button type="button" class="b" data-act="share-to" data-i="${i}" data-tool="${t.id}">Share</button></li>`).join('')}</ul>${s.note ? `<p class="note" style="margin-top:10px">${esc(s.note)}</p>` : ''}`;
 }
 async function lazy(r) { // company detail pages for a fund: load each company's people
@@ -374,6 +393,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'leave') return confirmDo(`Leave ${esc(V.org.name)}?`, 'You’ll need a new invite link to come back.', 'Leave', async () => { await api(`orgs/${V.org.id}/members/${ME.id}`, { method: 'DELETE' }); history.replaceState(null, '', '/dashboard/'); }, 'You left');
   if (a === 'delete-org') return confirmDo(`Delete ${esc(V.org.name)}?`, 'This can’t be undone.', 'Delete', async () => { await api(`orgs/${V.org.id}`, { method: 'DELETE' }); history.replaceState(null, '', '/dashboard/'); }, 'Deleted');
   if (a === 'drop-co') return confirmDo(`Remove ${esc(t.dataset.name)} from the portfolio?`, 'Cross-company shares to and from it stop now. The company keeps its own workspace and team.', 'Remove', () => api(`orgs/${V.org.id}/companies/${t.dataset.cid}`, { method: 'DELETE' }), `${t.dataset.name} removed`);
+  if (a === 'save-needs') return doing(async () => { await api(`orgs/${V.org.id}`, { method: 'PATCH', body: { needs: $('#workflow-brief').value } }); CACHE = {}; }, 'Workflow brief saved');
   if (a === 'save-org') { const v = (k) => $(`[data-field="${k}"]`).value; return doing(() => api(`orgs/${V.org.id}`, { method: 'PATCH', body: { name: v('name'), site: v('site') } }), 'Saved'); }
   if (a === 'rm-tool') return confirmDo(`Remove ${esc(t.dataset.name)}?`, 'Every share of it stops. Files people already downloaded stay with them.', 'Remove tool', async () => { await api(`tools/${t.dataset.id}`, { method: 'DELETE' }); history.replaceState(null, '', href(V.org.id, 'tools')); }, 'Tool removed');
   if (a === 'share-to') { const s = CACHE[`sug:${t.dataset.tool}`], x = s?.suggestions[+t.dataset.i]; if (!x) return; delete CACHE[`sug:${t.dataset.tool}`]; return doing(() => api(`tools/${t.dataset.tool}/grants`, { method: 'POST', body: x.target }), `Shared with ${x.user?.name || x.label}. They get it bound to their own company’s mapping.`); }

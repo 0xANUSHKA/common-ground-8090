@@ -51,24 +51,30 @@ async function canView(org, uid) {
 }
 // does a live grant still reach this user right now?
 async function grantReaches(g, uid, cache = {}) {
-  if (g.revoked || Date.parse(g.expiresAt) <= Date.now()) return false;
+  if (g.revoked || !Number.isFinite(Date.parse(g.expiresAt)) || Date.parse(g.expiresAt) <= Date.now()) return false;
   const tool = cache[g.toolId] ||= await getJSON(K.tool(g.toolId));
-  if (!tool || tool.owner === uid) return false;
-  if (g.target.type === 'org') {
-    const m = await membership(g.target.orgId, uid); if (!m || !m.receiver) return false;
-    return true;
+  if (!tool || tool.owner === uid || g.issuer !== tool.owner) return false;
+  const [from, user] = await getMany([K.org(tool.orgId), K.user(uid)]);
+  if (!from || !user) return false;
+  const author = await membership(from.id, tool.owner), pref = user.pref || {};
+  if (!author?.publisher || pref.mode === 'off' || (pref.muted || []).includes(tool.owner)) return false;
+  const source = { ...DEFAULTS.company, ...from.settings };
+  if (!source.participating || !source.classes.includes('data-quality')) return false;
+  if (g.scope !== 'portfolio') {
+    if (g.target.type === 'org' ? g.target.orgId !== from.id : g.target.userId !== uid) return false;
+    const m = await membership(from.id, uid);
+    return !!(m?.receiver && source.receive !== 'off');
   }
-  if (g.target.userId !== uid) return false;
-  if (g.scope !== 'portfolio') return true;
-  // portfolio: both companies still in the same fund, fund allows it, recipient's company receives from the portfolio
-  const [from, to] = await getMany([K.org(tool.orgId), K.org(g.target.companyId)]);
-  if (!from || !to || !from.fundId || from.fundId !== to.fundId) return false;
-  if (from.status !== 'joined' || to.status !== 'joined') return false; // both mapped to the standard
+  if (g.target.type !== 'user' || g.target.userId !== uid || !author.exporter || pref.mode === 'company') return false;
+  const to = await getJSON(K.org(g.target.companyId));
+  if (!to || !from.fundId || from.fundId !== to.fundId || from.status !== 'joined' || to.status !== 'joined') return false;
   const fund = await getJSON(K.org(from.fundId));
-  const s = { ...DEFAULTS.fund, ...fund?.settings }, ts = { ...DEFAULTS.company, ...to.settings }, fs = { ...DEFAULTS.company, ...from.settings };
-  if (!s.enabled || !s.crossCompany || ts.receive !== 'portfolio' || !ts.participating || !fs.participating) return false;
+  if (!fund) return false;
+  const fs = { ...DEFAULTS.fund, ...fund.settings }, ts = { ...DEFAULTS.company, ...to.settings };
+  if (!fs.enabled || !fs.crossCompany || ts.receive !== 'portfolio' || !ts.participating || !ts.classes.includes('data-quality')) return false;
   if (ts.peers && !ts.peers.includes(from.id)) return false;
-  const m = await membership(to.id, uid); return !!(m && m.receiver);
+  const m = await membership(to.id, uid);
+  return !!m?.receiver;
 }
 
 // ── handlers ──
@@ -118,7 +124,7 @@ on('POST', 'orgs', async (req, res, me) => {
   if (!name) throw fail(400, 'Give it a name.');
   const org = { id: rid(10), kind, name, site: clean(b.site, 120), github: clean(b.github, 39), iconUrl: '', createdAt: now(), owner: me.id, settings: { ...DEFAULTS[kind] } };
   if (org.site) { try { const h = new URL(/^https?:/.test(org.site) ? org.site : `https://${org.site}`).hostname; org.iconUrl = icon(h); } catch {} }
-  if (kind === 'fund') org.standard = STANDARD;
+  if (kind === 'fund') { org.standard = STANDARD; if (b.sharing === 'company') org.settings.crossCompany = false; }
   if (kind === 'company') org.status = 'unaffiliated';
   await setJSON(K.org(org.id), org); await addMember(org, me.id, 'owner');
   await log(org.id, me.name, `Created the ${kind}`, name);
@@ -165,6 +171,7 @@ on('GET', 'orgs/:id', async (req, res, me, p) => {
 on('PATCH', 'orgs/:id', async (req, res, me, p) => {
   const org = await getJSON(K.org(p.id)); if (!org || !isAdmin(await membership(org.id, me.id))) throw fail(404, 'Not found.');
   const b = req.body || {};
+  if (b.needs != null && org.kind === 'company') org.needs = clean(b.needs, 500);
   if (b.name != null) org.name = clean(b.name, 60) || org.name;
   if (b.site != null) { org.site = clean(b.site, 120); try { org.iconUrl = org.site ? icon(new URL(/^https?:/.test(org.site) ? org.site : `https://${org.site}`).hostname) : ''; } catch {} }
   if (b.github != null) org.github = clean(b.github, 39);
@@ -309,7 +316,7 @@ on('GET', 'tools/mine', async (req, res, me) => {
 const PKG_FILES = /^[A-Za-z0-9_.-]{1,80}\.(js|json|md|csv|txt)$/;
 // can this person open the tool's files: its author, their company, or someone a live share reaches
 async function canOpenTool(t, uid) {
-  if (t.owner === uid || (await membership(t.orgId, uid))) return true;
+  if (t.owner === uid) return !!(await membership(t.orgId, uid));
   const gs = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean), cache = { [t.id]: t };
   for (const g of gs) if (await grantReaches(g, uid, cache)) return true;
   return false;
@@ -319,7 +326,9 @@ on('GET', 'tools/:id/package', async (req, res, me, p) => {
   const pkg = await getJSON(K.pkg(t.id)); if (!pkg) throw fail(404, 'This tool was registered by hand and has no files to download.');
   // bind it to the recipient's own mapping of the standard: the checked code stays byte-identical, only binding.json changes
   if (!(await membership(t.orgId, me.id))) {
-    const mine = (await myOrgs(me.id)).find((o) => o.kind === 'company' && o.mapping?.result?.state === 'verified' && o.mapping.binding);
+    const grants = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean);
+    let mine = null;
+    for (const grant of grants) if (grant.target.companyId && await grantReaches(grant, me.id, { [t.id]: t })) { mine = await getJSON(K.org(grant.target.companyId)); break; }
     if (mine) {
       const m = mine.mapping, std = STANDARD.name;
       pkg.files['binding.json'] = JSON.stringify({ standard: std, company: mine.name, source: m.source, time: m.binding.timeColumn, value: m.binding.signalColumn, unit: m.binding.unit || '', timeBasis: m.binding.timeBasis, cadenceSeconds: m.binding.cadenceSeconds, skipUnitsRow: m.binding.skipUnitsRow }, null, 2);
@@ -388,49 +397,49 @@ on('GET', 'shared', async (req, res, me) => {
 // the factory's last step: who should get this, other than its maker. Candidates come from the fund's ontology:
 // people at companies mapped to the same standard whose policies let them receive, plus the maker's own team;
 // ranked by fit (their mapping is verified), by what they've reused before, and by how close those tools are to this one.
-const words = (t) => new Set(String(t || '').toLowerCase().match(/[a-z]{4,}/g) || []);
+const words = (t) => new Set((String(t || '').toLowerCase().match(/[a-z]{4,}/g) || []).filter(w => !['with','from','that','this','tool','tools','data','their','your','have','build','built','company','check','checks'].includes(w)));
 on('POST', 'suggest', async (req, res, me) => {
-  const b = req.body || {};
-  const org = await getJSON(K.org(String(b.orgId || ''))), mine = org && await membership(org.id, me.id);
+  const b = req.body || {}, org = await getJSON(K.org(String(b.orgId || '')));
+  const mine = org && await membership(org.id, me.id);
   if (!org || org.kind !== 'company' || !mine) throw fail(404, 'Pick your company.');
   const tool = b.toolId ? await getJSON(K.tool(String(b.toolId))) : null;
-  if (tool && tool.orgId !== org.id) throw fail(404, 'Not found.');
+  if (b.toolId && (!tool || tool.orgId !== org.id || tool.owner !== me.id)) throw fail(404, 'Not found.');
+  if (!mine.publisher || (tool && tool.checks !== 7)) return { standard: STANDARD.name, suggestions: [], note: 'A checked tool and Publisher permission are required before sharing.' };
   const about = words(`${b.name || tool?.name || ''} ${b.text || tool?.description || ''}`);
-  const already = new Set((tool?.uses || []).map((x) => x.uid)); if (tool) for (const g of (await getMany((await cmd('SMEMBERS', K.tgrants(tool.id))).map(K.grant))).filter((g) => g && !g.revoked)) already.add(g.target.userId || `org:${g.target.orgId}`);
-  const out = [];
-  // what each person has reused before (the fund's reuse history is the factory's memory)
-  const fund = org.fundId && await getJSON(K.org(org.fundId));
-  const history = fund ? (await cmd('LRANGE', K.reuse(fund.id), 0, 199)).map((x) => JSON.parse(x)) : (await cmd('LRANGE', K.reuse(org.id), 0, 199)).map((x) => JSON.parse(x));
-  const reusedBy = (name) => history.filter((e) => e.by === name);
-  const affinity = (name) => { let best = null, score = 0; for (const e of reusedBy(name)) { const o = [...words(e.tool)].filter((w) => about.has(w)).length + (e.from?.id === org.id ? 1 : 0); if (o >= score) { score = o; best = e; } } return { score, best }; };
-  // the maker's own team
-  const ms = await members(org.id), teamUsers = (await getMany(Object.keys(ms).map(K.user))).filter(Boolean);
-  if (!already.has(`org:${org.id}`) && teamUsers.length > 1) out.push({ kind: 'team', target: { orgId: org.id }, label: `Everyone at ${org.name}`, company: { id: org.id, name: org.name, iconUrl: org.iconUrl }, score: 2, reasons: [`${teamUsers.length - 1} ${teamUsers.length === 2 ? 'teammate' : 'teammates'} can receive it today.`] });
-  for (const u of teamUsers) {
-    if (u.id === me.id || already.has(u.id) || already.has(`org:${org.id}`) || !ms[u.id].receiver) continue;
-    const a = affinity(u.name);
-    out.push({ kind: 'person', target: { userId: u.id }, user: pub(u), company: { id: org.id, name: org.name, iconUrl: org.iconUrl }, score: 1 + a.score, reasons: [`Your team at ${org.name}.`, ...(a.best ? [`Reused ${a.best.tool} ${Math.max(1, Math.round((Date.now() - Date.parse(a.best.at)) / DAY))}d ago.`] : [])] });
+  const candidate = tool || { id: 'preview', orgId: org.id, owner: me.id };
+  const already = new Set((tool?.uses || []).map(x => x.uid));
+  if (tool) for (const g of (await getMany((await cmd('SMEMBERS', K.tgrants(tool.id))).map(K.grant))).filter(Boolean)) {
+    if (g.revoked || Date.parse(g.expiresAt) <= Date.now()) continue;
+    if (g.target.userId) already.add(g.target.userId);
+    else for (const id of Object.keys(await members(g.target.orgId))) if (await grantReaches(g, id)) already.add(id);
   }
-  // across the portfolio, through the ontology
-  if (fund && org.status === 'joined' && mine.exporter) {
-    const fs = { ...DEFAULTS.fund, ...fund.settings };
-    const peers = (await getMany((await cmd('SMEMBERS', K.fundcos(fund.id))).map(K.org))).filter((c) => c && c.id !== org.id);
-    for (const c of peers) {
-      const cs = { ...DEFAULTS.company, ...c.settings }, os = { ...DEFAULTS.company, ...org.settings };
-      const open = fs.enabled && fs.crossCompany && c.status === 'joined' && cs.participating && os.participating && cs.receive === 'portfolio' && (!cs.peers || cs.peers.includes(org.id));
-      if (!open) continue;
-      const m = c.mapping?.binding, mapLine = m ? `${c.name} maps ${m.timeColumn} → time and ${m.signalColumn} → value in ${STANDARD.name}.` : `${c.name} is mapped to ${STANDARD.name}.`;
-      const cms = await members(c.id), cu = (await getMany(Object.keys(cms).map(K.user))).filter(Boolean);
-      for (const u of cu) {
-        if (already.has(u.id) || !cms[u.id].receiver) continue;
-        const a = affinity(u.name);
-        out.push({ kind: 'person', target: { userId: u.id, companyId: c.id }, user: pub(u), company: { id: c.id, name: c.name, iconUrl: c.iconUrl }, portfolio: true, score: 3 + a.score * 2 + (cms[u.id].role !== 'member' ? 0.5 : 0), reasons: [mapLine, ...(a.best ? [`Already ${a.best.kind === 'adapt' ? 'adapted' : 'reused'} ${a.best.tool} from ${a.best.from?.name || 'the portfolio'}.`] : [])] });
-      }
+  const fund = org.fundId && await getJSON(K.org(org.fundId));
+  const history = (await cmd('LRANGE', K.reuse(fund?.id || org.id), 0, 199)).map(x => JSON.parse(x));
+  const peers = fund ? (await getMany((await cmd('SMEMBERS', K.fundcos(fund.id))).map(K.org))).filter(c => c && c.id !== org.id) : [];
+  const out = [];
+  for (const company of [org, ...peers]) {
+    const portfolio = company.id !== org.id;
+    const users = (await getMany(Object.keys(await members(company.id)).map(K.user))).filter(Boolean);
+    for (const u of users) {
+      if (u.id === me.id || already.has(u.id)) continue;
+      const target = { userId: u.id, ...(portfolio ? { companyId: company.id } : {}) };
+      const grant = { toolId: candidate.id, issuer: me.id, scope: portfolio ? 'portfolio' : 'team', target: { type: 'user', ...target }, expiresAt: new Date(Date.now() + DAY).toISOString() };
+      // Eligibility is checked before returning names, workflow evidence, or ranking.
+      if (!(await grantReaches(grant, u.id, { [candidate.id]: candidate }))) continue;
+      const overlap = [...words(company.needs)].filter(w => about.has(w));
+      const prior = history.filter(e => e.uid === u.id).map(e => ({ e, count: [...words(e.tool)].filter(w => about.has(w)).length })).sort((a,b) => b.count-a.count)[0];
+      if (!overlap.length && !prior?.count) continue; // a compatible schema alone is not evidence of need
+      const evidence = [];
+      if (overlap.length) evidence.push({ kind: 'company-brief', source: `${company.name} · shared workflow brief`, text: company.needs, matched: overlap });
+      if (prior?.count) evidence.push({ kind: 'reuse', source: 'Recorded adoption', text: `Previously ${prior.e.kind === 'adapt' ? 'adapted' : 'downloaded'} ${prior.e.tool}.`, at: prior.e.at });
+      const map = company.mapping?.binding;
+      const reasons = [...evidence.map(e => `${e.source}: ${e.text}`), portfolio && map ? `Compatible mapping: ${map.timeColumn} → time; ${map.signalColumn} → value.` : 'Same company; receiving is enabled.'];
+      out.push({ kind: 'person', target, user: pub(u), company: { id: company.id, name: company.name, iconUrl: company.iconUrl }, portfolio, score: overlap.length + (prior?.count || 0) * 2, reasons, evidence, basis: 'workflow-and-reuse' });
     }
   }
-  out.sort((x, y) => y.score - x.score);
-  const blocked = !org.fundId ? 'Join a fund to suggest people across a portfolio.' : org.status !== 'joined' ? `Map ${org.name}'s data to ${STANDARD.name} to share across the portfolio.` : !mine.exporter ? 'Ask an admin to let you share across the portfolio.' : '';
-  return { standard: STANDARD.name, suggestions: out.slice(0, 6), note: blocked };
+  out.sort((a,b) => b.score-a.score || a.user.id.localeCompare(b.user.id));
+  const limit = Math.min(3, Math.max(1, Number(fund?.settings?.maxOpenOffers) || 2));
+  return { standard: STANDARD.name, suggestions: out.slice(0,limit), method: 'Permission-filtered workflow keywords and recorded reuse; no model inference.', note: out.length ? 'Suggestions are optional. Review the evidence before sharing this version.' : 'No evidenced match among eligible people. A company admin can add a shared workflow brief in Get started. A matching schema alone is not enough.' };
 });
 
 // someone downloaded or adapted a tool they can see: counts toward reuse, for the tool's company, theirs and the fund
@@ -440,10 +449,10 @@ on('POST', 'tools/:id/uses', async (req, res, me, p) => {
   let toCo = (await membership(t.orgId, me.id)) ? t.orgId : null;
   if (!toCo) { const gs = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean), cache = { [t.id]: t };
     for (const g of gs) if (await grantReaches(g, me.id, cache)) { toCo = g.target.companyId || g.target.orgId || t.orgId; break; } }
-  if (!toCo || t.owner === me.id) throw fail(404, 'Not found.');
+  if (!toCo || t.owner === me.id || !(await canOpenTool(t, me.id))) throw fail(404, 'Not found.');
   t.uses ||= []; if (t.uses.some((u) => u.uid === me.id && u.kind === kind)) return { ok: true, already: true };
   const [from, to] = await getMany([K.org(t.orgId), K.org(toCo)]);
-  const ev = { at: now(), toolId: t.id, tool: t.name, kind, hours: t.hours || 0, by: me.name, from: from && { id: from.id, name: from.name, iconUrl: from.iconUrl }, to: to && { id: to.id, name: to.name, iconUrl: to.iconUrl } };
+  const ev = { at: now(), toolId: t.id, tool: t.name, kind, hours: t.hours || 0, uid: me.id, by: me.name, from: from && { id: from.id, name: from.name, iconUrl: from.iconUrl }, to: to && { id: to.id, name: to.name, iconUrl: to.iconUrl } };
   t.uses.push({ at: ev.at, uid: me.id, companyId: toCo, kind }); t.uses = t.uses.slice(-200);
   const lists = [...new Set([t.orgId, toCo, from?.fundId].filter(Boolean))];
   await pipeline([['SET', K.tool(t.id), JSON.stringify(t)], ...lists.flatMap((o) => [['LPUSH', K.reuse(o), JSON.stringify(ev)], ['LTRIM', K.reuse(o), 0, 199]])]);
@@ -473,7 +482,7 @@ on('POST', 'auth/demo', async (req, res) => {
   ];
   const co = {}, ppl = {};
   for (const [key, name, site, , src, ok, people] of COS) {
-    const c = { id: `c${sx}${key.slice(0, 3)}`, kind: 'company', name, site, iconUrl: icon(site), createdAt: at(25), owner: null, demo: true, fundId: fund.id, status: ok ? 'joined' : 'invited', settings: { ...DEFAULTS.company }, ...(src ? { mapping: map(src, ok, key) } : {}) };
+    const c = { id: `c${sx}${key.slice(0, 3)}`, kind: 'company', name, site, iconUrl: icon(site), createdAt: at(25), owner: null, demo: true, fundId: fund.id, status: ok ? 'joined' : 'invited', needs: ({ saildrone: 'Find missing sensor readings and duplicate timestamps in telemetry exports.', palmetto: 'Find missing timestamps and gaps in solar telemetry before daily reporting.', mast: 'Validate sensor readings and missing timestamps from field telemetry.' })[key] || '', settings: { ...DEFAULTS.company }, ...(src ? { mapping: map(src, ok, key) } : {}) };
     co[key] = c;
     for (const [pname, gh, role] of people) { const u = { id: `u${sx}${gh}`, email: `${gh}@example.com`, name: pname, handle: gh, picture: '', createdAt: at(25), demo: true }; ppl[gh] = u; cmds.push(['SET', K.user(u.id), JSON.stringify(u)]); mem(c, u.id, role); if (role === 'owner') c.owner = u.id; }
     cmds.push(['SADD', K.fundcos(fund.id), c.id]);
@@ -489,7 +498,7 @@ on('POST', 'auth/demo', async (req, res) => {
   const reuse = { [fund.id]: [] };
   for (const [name, ck, gh, desc, hours, uses] of TOOLS) {
     const code = `// ${name}: ${desc}\n${INSPECTOR}`, hash = createHash('sha256').update(code).digest('hex');
-    const c = co[ck], author = ppl[gh], t = { id: `t${sx}${name.slice(0, 6)}`, name, description: desc, owner: author.id, orgId: c.id, createdAt: at(15), hash, checks: 7, hours, uses: [], demo: true, fromEditor: true, provenance: 'agent-generated' };
+    const c = co[ck], author = ppl[gh], t = { id: `t${sx}${name.slice(0, 6)}`, name, description: desc, owner: author.id, orgId: c.id, createdAt: at(15), hash, checks: 7, hours, uses: [], demo: true, fromEditor: true, provenance: 'reference-template' };
     cmds.push(['SET', K.pkg(t.id), JSON.stringify({ name, hash, files: { 'inspector.js': code, 'README.md': `# ${name}\n\n${desc}\n\nBuilt at ${c.name} by ${author.name}. Shared through Common Ground: this is the exact version that passed all seven checks.\n\nSample data from the Common Ground demo fund.\n` } })]);
     const grant = (target, scope, d) => { const g = { id: rid(10), toolId: t.id, issuer: author.id, revoked: false, at: at(d + 0.5), scope, target, expiresAt: new Date(Date.now() + (scope === 'portfolio' ? 7 : 30) * DAY).toISOString() }; cmds.push(['SET', K.grant(g.id), JSON.stringify(g)], ['SADD', K.tgrants(t.id), g.id], target.type === 'org' ? ['SADD', K.ogrants(target.orgId), g.id] : ['SADD', K.ugrants(target.userId), g.id]); };
     grant({ type: 'org', orgId: c.id }, 'team', 14);
@@ -497,7 +506,7 @@ on('POST', 'auth/demo', async (req, res) => {
       const to = co[tk], u = ppl[ugh];
       if (tk !== ck) grant({ type: 'user', userId: u.id, companyId: to.id }, 'portfolio', d);
       t.uses.push({ at: at(d), uid: u.id, companyId: to.id, kind });
-      const ev = { at: at(d), toolId: t.id, tool: name, kind, hours, by: u.name, from: { id: c.id, name: c.name, iconUrl: c.iconUrl }, to: { id: to.id, name: to.name, iconUrl: to.iconUrl } };
+      const ev = { at: at(d), toolId: t.id, tool: name, kind, hours, uid: u.id, by: u.name, from: { id: c.id, name: c.name, iconUrl: c.iconUrl }, to: { id: to.id, name: to.name, iconUrl: to.iconUrl } };
       for (const o of new Set([fund.id, c.id, to.id])) (reuse[o] ||= []).push(ev);
     }
     cmds.push(['SET', K.tool(t.id), JSON.stringify(t)], ['SADD', K.utools(author.id), t.id], ['SADD', K.otools(c.id), t.id]);

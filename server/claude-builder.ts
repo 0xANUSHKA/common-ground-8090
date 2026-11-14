@@ -5,14 +5,28 @@ import { spawn } from 'node:child_process';
 import { deterministicBlueprint, parseBlueprint, STANDARD } from './blueprint.js';
 import type { Blueprint } from './types.js';
 
+export function readClaudeResult(stdout: string, stderr: string, code: number | null): string {
+  let result: { result?: string; is_error?: boolean; errors?: string[] };
+  try { result = JSON.parse(stdout); } catch { throw new Error(`Claude Code returned an unreadable response (exit ${code}). Check the CLI login in your terminal.`); }
+  if (code !== 0 || result.is_error) {
+    const message = [result.result, ...(result.errors || []), stderr].filter(Boolean).join(' ');
+    if (/401|invalid.*token|token.*invalid|authenticate|authentication/i.test(message)) throw new Error('Claude Code authentication expired. Run claude auth login in your terminal, then try the build again.');
+    if (/rate.limit|usage.limit|quota/i.test(message)) throw new Error('Claude Code usage limit reached. Check your account before retrying.');
+    throw new Error(`Claude Code could not complete the build (exit ${code}). Check the CLI account and usage in your terminal.`);
+  }
+  if (!result.result?.trim()) throw new Error('Claude Code returned no source. Try the build again.');
+  return result.result;
+}
+
 function ask(prompt: string, timeoutMs = 240000): Promise<string> {
   return new Promise((resolve, reject) => {
-    const p = spawn(process.env.CLAUDE_BIN || 'claude', ['-p', '--output-format', 'text', '--max-turns', '1', '--tools', ''], { stdio: ['pipe', 'pipe', 'pipe'] });
+    const p = spawn(process.env.CLAUDE_BIN || 'claude', ['-p', '--output-format', 'json', '--max-turns', '1', '--tools', ''], { stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '', err = '';
     const t = setTimeout(() => { p.kill('SIGKILL'); reject(new Error('The coding agent took too long.')); }, timeoutMs);
-    p.stdout.on('data', (d) => (out += d)); p.stderr.on('data', (d) => (err += d));
+    const collect = () => { if (out.length + err.length > 2_000_000) { clearTimeout(t); p.kill('SIGKILL'); reject(new Error('The coding agent returned too much output.')); } };
+    p.stdout.on('data', (d) => { out += d; collect(); }); p.stderr.on('data', (d) => { err += d; collect(); });
     p.on('error', (e) => { clearTimeout(t); reject(new Error(`Couldn’t start Claude Code: ${e.message}`)); });
-    p.on('close', (code) => { clearTimeout(t); code === 0 ? resolve(out) : reject(new Error(`Claude Code exited ${code}: ${err.slice(-300)}`)); });
+    p.on('close', (code) => { clearTimeout(t); try { resolve(readClaudeResult(out, err, code)); } catch (e) { reject(e); } });
     p.stdin.end(prompt);
   });
 }

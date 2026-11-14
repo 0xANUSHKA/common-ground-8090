@@ -1,62 +1,69 @@
 {
- "name": "common-ground",
- "displayName": "Common Ground",
- "description": "A software factory in your editor: agents build tools against your portfolio's shared standard, seven checks seal each version, and the people who need it get it.",
- "version": "0.1.0",
- "publisher": "common-ground-demo",
- "engines": {
-  "vscode": "^1.90.0"
- },
- "categories": [
-  "Other"
- ],
- "license": "MIT",
- "main": "./dist/extension.cjs",
- "activationEvents": [
-  "onStartupFinished",
-  "onUri"
- ],
- "capabilities": {
-  "untrustedWorkspaces": {
-   "supported": "limited",
-   "description": "Discovery works; downloading and running require a trusted workspace."
-  }
- },
- "contributes": {
-  "commands": [
-   {
-    "command": "commonGround.start",
-    "title": "Common Ground: Open Start"
-   },
-   {
-    "command": "commonGround.signIn",
-    "title": "Common Ground: Sign In"
-   },
-   {
-    "command": "commonGround.signOut",
-    "title": "Common Ground: Sign Out"
-   },
-   {
-    "command": "commonGround.settings",
-    "title": "Common Ground: Sharing Preferences"
-   }
+  "name": "common-ground",
+  "displayName": "Common Ground",
+  "description": "A software factory in your editor: agents build tools against your portfolio's shared standard, seven checks seal each version, and the people who need it get it.",
+  "version": "0.1.0",
+  "publisher": "common-ground-demo",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
   ],
-  "configuration": {
-   "title": "Common Ground",
-   "properties": {
-    "commonGround.port": {
-     "type": "number",
-     "default": 4317,
-     "minimum": 1024,
-     "maximum": 65535,
-     "description": "Port of the local Common Ground server. Loopback only."
-    },
-    "commonGround.server": {
-     "type": "string",
-     "default": "https://common-ground-theta.vercel.app",
-     "description": "Your Common Ground service: accounts, companies, funds and shared tools."
+  "license": "MIT",
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onStartupFinished",
+    "onUri"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Discovery works; downloading and running require a trusted workspace."
     }
-   }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "commonGround.start",
+        "title": "Common Ground: Open Start"
+      },
+      {
+        "command": "commonGround.signIn",
+        "title": "Common Ground: Sign In"
+      },
+      {
+        "command": "commonGround.signOut",
+        "title": "Common Ground: Sign Out"
+      },
+      {
+        "command": "commonGround.settings",
+        "title": "Common Ground: Sharing Preferences"
+      }
+    ],
+    "configuration": {
+      "title": "Common Ground",
+      "properties": {
+        "commonGround.port": {
+          "type": "number",
+          "default": 4317,
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Port of the local Common Ground server. Loopback only."
+        },
+        "commonGround.server": {
+          "type": "string",
+          "default": "https://common-ground-theta.vercel.app",
+          "description": "Your Common Ground service: accounts, companies, funds and shared tools.",
+          "scope": "machine"
+        },
+        "commonGround.notifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show one quiet editor notification when a newly shared tool arrives.",
+          "scope": "window"
+        }
+      }
+    }
   }
- }
 }

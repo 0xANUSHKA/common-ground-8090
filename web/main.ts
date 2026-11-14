@@ -12,7 +12,8 @@ const local=(path:string,method='GET',body?:any)=>bridge('request',{path,method,
 
 // ── state ──
 let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:any[]=[],receipts:any[]=[],lineage:any=null;
-let builder:'unknown'|'ready'|'off'='unknown';
+let builder:'unknown'|'ready'|'off'='unknown', builderLabel='';
+let refreshEpoch=0,refreshInFlight=false;
 let view:'start'|'shared'|'tool'|'build'|'built'|'already'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
 let busy=false,notice='',noticeKind:'ok'|'bad'='ok',already:any=null;
 let brief='Build a CSV telemetry completeness inspector. Detect missing timestamps and duplicates, distinguish missing values from zero, and preserve local time without guessing a timezone.';
@@ -28,10 +29,11 @@ const ic=(k:keyof typeof ICON)=>`<svg class="i" viewBox="0 0 24 24" aria-hidden=
 const companies=()=>orgs.filter(o=>o.kind==='company');
 
 async function load(){
+ refreshEpoch++;
  const a=await bridge('account');signedIn=a.signedIn;server=a.server;
  if(signedIn){try{const r=await hosted('me');me=r.user;orgs=r.orgs;shared=(await hosted('shared')).shared;}catch(e){signedIn=false;notice=(e as Error).message;noticeKind='bad';}}
  recents=await bridge('recents');receipts=await bridge('receipts').catch(()=>[]);
- builder='unknown';local('/health').then(()=>{builder='ready';render();}).catch(()=>{builder='off';render();});
+ builder='unknown';local('/health').then((h:any)=>{builder='ready';builderLabel=h.integrations?.builder||'';render();}).catch(()=>{builder='off';render();});
 }
 async function run(fn:()=>Promise<void>){if(busy)return;busy=true;notice='';render();try{await fn();}catch(e){notice=e instanceof Error?e.message:'Something went wrong';noticeKind='bad';}finally{busy=false;render();}}
 const say=(m:string)=>{notice=m;noticeKind='ok';};
@@ -76,7 +78,7 @@ function sharedView(){
 function buildView(){
  if(builder!=='ready')return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Building runs on this machine so the code can be checked before anyone sees it.</p><p>Start the local builder with <span class="kbd">npm start</span> in the Common Ground repo, then come back.</p><div class="actions"><button data-act="recheck">Check again</button></div>`;
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Describe it. An agent builds it against Sensor time-series v1, the standard your portfolio shares, so it runs at any company that has mapped its data. Seven checks on real ocean and solar data decide whether it ships.</p>
-  <label for="brief">What should it do?</label><textarea id="brief" rows="5">${esc(brief)}</textarea>
+  <p class="muted">Current builder: ${esc(builderLabel)}${builderLabel.includes('Offline')?' — uses a hand-authored template, not generated code.':''}</p><label for="brief">What should it do?</label><textarea id="brief" rows="5">${esc(brief)}</textarea>
   <p class="muted">Or start from the meeting where someone asked for it: <button class="linkish" data-act="audio">use a recording…</button> It’s transcribed with ElevenLabs Scribe into a brief you can edit before anything is built.</p>
   <div class="actions"><button class="primary" data-act="build" ${busy?'disabled':''}>${busy?'Building…':'Build and check'}</button></div>
   ${signedIn?'<p class="muted">Before anything is built, Common Ground looks for a checked tool in your portfolio that already does this.</p>':''}
@@ -109,7 +111,7 @@ function builtView(){
    :`${cos.length>1?`<label for="co">Company</label><select id="co">${cos.map((c:any)=>`<option value="${esc(c.id)}" ${c.id===share.orgId?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`:''}
     <label for="desc">What it does</label><input id="desc" value="${esc(share.description)}">
     <label for="hours">Hours it took to build</label><input id="hours" type="number" min="1" max="400" value="${share.hours}" class="short">
-    <h2>Who should get it</h2><p class="muted">The factory read your portfolio’s ontology: who maps their data to ${esc(share.standard||'the standard')}, who is allowed to receive, and who has reused something like this before.</p>${peoplePicker()}
+    <h2>Who should get it</h2><p class="muted">Suggestions use company-authored workflow briefs and recorded reuse, filtered by receiving permissions. A matching schema alone is not evidence of need.</p>${peoplePicker()}
     <div class="actions"><button class="primary" data-act="share" ${busy?'disabled':''}>Share this version${share.pick.size?` with ${share.pick.size}`:''}</button><button data-act="resuggest">Suggest again</button></div>
     <p class="muted">Only this checked version is shared, and only with the people you pick. You can revoke it from your dashboard.</p>`}`;
 }
@@ -123,7 +125,7 @@ async function loadPeople(){
  const r=await hosted('suggest','POST',{orgId:share.orgId,name:share.name,text:share.description});
  share.standard=r.standard;share.note=r.note;
  share.people=r.suggestions.map((x:any,i:number)=>({key:x.user?`${x.user.id}:${x.target.companyId||''}`:`team:${x.target.orgId}`,user:x.user,label:x.label,company:x.company,portfolio:!!x.portfolio,reasons:x.reasons,body:x.target}));
- share.pick=new Set(share.people.slice(0,3).map((p:any)=>p.key));share.team=false;
+ share.pick=new Set();share.team=false;
  render();
 }
 function render(){
@@ -149,7 +151,7 @@ root.addEventListener('click',e=>{
   if(act==='signout'){await bridge('signOut');await load();view='start';}
   if(act==='start'){await load();view='start';}
   if(act==='openfolder')await bridge('openFolder');
-  if(act==='buildview'||act==='recheck'){view='build';job=null;await local('/health').then(()=>{builder='ready';}).catch(()=>{builder='off';});}
+  if(act==='buildview'||act==='recheck'){view='build';job=null;await local('/health').then((h:any)=>{builder='ready';builderLabel=h.integrations?.builder||'';}).catch(()=>{builder='off';});}
   if(act==='download'){const r=await bridge('openHosted',{toolId:active.tool.id});if(r.cancelled)say('Cancelled. Nothing was saved.');else say('Saved and opened in a new window.');}
   if(act==='takeit'){active=already;view='shared';const r=await bridge('openHosted',{toolId:already.tool.id});say(r.cancelled?'Cancelled. Nothing was saved.':'Saved and opened in a new window, bound to your company’s mapping.');return;}
   if(act==='build'&&signedIn){
@@ -191,12 +193,23 @@ root.addEventListener('click',e=>{
  });
 });
 window.addEventListener('message',e=>{
+ if(e.data?.action==='offersChanged'){void refreshOffers();return;}
  if(e.data?.action==='signedIn'){void run(async()=>{await load();if(view==='built'&&signedIn&&companies().length){share=null;builtView();void loadPeople();}});return;}
  if(e.data?.action==='showSettings'){window.open?.(`${server}/dashboard/`);return;}
  const p=pending.get(e.data?.id);if(p){pending.delete(e.data.id);e.data.error?p.reject(new Error(e.data.error)):p.resolve(e.data.data);}
 });
-// a quiet refresh while the view is open, so new shares arrive without a reload
-setInterval(()=>{if(!busy&&signedIn&&view==='start'&&document.visibilityState==='visible')hosted('shared').then(x=>{if(JSON.stringify(x.shared.map((s:any)=>s.grant.id))!==JSON.stringify(shared.map((s:any)=>s.grant.id))){shared=x.shared;render();}}).catch(()=>{});},8000);
+// One request at a time; responses from an old account/view cannot overwrite the current UI.
+async function refreshOffers(){
+ if(refreshInFlight||busy||!signedIn||view!=='start'||document.visibilityState!=='visible')return;
+ refreshInFlight=true;const epoch=refreshEpoch;
+ try{const x=await hosted('shared');if(epoch!==refreshEpoch||busy||view!=='start'||!signedIn)return;
+  if(JSON.stringify(x.shared)!==JSON.stringify(shared)){shared=x.shared;render();}
+ }catch{/* Explicit actions surface authentication errors; polling stays quiet. */}
+ finally{refreshInFlight=false;}
+}
+setInterval(()=>void refreshOffers(),8000);
+document.addEventListener('visibilitychange',()=>void refreshOffers());
+
 render();
 if(vscode)load().then(render).catch(e=>{notice=e.message;noticeKind='bad';render();});
 else{root.innerHTML='<main><h1>Common Ground</h1><p class="lede">Open this view inside VS Code or Cursor: install the extension and run “Common Ground: Open Start”.</p></main>';}

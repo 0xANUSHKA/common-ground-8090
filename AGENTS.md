@@ -4,7 +4,7 @@
 
 **Anushka's agent: read `NOTE_FOR_ANUSHKA_AGENT.md` first** — a note from Connor on where the project stands and what to do next (14 Nov).
 
-If assigned Connor / SocialAcolyte's next task, read `NEXT_FOR_CONNOR.md` for the scoped implementation, ownership boundaries and acceptance checks. It supplements the framework guidance below. Work on existing `main` and preserve other collaborators' edits.
+If assigned Connor / SocialAcolyte's next task, read `NOTE_FOR_CONNOR_AGENT.md` first (latest return handoff), then `NEXT_FOR_CONNOR.md` for the scoped implementation, ownership boundaries and acceptance checks. It supplements the framework guidance below. Work on existing `main` and preserve other collaborators' edits.
 
 This project uses the eve framework: an agent is a directory of files under `agent/`, and eve compiles and runs it.
 
