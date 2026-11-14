@@ -28,3 +28,15 @@ static server (`python3 -m http.server 8091 --directory site`) or deploy it to V
 
 `store.js` holds the shared state and the signed-in session. The live deployment moves accounts, orgs, invites,
 members and grants to the server (`api/`); until then the prototype keeps them in the browser.
+
+## Accounts (live)
+
+The deployed site runs on real accounts: Google sign-in, Upstash Redis on Vercel, one serverless function at `api/index.js`.
+`api.js` checks `/api/status`; when the database and Google are both connected, the sign-in, join and dashboard pages load
+their `live.js`. Otherwise (or with `?demo` in the URL) they run on the seeded demo in your browser, so design work
+needs no backend: `/dashboard/?demo`, `/signin/?demo`.
+
+- Invite links: every circle, company and fund has one reusable link (`/join/?invite=…`); funds have a second for companies.
+- Admins can change roles, remove people, turn links off, remove companies from a fund, revoke shares and remove tools.
+  Every read re-checks permissions, so those take effect immediately.
+- Env vars: `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`.

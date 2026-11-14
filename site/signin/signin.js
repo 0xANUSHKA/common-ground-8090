@@ -5,7 +5,8 @@ import { lilGuy } from '../film/lilguy.js';
 
 const S = load(); save(S);
 const q = new URLSearchParams(location.search);
-const next = /^dashboard(#[\w/-]*)?$/.test(q.get('next') || '') ? `../${q.get('next').replace(/^dashboard/, 'dashboard/')}` : '../dashboard/';
+const hash = /^dashboard(#[\w/-]*)?$/.test(q.get('next') || '') ? q.get('next').replace(/^dashboard/, '') : '';
+const next = `../dashboard/${q.has('demo') ? '?demo' : ''}${hash}`;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const go = (u) => { session.set(u.id); location.href = next; };
 

@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="../auth.css">
 </head>
 <body>
-<header class="nav"><a class="nav-brand" href="../"><img class="logo" src="../logo.svg" alt=""><span>Common Ground</span></a><nav class="nav-tabs" aria-label="Pages"><a href="../">Overview</a><a href="../dashboard/" data-dash-tab>Dashboard</a></nav><div class="nav-links"></div><a class="nav-link" href="../signin/">Sign in</a></header>
+<header class="nav"><a class="nav-brand" href="../"><img class="logo" src="../logo.svg" alt=""><span>Common Ground</span></a><nav class="nav-tabs" aria-label="Pages"><a href="../">Overview</a><a href="../dashboard/" data-dash-tab>Dashboard</a></nav><div class="nav-links"></div><div class="nav-user" data-nav-user data-root="../"></div></header>
 
 <main class="join">
   <form class="join-form" id="form" novalidate></form>
@@ -19,6 +19,7 @@
 </main>
 <p class="join-fine">Prototype · no passwords · stays in this browser · samples: NOAA PMEL (CC0), NREL PVDAQ (CC BY 4.0)</p>
 
-<script type="module" src="./join.js"></script>
+<script type="module">import { live } from '../api.js'; await import((await live()) ? './live.js' : './join.js');</script>
+<script type="module" src="../nav.js"></script>
 </body>
 </html>

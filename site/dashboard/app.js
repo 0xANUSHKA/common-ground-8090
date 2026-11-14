@@ -7,7 +7,7 @@ import { lilGuy, paint } from '../film/lilguy.js';
 let S = load();
 S.circles ||= [];
 const ME = whoami(S);
-if (!ME) location.replace(`../signin/?next=${encodeURIComponent('dashboard' + location.hash)}`);
+if (!ME) location.replace(`../signin/?next=${encodeURIComponent('dashboard' + location.hash)}${location.search.includes('demo') ? '&demo' : ''}`);
 const save = () => saveState(S);
 
 // ── helpers ─────────────────────────────────────────────────────────────

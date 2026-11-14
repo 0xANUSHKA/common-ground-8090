@@ -6,7 +6,7 @@ import { lilGuy } from '../film/lilguy.js';
 import { sniff, inspect } from '../csvcheck.js';
 
 const S = load();
-const q = new URLSearchParams(location.search);
+const q = new URLSearchParams(location.search), DEMO = q.has('demo') ? '?demo' : '';
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const HANDLE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
@@ -194,7 +194,7 @@ function finishIndividual() {
     S.circles.push(ci); log(you.name, 'Started a circle', name); to = `#i/circle/${id}`;
   }
   save(S); session.set(you.id);
-  location.href = `../dashboard/${to}`;
+  location.href = `../dashboard/${DEMO}${to}`;
 }
 function finishCompany() {
   const inv = invited(), ok = verified(), d = D.data, b = d.b;
@@ -226,14 +226,14 @@ function finishCompany() {
   for (const [k, list] of [['publisher', 'publishers'], ['exporter', 'exporters'], ['receiver', 'receivers']]) c[list] = S.users.filter((u) => u.company === c.id && u[k]).map((u) => u.id);
   log(you.name, `Registered ${mates.length + 1} ${mates.length ? 'people' : 'person'}`, c.name, c.id);
   save(S); session.set(you.id);
-  location.href = `../dashboard/#org/${c.id}/members`;
+  location.href = `../dashboard/${DEMO}#org/${c.id}/members`;
 }
 function finishFund() {
   S.fund.name = D.fund.name.trim();
   const you = { id: uid(D.me.handle), name: D.me.name.trim(), company: null, handle: D.me.handle, fund: true, publisher: false, exporter: false, receiver: false, eligible: false, capabilities: [] };
   S.users.push(you); claimInvites(you); log(you.name, 'Set up the fund', S.fund.name);
   save(S); session.set(you.id);
-  location.href = '../dashboard/#fund/overview';
+  location.href = `../dashboard/${DEMO}#fund/overview`;
 }
 
 if (D.kind === 'company') D.step = 1;

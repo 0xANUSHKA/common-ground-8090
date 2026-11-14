@@ -35,6 +35,6 @@
 </div>
 
 <script type="module" src="../nav.js"></script>
-<script type="module" src="./app.js"></script>
+<script type="module">import { live } from '../api.js'; if (await live()) (await import('./live.js')).start(); else await import('./app.js');</script>
 </body>
 </html>
