@@ -7,10 +7,10 @@ import { Store } from './store.js';
 import { seed } from './seed.js';
 import { canPublish,canReceive,fit,hash } from './policy.js';
 import { acceptCandidate,adapt,startBuild } from './factory.js';
-import { inspectDataset,fixtureDir } from './runner.js';
+import { inspectDataset,fixtureDir,verifySource } from './runner.js';
 import { sourceContext,transcribe,integrationStatus } from './integrations.js';
 import { readFileSync } from 'node:fs';
-import type { Artifact,Adoption,BuildJob,Company,Grant,Preference,User } from './types.js';
+import type { Artifact,Adoption,BuildJob,Company,Grant,Lineage,Preference,User } from './types.js';
 export function createApp(store=new Store(), staticRoot=resolve('dist/web')) {
  seed(store);
  const app=Fastify({logger:false,bodyLimit:8_000_000});
@@ -21,6 +21,8 @@ export function createApp(store=new Store(), staticRoot=resolve('dist/web')) {
  const access=(u:User,id:string)=>{const a=store.get<Artifact>('artifact',id);if(!a)throw denied();if(a.owner===u.id)return a;if(!store.all<Grant>('grant').some(g=>canReceive(store,u,a,g))){event(u.id,'access',id,'denied');throw denied();}return a;};
  const safeJob=(j:BuildJob)=>{const {tokenHash,...safe}=j;return safe;};
  const summary=(a:Artifact)=>{const {source,...safe}=a;return safe;};
+ // Artifacts sealed before the blueprint stage existed have no stored lineage; rebuild what the record proves and leave the blueprint link empty.
+ const lineageOf=(a:Artifact):Lineage=>a.lineage??{standard:'Sensor time-series v1',...(a.requirementId?{requirementId:a.requirementId}:{}),workOrder:store.all<BuildJob>('job').find(j=>j.artifactId===a.id)?.id||'',blueprintHash:'',sourceHash:a.hash,checksHash:a.checksHash,bindingHash:a.bindingHash,builtBy:a.provenance==='reference-template'?'reference':'agent',sealedAt:a.createdAt};
  app.addHook('onRequest',async(req,reply)=>{
   const host=String(req.headers.host||'').split(':')[0];
   if(!['127.0.0.1','localhost'].includes(host))return reply.code(403).send({error:'This v0 is loopback-only.'});
@@ -77,7 +79,20 @@ export function createApp(store=new Store(), staticRoot=resolve('dist/web')) {
   const binding=adoption?.binding||a.sourceBinding;
   if(adoption&&(adoption.hash!==a.hash||adoption.bindingHash!==hash(binding)))throw denied();
   const dataset=binding.dataset==='solar'?'pvdaq_system10_sample.csv':'saildrone_1045_2021-09-30.csv';
-  return {name:a.name,hash:a.hash,files:{'inspector.js':a.source,'binding.json':JSON.stringify(binding,null,2),'provenance.json':JSON.stringify({hash:a.hash,bindingHash:hash(binding),checks:a.checks,provenance:a.provenance,...(a.requirementId?{requirement:{system:'8090 Software Factory',id:a.requirementId}}:{})},null,2),'README.md':`# Telemetry inspector\n\nApproved core: ${a.hash}\n\nUse Common Ground Start to run in bounded QuickJS. This download never executes automatically.\n\nDataset: ${dataset}. See DATA_LICENSES.md. Solar timezone is unspecified. Physical validity is not assessed.\n`,'DATA_LICENSES.md':readFileSync(fixtureDir+'DATA_LICENSES.md','utf8'),[dataset]:readFileSync(fixtureDir+dataset,'utf8')}};
+  return {name:a.name,hash:a.hash,files:{'inspector.js':a.source,'binding.json':JSON.stringify(binding,null,2),'provenance.json':JSON.stringify({hash:a.hash,bindingHash:hash(binding),checks:a.checks,provenance:a.provenance,...(a.requirementId?{requirement:{system:'8090 Software Factory',id:a.requirementId}}:{}),lineage:lineageOf(a),blueprint:a.blueprint??null},null,2),'README.md':`# Telemetry inspector\n\nApproved core: ${a.hash}\n\nUse Common Ground Start to run in bounded QuickJS. This download never executes automatically.\n\nDataset: ${dataset}. See DATA_LICENSES.md. Solar timezone is unspecified. Physical validity is not assessed.\n`,'DATA_LICENSES.md':readFileSync(fixtureDir+'DATA_LICENSES.md','utf8'),[dataset]:readFileSync(fixtureDir+dataset,'utf8')}};
+ });
+ app.get<{Params:{id:string}}>('/api/artifacts/:id/lineage',async(req)=>{const u=identity(req),a=access(u,req.params.id);return {lineage:lineageOf(a),blueprint:a.blueprint??null,requirement:{...(a.requirementId?{id:a.requirementId}:{}),system:'8090 Software Factory'}};});
+ // Drift detection: re-run the seven checks on the sealed source and, if a copy is supplied, compare it to the sealed hash.
+ app.post<{Params:{id:string}}>('/api/artifacts/:id/drift',async(req)=>{
+  const u=identity(req),a=access(u,req.params.id),b=z.object({source:z.string().max(24000).optional()}).strict().parse(req.body??{});
+  const checks=await verifySource(a.source),reasons:string[]=[];
+  if(hash(a.source)!==a.hash)reasons.push('The stored source no longer matches its sealed hash.');
+  for(const c of checks)if(!c.passed)reasons.push(`The sealed version now fails: ${c.name}.`);
+  const sourceMatches=b.source===undefined?null:hash(b.source)===a.hash;
+  if(sourceMatches===false)reasons.push('This copy differs from the sealed version.');
+  const sealed=reasons.length===0;
+  event(u.id,'drift',a.id,sealed?'sealed':'drifted');
+  return {sealed,sourceMatches,checks,reasons};
  });
  app.get<{Params:{id:string}}>('/api/artifacts/:id/evidence',async(req)=>{const u=identity(req),a=access(u,req.params.id);return sourceContext([...new Set([u.company,a.company])]);});
  app.post('/api/audio-brief',async(req)=>{identity(req);const b=z.object({base64:z.string(),mime:z.enum(['audio/webm','audio/wav','audio/mpeg','audio/mp4','audio/ogg'])}).strict().parse(req.body);return transcribe(b.base64,b.mime);});
