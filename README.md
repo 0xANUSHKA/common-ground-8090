@@ -57,7 +57,7 @@ Optional keys: `SOFTWARE_FACTORY_API_KEY` (8090 requirements), `ELEVENLABS_API_K
 
 ```sh
 npm run package:extension
-code --install-extension common-ground-0.1.1.vsix     # or: cursor --install-extension …
+code --install-extension common-ground-0.1.6.vsix     # or: cursor --install-extension …
 ```
 
 The extension signs in to the hosted service through the browser. It requires workspace trust before building or downloading, and never installs dependencies or runs downloaded code.
@@ -116,18 +116,25 @@ Not yet built: company SSO and verified organization identity, independent expor
 
 The verifier lives outside generated code. Runtime code has a memory cap and an execution deadline. Local factory state is `.local/common-ground.sqlite`. Unfinished jobs show as failed instead of pretending to finish.
 
+## Hackathon provenance and prior work
+
+Common Ground was built during the EVOLVE hackathon on November 13–14, 2026. Neither team member reused code or assets they personally created before the event. We started from an existing Eve scaffold and used existing third-party libraries, services, public assets and datasets; their roles and licenses are listed below. The repository history begins with the scaffold commit on November 14 at 00:05 PT.
+
+The four weather, revenue, battery and inference projects are prepared runnable reference examples created for this demonstration. Live agent generation currently supports the bounded telemetry inspector; the broader examples are not presented as live-generated applications.
+
 ## Tools, libraries and licenses
 
-Built during EVOLVE with AI coding tools (Claude Code; Eve agents), which the rules allow.
+Built during EVOLVE with AI coding tools (OpenAI Codex, Claude Code and Eve agents), which the rules allow.
 
 | What | Used for | License |
 |---|---|---|
+| OpenAI Codex | Development, debugging, testing, documentation and demo editing | OpenAI service terms |
 | Claude Code (headless, `claude -p`) | Live build agent in the local factory (`BUILD_PROVIDER=claude`) | Anthropic terms |
 | Fastify, @fastify/static | Local builder server | MIT |
 | QuickJS (quickjs-emscripten) | Sandbox that runs the seven checks | MIT |
 | Eve (eve) | Build agent framework | Apache-2.0 |
 | Vercel AI SDK (ai), @vercel/connect | Model calls through the Vercel AI Gateway | Apache-2.0 |
-| HydraDB SDK (@hydradb/sdk) | Company context collections for fit evidence | See package |
+| HydraDB SDK (@hydradb/sdk) | Company context collections for fit evidence | Proprietary Cortex AI service license (installed SDK `LICENSE`); not covered by this project’s MIT license |
 | ElevenLabs Scribe (API) | Audio brief transcription | ElevenLabs terms |
 | csv-parse, zod, dotenv | Parsing, validation, config | MIT, MIT, BSD-2-Clause |
 | esbuild, tsx, TypeScript, Vite, @vscode/vsce | Build and packaging | MIT, MIT, Apache-2.0, MIT, MIT |
