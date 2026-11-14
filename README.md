@@ -12,6 +12,8 @@ Requires Node **26.x** (uses built-in SQLite), npm, and optionally VS Code/Curso
 
 **Joining the project?** Start with [teammate setup, all API variables, and verified integration status](docs/SETUP.md).
 
+**Connor / SocialAcolyte's next assignment:** [Finish the native editor recipient experience](NEXT_FOR_CONNOR.md), with file ownership, concrete steps, and acceptance tests for your coding agent.
+
 ```sh
 npm ci
 cp .env.example .env

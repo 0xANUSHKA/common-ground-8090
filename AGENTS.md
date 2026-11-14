@@ -1,5 +1,9 @@
 # eve Agent App
 
+## Team handoff
+
+If assigned Connor / SocialAcolyte's next task, read `NEXT_FOR_CONNOR.md` for the scoped implementation, ownership boundaries and acceptance checks. It supplements the framework guidance below. Work on existing `main` and preserve other collaborators' edits.
+
 This project uses the eve framework: an agent is a directory of files under `agent/`, and eve compiles and runs it.
 
 For a content-only change to the root agent's identity, purpose, tone, or response guidelines, edit its existing authored instructions. Fresh projects use `agent/instructions.md`; a project may instead use `agent/instructions.ts` or files under `agent/instructions/`. You do not need to read the framework docs for a content-only instructions change. A fresh project already has its selected model in `agent/agent.ts`; preserve that file unless the user asks to change the model.

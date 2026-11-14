@@ -46,7 +46,7 @@ As of November 14, 2026:
 
 - 8090: project-scoped key installed locally; authenticated health and requirements creation succeeded.
 - ElevenLabs: restricted key installed locally; a real Scribe transcription of a synthetic spoken brief succeeded.
-- AI Gateway: key creation awaiting account-owner email verification. Live model generation is **not yet verified**. Keep reference mode until an actual generated candidate passes the checks.
+- AI Gateway: account-owner email verification completed and a key is installed locally with a $1 non-refreshing budget. The first inference request returned `403 customer_verification_required`: Vercel requires a valid payment method before serving requests. No payment method or subscription was added. Live model generation is **not yet verified**; keep reference mode until an actual generated candidate passes the checks.
 - HydraDB: adapter and seed script implemented; no key, subscription or live query. Connection deliberately deferred.
 - Editor: VSIX packaged and installed in Cursor. Browser preview and API flow verified; a complete native-editor download rehearsal remains to be performed.
 
