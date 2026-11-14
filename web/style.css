@@ -25,7 +25,7 @@ a{color:var(--vscode-textLink-foreground,#4daafc);text-decoration:none}a:hover{t
 .rows{list-style:none;margin:0;padding:0}
 .rows li + li{border-top:1px solid var(--vscode-widget-border,var(--vscode-editorWidget-border,rgba(128,128,128,.2)))}
 .row{display:flex;align-items:center;gap:10px;width:100%;padding:8px 0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.row > span{flex:1;min-width:0;display:grid}
+.row > span:not(.av):not(.logo){flex:1;min-width:0;display:grid}
 .row b{font-weight:400;color:var(--vscode-textLink-foreground,#4daafc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row:hover b{text-decoration:underline}
 .row small,.who small{color:var(--vscode-descriptionForeground,#9d9d9d)}

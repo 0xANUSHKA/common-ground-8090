@@ -43,7 +43,7 @@ function start(){
   <p class="muted">Your fund or company sends you a link to join. Setting one up? <a href="${esc(server)}/join/">Set up your fund</a>.</p>
   ${recentList()}`;
  const co=companies()[0];
- return `<h1>Start</h1><p class="lede">${shared.length?`${shared.length} ${shared.length===1?'tool has':'tools have'} been shared with you.`:'Nothing has been shared with you yet. When someone in your company or portfolio shares a tool with you, it shows up here.'}</p>
+ return `<h1>Common Ground</h1><p class="lede">${shared.length?`${shared.length} ${shared.length===1?'tool has':'tools have'} been shared with you.`:'Nothing has been shared with you yet. When someone in your company or portfolio shares a tool with you, it shows up here.'}</p>
   <div class="cols"><div>
    <h2>Start</h2><ul class="links">
     <li><button data-act="buildview">${ic('plus')}Build a tool…</button></li>

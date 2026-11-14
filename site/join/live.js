@@ -1,7 +1,6 @@
 // Join. With ?invite=CODE: see who invited you, sign in with Google, join (a fund's company link asks which company
 // you're bringing in). Without one: a fund sets itself up, then sends its company link to the portfolio.
 import { api, googleUrl, G } from '../api.js';
-import { lilGuy } from '../film/lilguy.js';
 
 const q = new URLSearchParams(location.search);
 const $ = (s, r = document) => r.querySelector(s);
@@ -19,7 +18,10 @@ let ME = null, ORGS = [];
 try { const r = await api('me'); ME = r.user; ORGS = r.orgs; } catch {}
 const google = (next, label = 'Continue with Google') => `<a class="btn is-blue is-full" href="${esc(googleUrl(next))}">${G}${label}</a>`;
 const err = (m) => { const e = $('#err'); if (e) e.textContent = m; };
-const card = (icon, name, sub, people = []) => `<div class="pv-card"><div class="pv-co">${icon}<span><b>${esc(name)}</b><small>${esc(sub)}</small></span></div><div class="pv-team">${people.map((u) => `<span class="cg-lg" title="${esc(u.name)}">${lilGuy(who(u))}</span>`).join('')}</div></div>`;
+const initials = (n) => (String(n || '?').trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join('') || '?').toUpperCase();
+const hue = (str) => [...String(str)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+const av = (u) => u.picture ? `<img class="av" src="${esc(u.picture)}" alt="" referrerpolicy="no-referrer" title="${esc(u.name)}">` : `<span class="av" style="--h:${hue(u.id || u.name)}" title="${esc(u.name)}">${esc(initials(u.name))}</span>`;
+const card = (icon, name, sub, people = []) => `<div class="pv-card"><div class="pv-co">${icon}<span><b>${esc(name)}</b><small>${esc(sub)}</small></span></div><div class="pv-team">${people.map(av).join('')}</div></div>`;
 
 async function invite(code) {
   let inv;
@@ -38,7 +40,7 @@ async function invite(code) {
   let pick = mine[0]?.id || '';
   const render = () => {
     form.innerHTML = head
-      + (mine.length ? `<div class="kind" style="margin-bottom:14px">${mine.map((c) => `<button type="button" data-co="${c.id}" aria-pressed="${pick === c.id}" style="${pick === c.id ? 'box-shadow:inset 0 0 0 1px var(--accent)' : ''}">${fav(c.iconUrl, c.name)}<span><b>${esc(c.name)}</b><small>Your company</small></span></button>`).join('')}<button type="button" data-co="" aria-pressed="${!pick}" style="${!pick ? 'box-shadow:inset 0 0 0 1px var(--accent)' : ''}"><svg viewBox="0 0 24 24">${ic.company}</svg><span><b>A new company</b><small>Register it now</small></span></button></div>` : '')
+      + (mine.length ? `<div class="kind" style="margin-bottom:14px">${mine.map((c) => `<button type="button" data-co="${c.id}" aria-pressed="${pick === c.id}" >${fav(c.iconUrl, c.name)}<span><b>${esc(c.name)}</b><small>Your company</small></span></button>`).join('')}<button type="button" data-co="" aria-pressed="${!pick}" ><svg viewBox="0 0 24 24">${ic.company}</svg><span><b>A new company</b><small>Register it now</small></span></button></div>` : '')
       + (!pick ? `<label class="fld"><span>Company</span><input name="name" required autocomplete="organization"></label><label class="fld"><span>Website <small style="color:var(--faint)">for its favicon</small></span><input name="site" placeholder="example.com" inputmode="url"></label>` : '')
       + `<p class="err" id="err" role="alert"></p><div class="join-act"><button type="submit" class="btn is-blue">Join ${esc(o.name)}</button></div>`;
   };
@@ -57,7 +59,7 @@ function start() {
     if (!ME) {
       form.innerHTML = `<h1>${title}</h1><p style="margin:-8px 0 20px;color:var(--mute)">${fund ? 'You’ll get one link to send every portfolio company.' : 'Usually your fund sends you a link. Without one, start here and join a fund later.'}</p>${google(`/join/?kind=${kind}`)}`
         + `<p class="auth-alt">${fund ? 'Running a portfolio company? Open the link your fund sent, or <a href="?kind=company">set up a company</a>.' : '<a href="./">Set up a fund instead</a>'}<br><a href="#" data-demo>Explore a demo fund</a></p>`;
-      preview.innerHTML = `<p class="pv-l">How it spreads</p><div class="pv-card"><ol style="margin:0;padding-left:18px;color:var(--mute);font-size:14px;line-height:1.7"><li><b style="color:var(--fg)">The fund</b> sets up and sends one link to its companies.</li><li><b style="color:var(--fg)">Each company</b> maps its data and sends a link to its engineers.</li><li><b style="color:var(--fg)">Engineers</b> install the extension. What they build reaches the right people across the portfolio.</li></ol></div>`;
+      preview.innerHTML = `<p class="pv-l">How it spreads</p><div class="pv-card"><ol style="margin:0;padding-left:18px;color:var(--mute);font-size:15px;line-height:1.8"><li><b style="color:var(--fg)">The fund</b> sets up and sends one link to its companies.</li><li><b style="color:var(--fg)">Each company</b> maps its data and sends a link to its engineers.</li><li><b style="color:var(--fg)">Engineers</b> install the extension. What they build reaches the right people across the portfolio.</li></ol></div>`;
       return;
     }
     form.innerHTML = `<h1>${title}</h1>`
@@ -68,7 +70,7 @@ function start() {
     draw();
   };
   const draw = () => { if (!ME) return; const nm = F('name')?.value || (fund ? 'Your fund' : 'Your company'), st = F('site')?.value || '', h = F('handle')?.value.trim().replace(/^@/, '');
-    preview.innerHTML = `<p class="pv-l">You’re setting up</p>${card(fav(host(st) && `https://www.google.com/s2/favicons?domain=${host(st)}&sz=128`, nm), nm, fund ? 'Sensor time-series v1' : host(st) || '1 person', [{ ...ME, handle: h }])}<p class="pv-l">Next</p><div class="pv-card" style="background:none;box-shadow:inset 0 0 0 1px var(--line)"><p style="margin:0;color:var(--mute);font-size:14px">${fund ? 'Copy your company link from the dashboard and send it to every founder or engineering lead in the portfolio.' : 'Map a sample of your data, then send your team its link.'}</p></div>`; };
+    preview.innerHTML = `<p class="pv-l">You’re setting up</p>${card(fav(host(st) && `https://www.google.com/s2/favicons?domain=${host(st)}&sz=128`, nm), nm, fund ? 'Sensor time-series v1' : host(st) || '1 person', [{ ...ME, handle: h }])}<p class="pv-l">Next</p><div class="pv-card"><p style="margin:0;color:var(--mute);font-size:15px;line-height:1.6">${fund ? 'Copy your company link from the dashboard and send it to every founder or engineering lead in the portfolio.' : 'Map a sample of your data, then send your team its link.'}</p></div>`; };
   render();
   form.oninput = draw;
   form.onclick = async (e) => { if (!e.target.closest('[data-demo]')) return; e.preventDefault(); await api('auth/demo', { method: 'POST' }); location.href = '/dashboard/'; };
