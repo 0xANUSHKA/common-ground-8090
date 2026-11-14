@@ -5,6 +5,7 @@ import { hash,qualified } from './policy.js';
 import { recordRequirement } from './software-factory.js';
 import { marine,solar } from './seed.js';
 import { referenceSource,verifySource,inspectDataset } from './runner.js';
+import { claudeWrite } from './claude-builder.js';
 export const contract=`Write a self-contained JavaScript function inspect(rows,binding). No exports, imports, filesystem, network or host APIs. rows are {time,value} strings; binding has start,end,cadenceSeconds,timeBasis. Time basis utc has Z; local-unspecified has no timezone: use UTC arithmetic on naive text and return naive text, NEVER infer a location or offset. Interval [start,end) is explicit; detect missing timestamps including edges; count duplicate timestamps and distinct off-grid timestamps. Output ONLY fields rows, uniqueTimestamps, duplicateRows, missingTimestamps (ISO strings without milliseconds, retain Z only for utc), outsideGrid, finiteValues, missingValues, malformedValues, negativeValues, zeroValues, physicalValidity:'not_assessed'. Blank/NaN/Infinity/Inf are missing, nonnumeric text malformed, zero and negative numbers valid. Count each row's signal. Do not infer physical validity. Respect the user's brief within this completeness-inspector contract. Tests are authoritative; do not hardcode fixture answers.`;
 const candidateLocks=new Set<string>();
 export async function acceptCandidate(s:Store,jobId:string,token:string,source:string) {
@@ -16,19 +17,31 @@ export async function acceptCandidate(s:Store,jobId:string,token:string,source:s
  const checks=await verifySource(source);
  if(!checks.every(x=>x.passed)){job.events.push('Candidate failed independent checks; repair required.');s.put('job',job.id,job);return {accepted:false,checks};}
  const owner=s.get<User>('user',job.owner)!;
- const a:Artifact={id:randomUUID(),name:'telemetry-inspector',owner:owner.id,company:owner.company,source,hash:hash(source),sourceBinding:marine,bindingHash:hash(marine),checks,checksHash:hash(checks),maintainer:owner.id,class:'data-quality',capabilities:['time-series','csv','completeness'],provenance:job.provider==='eve'?'eve-generated':'reference-template',createdAt:new Date().toISOString()};
+ const a:Artifact={id:randomUUID(),name:'telemetry-inspector',owner:owner.id,company:owner.company,source,hash:hash(source),sourceBinding:marine,bindingHash:hash(marine),checks,checksHash:hash(checks),maintainer:owner.id,class:'data-quality',capabilities:['time-series','csv','completeness'],provenance:job.provider==='eve'?'eve-generated':job.provider==='claude'?'agent-generated':'reference-template',createdAt:new Date().toISOString()};
  s.put('artifact',a.id,a);job.status='ready';job.artifactId=a.id;job.events.push('7 independent checks passed. Immutable candidate ready for your review.');s.put('job',job.id,job);
  return {accepted:true,checks,artifactId:a.id};
  }finally{candidateLocks.delete(jobId);}
 }
 export async function startBuild(s:Store,u:User,prompt:string) {
  const token=randomBytes(32).toString('hex');
- const job:BuildJob={id:randomUUID(),owner:u.id,prompt,status:'building',tokenHash:hash(token),events:['Build contract created.'],provider:process.env.BUILD_PROVIDER==='eve'?'eve':'reference',createdAt:new Date().toISOString()};
+ const job:BuildJob={id:randomUUID(),owner:u.id,prompt,status:'building',tokenHash:hash(token),events:['Build contract created.'],provider:['eve','claude'].includes(String(process.env.BUILD_PROVIDER))?String(process.env.BUILD_PROVIDER):'reference',createdAt:new Date().toISOString()};
  s.put('job',job.id,job);
  // One bounded asynchronous job. Status survives restarts; interrupted jobs fail explicitly on startup.
  void (async()=>{try{
   if(process.env.SOFTWARE_FACTORY_API_KEY){const requirement=await recordRequirement(job.id,prompt,contract);job.events.push('8090 requirement recorded: '+(requirement?.id||requirement?.document_id||'created'));s.put('job',job.id,job);}
-  if(job.provider==='reference'){
+  if(job.provider==='claude'){
+   // live: Claude Code writes the tool; the same seven checks decide; failures go back for repair (3 attempts)
+   let feedback='';
+   for(let attempt=1;attempt<=3;attempt++){
+    job.events.push(attempt===1?'Coding agent (Claude Code) writing the tool from your brief.':`Repair attempt ${attempt}: sending the failing checks back to the agent.`);s.put('job',job.id,job);
+    const source=await claudeWrite(contract,prompt,feedback);
+    job.events.push(`Agent returned ${source.split('\n').length} lines. Running seven independent checks in a sandbox.`);s.put('job',job.id,job);
+    const r=await acceptCandidate(s,job.id,token,source);
+    if(r.accepted)break;
+    feedback=r.checks.filter((c:any)=>!c.passed).map((c:any)=>`- ${c.name}${c.detail?`: ${c.detail}`:''}`).join('\n');
+    if(attempt===3){const cur=s.get<BuildJob>('job',job.id)!;cur.status='failed';cur.error='The agent’s code didn’t pass the checks after three attempts.';s.put('job',job.id,cur);}
+   }
+  }else if(job.provider==='reference'){
    job.events.push('Offline mode: compiling the hand-authored reference template. No model generation claimed.');s.put('job',job.id,job);
    await acceptCandidate(s,job.id,token,referenceSource());
   }else{

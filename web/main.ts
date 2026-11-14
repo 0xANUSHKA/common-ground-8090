@@ -71,6 +71,7 @@ function buildView(){
  if(builder!=='ready')return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Building runs on this machine so the code can be checked before anyone sees it.</p><p>Start the local builder with <span class="kbd">npm start</span> in the Common Ground repo, then come back.</p><div class="actions"><button data-act="recheck">Check again</button></div>`;
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Describe it. An agent builds it, then seven checks run against real ocean and solar data.</p>
   <label for="brief">What should it do?</label><textarea id="brief" rows="5">${esc(brief)}</textarea>
+  <p class="muted">Or start from the meeting where someone asked for it: <button class="linkish" data-act="audio">use a recording…</button> It’s transcribed with ElevenLabs Scribe into a brief you can edit before anything is built.</p>
   <div class="actions"><button class="primary" data-act="build" ${busy?'disabled':''}>${busy?'Building…':'Build and check'}</button></div>
   ${job?`<ul class="log">${job.events.map((e:string)=>`<li>${ic('check')}${esc(e)}</li>`).join('')}${job.status==='building'?'<li class="muted">Building and checking…</li>':''}${job.error?`<li class="bad">${esc(job.error)}</li>`:''}</ul>`:''}`;
 }
@@ -79,7 +80,7 @@ function builtView(){
  const cos=companies();if(!share)share={orgId:cos[0]?.id||'',people:null,pick:new Set<string>(),team:true,name:a.name,description:'Finds missing, duplicate and off-grid readings in a sensor time series before they reach a model.',hours:16};
  const r=report?.report;
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>${esc(a.name)}</h1>
-  <p class="lede">${passed===a.checks.length?`Passed all ${passed} checks.`:`${passed} of ${a.checks.length} checks passed; it can’t be shared until they all pass.`} ${a.provenance==='eve-generated'?'Built by the agent from your brief.':'Built from the offline reference template.'}</p>
+  <p class="lede">${passed===a.checks.length?`Passed all ${passed} checks.`:`${passed} of ${a.checks.length} checks passed; it can’t be shared until they all pass.`} ${a.provenance==='eve-generated'||a.provenance==='agent-generated'?'Written by the coding agent from your brief.':'Built from the offline reference template.'}</p>
   <ul class="log">${a.checks.map((c:any)=>`<li class="${c.passed?'':'bad'}">${ic('check')}${esc(c.name)}</li>`).join('')}</ul>
   <div class="actions"><button data-act="runsrc">Run on the ocean sample</button><button data-act="openlocal">Open in editor</button></div>
   ${r?`<p>${r.rows.toLocaleString()} readings, ${r.missingTimestamps.length} missing timestamps, ${r.duplicateRows} duplicate rows and ${r.missingValues} missing values.</p>`:''}
@@ -137,6 +138,14 @@ root.addEventListener('click',e=>{
    if(job.status==='failed')throw new Error(job.error||'The build failed.');
    built=await local('/artifacts/'+job.artifactId);report=null;share=null;view='built';
    if(signedIn&&companies().length){builtView();void loadPeople();}
+  }
+  if(act==='audio'){
+   const input=document.createElement('input');input.type='file';input.accept='audio/*';
+   input.onchange=()=>void run(async()=>{const f=input.files?.[0];if(!f)return;if(f.size>5_000_000)throw new Error('Choose a recording under 5 MB.');
+    const base64=await new Promise<string>((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});
+    const mime=(['audio/webm','audio/wav','audio/mpeg','audio/mp4','audio/ogg'].includes(f.type)?f.type:'audio/mpeg');
+    const t=await local('/audio-brief','POST',{base64,mime});brief=t.text;say('Transcribed with ElevenLabs Scribe. Edit the brief, then build.');});
+   input.click();
   }
   if(act==='runsrc')report=await local(`/artifacts/${built.id}/run`,'POST',{challenge:false});
   if(act==='openlocal'){const r=await bridge('openArtifact',{artifactId:built.id});if(!r.cancelled)say('Saved and opened in a new window.');}

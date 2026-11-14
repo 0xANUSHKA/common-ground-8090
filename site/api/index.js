@@ -287,15 +287,15 @@ on('POST', 'tools', async (req, res, me) => {
   const b = req.body || {}, name = clean(b.name, 60).replace(/[^\w.\-]/g, '-'); if (!name) throw fail(400, 'Name the tool.');
   const org = await getJSON(K.org(String(b.orgId || ''))); if (!org || org.kind !== 'company' || !(await membership(org.id, me.id))) throw fail(403, 'Pick your company.');
   const orgId = org.id;
-  const tool = { id: rid(10), name, description: clean(b.description, 280), owner: me.id, orgId, createdAt: now(), hash: randomBytes(8).toString('hex'), checks: 7, hours: Math.min(400, Math.max(1, Math.round(+b.hours) || 8)), uses: [] };
+  const tool = { id: rid(10), name, description: clean(b.description, 280), owner: me.id, orgId, createdAt: now(), hash: '', checks: 0, hours: Math.min(400, Math.max(1, Math.round(+b.hours) || 8)), uses: [] };
   let pkg = null;
   if (b.files) { // published from the editor: the exact files that passed the checks, verified by hash
     const files = b.files, names = Object.keys(files || {});
     if (!names.length || names.length > 12 || names.some((f) => !PKG_FILES.test(f) || typeof files[f] !== 'string')) throw fail(400, 'Unexpected files in the package.');
     if (names.reduce((n, f) => n + files[f].length, 0) > 600000) throw fail(413, 'Package is too large.');
     const main = files['inspector.js']; if (!main || createHash('sha256').update(main).digest('hex') !== b.hash) throw fail(400, 'Package hash doesn’t match its code.');
-    if (Array.isArray(b.checks) && b.checks.length && !b.checks.every((c) => c.passed)) throw fail(400, 'Only tools that pass every check can be shared.');
-    tool.hash = b.hash; tool.checks = Array.isArray(b.checks) ? b.checks.filter((c) => c.passed).length || 7 : 7; tool.fromEditor = true;
+    if (!Array.isArray(b.checks) || b.checks.length !== 7 || !b.checks.every((c) => c.passed)) throw fail(400, 'Only tools that pass all seven factory checks can be published.');
+    tool.hash = b.hash; tool.checks = 7; tool.fromEditor = true;
     pkg = { name, hash: b.hash, files };
   }
   await pipeline([['SET', K.tool(tool.id), JSON.stringify(tool)], ...(pkg ? [['SET', K.pkg(tool.id), JSON.stringify(pkg)]] : []), ['SADD', K.utools(me.id), tool.id], ...(orgId ? [['SADD', K.otools(orgId), tool.id]] : [])]);
@@ -317,6 +317,16 @@ async function canOpenTool(t, uid) {
 on('GET', 'tools/:id/package', async (req, res, me, p) => {
   const t = await getJSON(K.tool(p.id)); if (!t || !(await canOpenTool(t, me.id))) throw fail(404, 'This tool isn’t shared with you.');
   const pkg = await getJSON(K.pkg(t.id)); if (!pkg) throw fail(404, 'This tool was registered by hand and has no files to download.');
+  // bind it to the recipient's own mapping of the standard: the checked code stays byte-identical, only binding.json changes
+  if (!(await membership(t.orgId, me.id))) {
+    const mine = (await myOrgs(me.id)).find((o) => o.kind === 'company' && o.mapping?.result?.state === 'verified' && o.mapping.binding);
+    if (mine) {
+      const m = mine.mapping, std = STANDARD.name;
+      pkg.files['binding.json'] = JSON.stringify({ standard: std, company: mine.name, source: m.source, time: m.binding.timeColumn, value: m.binding.signalColumn, unit: m.binding.unit || '', timeBasis: m.binding.timeBasis, cadenceSeconds: m.binding.cadenceSeconds, skipUnitsRow: m.binding.skipUnitsRow }, null, 2);
+      pkg.files['README.md'] = (pkg.files['README.md'] || `# ${t.name}\n`) + `\nRebound to ${mine.name}'s mapping of ${std}. Core hash unchanged: ${pkg.hash}.\n`;
+      pkg.reboundTo = mine.name;
+    }
+  }
   return pkg;
 });
 const canManageTool = async (t, uid) => t.owner === uid || (t.orgId && isAdmin(await membership(t.orgId, uid)));
@@ -329,6 +339,7 @@ on('DELETE', 'tools/:id', async (req, res, me, p) => {
 });
 on('POST', 'tools/:id/grants', async (req, res, me, p) => {
   const t = await getJSON(K.tool(p.id)); if (!t || t.owner !== me.id) throw fail(404, 'Only a tool’s author can share it.');
+  if (t.checks !== 7) throw fail(400, 'This tool hasn’t been through the factory’s seven checks yet. Publish it from the editor to share it.');
   const b = req.body || {}; let g;
   const base = { id: rid(10), toolId: t.id, issuer: me.id, revoked: false, at: now() };
   if (b.orgId) {
@@ -399,7 +410,12 @@ on('POST', 'auth/demo', async (req, res) => {
   const fund = { id: `f${sx}`, kind: 'fund', name: 'Social Capital', site: 'socialcapital.com', iconUrl: icon('socialcapital.com'), createdAt: at(30), owner: me.id, demo: true, settings: { ...DEFAULTS.fund }, standard: STANDARD };
   const mem = (org, uid, role, extra = {}) => cmds.push(['HSET', K.mem(org.id), uid, JSON.stringify({ role, publisher: true, exporter: role !== 'member', receiver: true, at: org.createdAt, ...extra })], ['SADD', K.uorgs(uid), org.id]);
   cmds.push(['SET', K.org(fund.id), JSON.stringify(fund)]); mem(fund, me.id, 'owner');
-  const map = (src, ok) => ({ source: src, binding: { timeColumn: 'time', signalColumn: 'value', unit: '', skipUnitsRow: false, timeBasis: 'utc', cadenceSeconds: 60 }, columns: [], result: { state: ok ? 'verified' : 'draft', detail: ok ? '1,440 observations · 0 missing timestamps' : 'Waiting for a sample' }, at: at(20) });
+  // each company's own columns, mapped once to the standard (Saildrone and Palmetto match the real NOAA and NREL samples)
+  const BIND = { saildrone: { timeColumn: 'time', signalColumn: 'WIND_SPEED_MEAN', unit: 'm s-1', skipUnitsRow: true, timeBasis: 'utc', cadenceSeconds: 60 },
+    palmetto: { timeColumn: 'measured_on', signalColumn: 'ac_power__423', unit: 'W', skipUnitsRow: false, timeBasis: 'local-unspecified', cadenceSeconds: 60 },
+    mast: { timeColumn: 'logged_at', signalColumn: 'soil_vwc', unit: 'm3/m3', skipUnitsRow: false, timeBasis: 'utc', cadenceSeconds: 900 },
+    groq: { timeColumn: 'ts', signalColumn: 'rack_inlet_c', unit: 'C', skipUnitsRow: false, timeBasis: 'utc', cadenceSeconds: 10 } };
+  const map = (src, ok, key) => ({ source: src, binding: BIND[key], columns: [], result: { state: ok ? 'verified' : 'draft', detail: ok ? '1,440 observations · 0 missing timestamps' : 'Waiting for a sample' }, at: at(20) });
   const COS = [
     ['saildrone', 'Saildrone', 'saildrone.com', 'saildrone.png', 'ERDDAP / NetCDF', true, [['Fabio Rossi', 'fabio-sd', 'owner'], ['Theo Park', 'theo-sd', 'member'], ['Ines Duarte', 'ines-sd', 'member'], ['Sam Okafor', 'sam-sd', 'member']]],
     ['palmetto', 'Palmetto', 'palmetto.com', 'palmetto.png', 'SolarEdge', true, [['Maya Chen', 'maya-pm', 'owner'], ['Leo Grant', 'leo-pm', 'member'], ['Elli Novak', 'elli-pm', 'member']]],
@@ -409,7 +425,7 @@ on('POST', 'auth/demo', async (req, res) => {
   ];
   const co = {}, ppl = {};
   for (const [key, name, site, , src, ok, people] of COS) {
-    const c = { id: `c${sx}${key.slice(0, 3)}`, kind: 'company', name, site, iconUrl: icon(site), createdAt: at(25), owner: null, demo: true, fundId: fund.id, status: ok ? 'joined' : 'invited', settings: { ...DEFAULTS.company }, ...(src ? { mapping: map(src, ok) } : {}) };
+    const c = { id: `c${sx}${key.slice(0, 3)}`, kind: 'company', name, site, iconUrl: icon(site), createdAt: at(25), owner: null, demo: true, fundId: fund.id, status: ok ? 'joined' : 'invited', settings: { ...DEFAULTS.company }, ...(src ? { mapping: map(src, ok, key) } : {}) };
     co[key] = c;
     for (const [pname, gh, role] of people) { const u = { id: `u${sx}${gh}`, email: `${gh}@example.com`, name: pname, handle: gh, picture: '', createdAt: at(25), demo: true }; ppl[gh] = u; cmds.push(['SET', K.user(u.id), JSON.stringify(u)]); mem(c, u.id, role); if (role === 'owner') c.owner = u.id; }
     cmds.push(['SADD', K.fundcos(fund.id), c.id]);
@@ -417,9 +433,9 @@ on('POST', 'auth/demo', async (req, res) => {
   mem(co.saildrone, me.id, 'admin'); // so the demo can show a company's side too
   const TOOLS = [
     ['telemetry-inspector', 'saildrone', 'fabio-sd', 'Finds missing, duplicate and off-grid readings in any sensor time series before they reach a model.', 16, [['palmetto', 'maya-pm', 'adapt', 6], ['mast', 'rhea-ml', 'download', 3], ['saildrone', 'theo-sd', 'download', 9]]],
-    ['glider-dashboard', 'saildrone', 'theo-sd', 'Live map of every vehicle with battery, heading and last fix.', 24, [['saildrone', 'ines-sd', 'download', 12]]],
+    ['glider-feed-qc', 'saildrone', 'theo-sd', 'Checks every vehicle’s minute-by-minute position feed for gaps, repeats and late fixes.', 24, [['saildrone', 'ines-sd', 'download', 12]]],
     ['pv-gap-finder', 'palmetto', 'maya-pm', 'Flags dropped inverter intervals and fills short gaps without inventing peaks.', 12, [['saildrone', 'fabio-sd', 'adapt', 4], ['mast', 'jon-ms', 'download', 2]]],
-    ['inverter-alarm-digest', 'palmetto', 'leo-pm', 'One morning summary of overnight inverter alarms, grouped by site.', 6, []],
+    ['inverter-gap-report', 'palmetto', 'leo-pm', 'A morning report of missing inverter readings overnight, by site.', 6, []],
     ['canopy-sensor-qa', 'mast', 'rhea-ml', 'Checks soil-moisture loggers for drift and stuck values across a planting.', 10, [['palmetto', 'elli-pm', 'download', 1]]],
   ];
   const reuse = { [fund.id]: [] };

@@ -64,3 +64,5 @@ input.short{width:100px}
 
 .notice{margin:0 0 20px;padding:0 0 10px;border-bottom:1px solid var(--vscode-widget-border,rgba(128,128,128,.2))}
 .notice.ok{color:var(--vscode-foreground)}.notice.bad{color:var(--vscode-errorForeground,#f48771)}
+
+.linkish{padding:0;border:0;background:none;color:var(--vscode-textLink-foreground,#4daafc);font:inherit;cursor:pointer}.linkish:hover{text-decoration:underline}

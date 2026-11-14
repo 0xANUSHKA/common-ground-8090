@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { fixtureDir } from './runner.js';
 export function integrationStatus(){return {
- builder:process.env.BUILD_PROVIDER==='eve'?'Eve agent':'Offline reference template',
+ builder:process.env.BUILD_PROVIDER==='eve'?'Eve agent':process.env.BUILD_PROVIDER==='claude'?'Claude Code agent':'Offline reference template',
  hydra:process.env.HYDRADB_API_KEY?'Configured — queried on fit review':'Not connected',
  elevenlabs:process.env.ELEVENLABS_API_KEY?'Configured — audio brief enabled':'Not connected',
  factory:process.env.SOFTWARE_FACTORY_API_KEY?'Configured':'Not connected',
