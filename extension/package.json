@@ -1,7 +1,7 @@
 {
  "name": "common-ground",
  "displayName": "Common Ground",
- "description": "A quiet, permission-aware Start view for useful software shared across your organization.",
+ "description": "A software factory in your editor: agents build tools against your portfolio's shared standard, seven checks seal each version, and the people who need it get it.",
  "version": "0.1.0",
  "publisher": "common-ground-demo",
  "engines": {

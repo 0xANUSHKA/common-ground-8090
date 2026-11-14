@@ -2,84 +2,101 @@
 
 **Your software factory finished a tool. Someone else in your portfolio needed it yesterday.**
 
-Common Ground finds that second use, checks the permission boundary, binds the tool to the recipient's data, and quietly places an approved introduction in their editor. One surface: a VS Code Start tab. No marketplace, Slack spam, or automatic code execution.
+Common Ground is an ontological software factory for venture portfolios. Agents build tools against the fund's shared data standard rather than one company's columns, so any tool that passes the factory's checks can run at every company that has mapped its data. A fund sets the standard and sends one link to its portfolio. Each company maps its data once. Engineers build, check and share tools from VS Code or Cursor, and the fund's console shows what was reused and roughly how many hours it saved.
 
-Built for EVOLVE, November 13–14, 2026. MIT licensed. Public demo data; illustrative company roles and permissions.
+Built for EVOLVE (8090), November 13–14, 2026. MIT licensed. The demo fund is sample data with illustrative companies and people. The datasets are public NOAA and NREL data.
 
-**Positioning:** software reuse across investment portfolios, delivered as one IDE extension. The buyer is a fund's operating/platform team; the users are engineers at its portfolio companies. See [the agreed pitch, implementation status, API readiness, and demo/product ship plan](docs/PRODUCT_BRIEF.md).
+## Try it
 
-## Run the v0
+- **Live site:** https://common-ground-theta.vercel.app
+- **Fund console in one click:** https://common-ground-theta.vercel.app/signin/, then **Explore a demo fund**. This creates a private sandbox fund with sample data, signed in as its owner.
+- **Set up a real fund:** https://common-ground-theta.vercel.app/join/ (Google sign-in)
+- **VS Code / Cursor extension:** https://common-ground-theta.vercel.app/download/common-ground.vsix. Install it from VSIX; Start opens on first run, or run **Common Ground: Open Start**. Receiving tools needs only the extension. Building needs the local factory (below).
 
-Requires Node **26.x** (uses built-in SQLite), npm, and optionally VS Code/Cursor.
+## The factory line
 
-**Joining the project?** Start with [teammate setup, all API variables, and verified integration status](docs/SETUP.md).
+1. **Brief.** An engineer describes a tool in the extension's Build view. The brief can be typed or come from a recording, which ElevenLabs Scribe transcribes into an editable brief.
+2. **Requirement.** The brief and its execution contract are filed as a FEATURE requirement in 8090's Software Factory through its external API.
+3. **Agent builds.** A coding agent writes one function, `inspect(rows, binding)`, against the standard. It sees only `time` and `value`, never one company's columns. With `BUILD_PROVIDER=claude` this is Claude Code running headless.
+4. **Seven checks.** The function runs in a QuickJS/WebAssembly sandbox (32 MB, 800 ms, no filesystem, network or imports) on real NOAA ocean and NREL solar data. The agent can't edit the checks. Failures go back to it for repair, up to three attempts.
+5. **Sealed.** The version that passes becomes an immutable artifact, identified by the SHA-256 hash of its source, binding and check record.
+6. **Shared by name.** The engineer shares that exact version with their team or with named people at other portfolio companies, within the fund's and both companies' rules.
+7. **Rebound and counted.** The recipient opens it in their editor. `inspector.js` arrives byte-identical, `binding.json` is replaced with their company's own mapping, and nothing runs on download. The fund's console counts the reuse.
 
-**Connor / SocialAcolyte's next assignment:** [Finish the native editor recipient experience](NEXT_FOR_CONNOR.md), with file ownership, concrete steps, and acceptance tests for your coding agent.
+## Run it
+
+**Hosted site and API** (`site/`): the static site, sign-in, join flow, console and one Vercel function. To run it locally with an in-memory database, use `cd site && npm run dev`. See [site/README.md](site/README.md) for pages, data layout, deploying and environment variables.
+
+**Local factory** (the builder the extension calls for Build): Node **26.x** (built-in SQLite) and npm.
 
 ```sh
 npm ci
 cp .env.example .env
 npm run check
-npm run doctor
-npm start
+npm start            # http://127.0.0.1:4317, loopback only
 ```
 
-Open http://127.0.0.1:4317 for a development preview of the same Start view. The actual product surface is the extension:
+Choose the build agent in `.env`:
+- `BUILD_PROVIDER=claude`: a live agent build through headless Claude Code (`claude` must be on PATH and signed in; `CLAUDE_BIN` overrides the path).
+- `BUILD_PROVIDER=reference`: the hand-authored offline template, labeled as such in the editor.
+- `BUILD_PROVIDER=eve`: the Eve worker through the Vercel AI Gateway (`npm run agent:dev`).
+
+Optional keys: `SOFTWARE_FACTORY_API_KEY` (8090 requirements), `ELEVENLABS_API_KEY` (audio brief), `HYDRADB_API_KEY`. See [docs/SETUP.md](docs/SETUP.md).
+
+**Extension:**
 
 ```sh
 npm run package:extension
-code --install-extension common-ground-0.1.0.vsix
+code --install-extension common-ground-0.1.0.vsix     # or: cursor --install-extension …
 ```
 
-In VS Code, run **Common Ground: Open Start**. The backend must be running. Cursor also accepts the VSIX. The extension requires workspace trust before build, run, adaptation or download. It never installs dependencies or runs downloaded code automatically.
+The extension signs in to the hosted service through the browser. It requires workspace trust before building or downloading, and never installs dependencies or runs downloaded code.
 
-The native VS Code Welcome/Recent renderer has no supported public API for these custom rows. This is an **extension-owned Start view**, tracking workspaces opened while installed; it does not patch or pretend to mirror all native Recent history.
+## Architecture
 
-## The working loop
+- **Hosted service:** a static site plus one Vercel function (`site/api/index.js`), on Upstash Redis, with Google OAuth sign-in. It handles funds, companies, invites, roles, the standard and company mappings, sharing policy, grants, package delivery with rebinding, and reuse counts. Every read re-checks permission.
+- **Local factory:** Fastify and SQLite on loopback (`server/`). It records the 8090 requirement, runs the build agent, runs the independent verifier in QuickJS/WebAssembly (`server/runner.ts`), and produces hashed artifacts.
+- **Extension:** a TypeScript webview Start view (`extension/`, `web/`). It builds through the local factory and publishes the checked package to the hosted service, which re-verifies the hash and refuses anything without all seven checks passing. It receives shared tools, verifies the hash and writes them into a fresh folder.
 
-1. Enter as **Fabio / Saildrone**, then Build a tool. The default is an explicitly labeled, hand-authored offline reference template. Live Eve mode generates source from the brief.
-2. The worker tests a portable `inspect(rows, binding)` function inside bounded QuickJS/WASM: no filesystem, environment, imports or network. A passing candidate becomes an immutable, hashed artifact.
-3. Run the real NOAA dataset: **1,440 observations, 55 missing wind values**. Inspect the code and seven independent checks.
-4. Approve the exact version for **Theo** (same company) and **Maya** (approved portfolio company). Names appear only after policy filtering and capability matching. Elli is not eligible; Leo's workflow does not match.
-5. Switch to Maya. One small company-marked introduction appears in Recent. Hover or focus the identity to see Fabio.
-6. Adapt for my workspace. Inheriting NOAA's units-row setting would retain **1,439** solar records. The binding check rejects it; the known PVDAQ schema retains **1,440**, with local time preserved. The core hash stays identical.
-7. Run fault challenge. Three observations are removed and one duplicated **in memory**: **1,438 rows, 3 missing timestamps, 1 duplicate**. Original files remain unchanged.
-8. Open project in editor to download actual source, binding, dataset and provenance into a fresh folder. Receiving Off hides unopened recommendations and blocks new fetches; already local files remain yours.
-
-See [the five-minute demo](docs/DEMO.md), [architecture and limitations](docs/ARCHITECTURE.md), and [source licenses](fixtures/DATA_LICENSES.md).
+More detail: [architecture and limitations](docs/ARCHITECTURE.md), [product brief](docs/PRODUCT_BRIEF.md), [Devpost write-up](docs/DEVPOST.md), [demo plans](docs/DEMO-VIDEO.md), [data licenses](fixtures/DATA_LICENSES.md).
 
 ## Integrations
 
-| Service | Implemented role | Setup |
-|---|---|---|
-| 8090 Software Factory | Records a real requirements document for each build brief and execution contract | `SOFTWARE_FACTORY_API_KEY` |
-| Eve + Vercel AI Gateway | Optional live agent generates source, calls `submit_candidate`, sees independent failures, repairs | `AI_GATEWAY_API_KEY`, `BUILD_PROVIDER=eve`; run `npm run agent:dev` in another terminal |
-| HydraDB v2 | Indexes source-linked public company context in separate company collections; queries only policy-eligible collections for fit evidence | `HYDRADB_API_KEY`, then `npm run hydra:seed` |
-| ElevenLabs Scribe | Audio brief → editable transcript → build specification; never grants sharing permission by voice | `ELEVENLABS_API_KEY`, then **Audio brief** in Build |
+| Service | Implemented role | Status | Setup |
+|---|---|---|---|
+| 8090 Software Factory | Records a FEATURE requirements document for each build brief and execution contract | Live call verified | `SOFTWARE_FACTORY_API_KEY` |
+| Claude Code (headless) | Live build agent: writes the function, gets back the failing checks, repairs (up to 3 attempts) | Verified: 7 of 7 on the first attempt | `BUILD_PROVIDER=claude` |
+| ElevenLabs Scribe | Audio brief → editable transcript → build. Never grants sharing permission by voice. | Live call verified | `ELEVENLABS_API_KEY`, then **use a recording…** in Build |
+| Vercel | Hosting and the API function | Live | `site/`, `vercel deploy --prod` |
+| Eve + Vercel AI Gateway | Alternative live agent: generates source, calls `submit_candidate`, repairs on failures | Wired; Gateway blocked by billing verification | `AI_GATEWAY_API_KEY`, `BUILD_PROVIDER=eve`, `npm run agent:dev` |
+| HydraDB v2 | Company-scoped context collections for fit evidence; queried only after policy selects eligible collections | Adapter only, not connected | `HYDRADB_API_KEY`, then `npm run hydra:seed` |
 
-Keys are server-only in ignored `.env`. Never put them in the webview, source, screenshots, or Git. **The offline mode remains plainly labeled; configuring a key does not imply a successful live call.** 8090's external API does not execute automations: Common Ground's worker executes the implementation and tests. Composio and a hosted deployment are intentionally outside this v0's single-surface scope.
+Keys are server-only, in the ignored `.env`. Never put them in the webview, source, screenshots or Git. A configured key doesn't imply a successful live call, and the offline template stays plainly labeled. 8090's external API records the requirement; Common Ground's factory executes the build and the checks. Composio has no role.
 
 ## Permission boundary
 
 ```text
-fund participation + artifact class
-  ∩ source-company publisher/export role
-  ∩ reviewed immutable version + passing checks
-  ∩ explicit grant: named users, scope, expiry, no resharing
-  ∩ destination-company opt-in + eligible member list
-  ∩ personal receive scope + publisher mute
-  → capability match → at most two unopened offers
+fund network on + cross-company sharing on (for portfolio shares)
+  ∩ author is Publisher (team) / Exporter (across the portfolio)
+  ∩ exact version, all seven checks passed, hash verified
+  ∩ grant: named people only, expiry, no onward resharing
+  ∩ both companies in the same fund and mapped to the standard
+  ∩ destination company participating, receives from the portfolio, allows this sender
+  ∩ recipient still a member with Receives on, and not muted or opted out
+  → shown in their Start view; package downloadable
 ```
 
-The policy engine runs **before metadata, counts, retrieval, preview, adaptation and download**. Each fetch checks again. An LLM cannot add a recipient, edit a grant, mark tests passed, or override opt-out. Revocation blocks future fetches; it cannot erase an ordinary repository already downloaded.
+The hosted API recomputes this **on every read**: listing, opening a tool, and downloading a package. Removing a person, removing a company from the fund, revoking a grant, or switching receiving off takes effect on the next request. The fund can see what is shared and reused, but it can't download a company's code. A tool registered by hand in the console has zero checks and can't be shared. No model or voice input can add a recipient, edit a grant or mark checks passed. Revocation stops future access, but it can't erase files someone already saved.
 
-This is a **single-machine demo**, with a loopback-only server and selectable, illustrative identities. It is not enterprise authentication. Do not tunnel or deploy it publicly. Production needs company SSO, external identity verification, persistent multi-tenant storage, administrative policy management, audit retention, legal export rights and stronger operational controls. See the architecture document for the exact boundary.
+Not yet built: company SSO and verified organization identity, independent export approval by the source company, server-side re-running of checks at publish, versioned updates, and notifications. See [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Checks
 
-`npm run check` typechecks, runs API/policy/execution tests and builds the view/extension. `npm run agent:build` separately compiles the Eve worker. Tests exercise real data and denial paths, not animated success states. Runtime code has a memory cap and execution deadline. The independent verifier lives outside generated artifacts.
+9 builder tests (`npm test`) and 46 hosted permission checks (`cd site && npm test`).
+- `npm run check` typechecks, runs the builder's API, policy and execution tests on real data and denial paths, and builds the view and extension.
+- The site tests run against the real API on a fresh in-memory database. They cover invites, kicking, revoking, removing companies, fund and company policy, receiving off, rejected hashes and file names, outsiders denied downloads, rebinding, and the demo seed.
 
-Local state is `.local/common-ground.sqlite`; it persists grants, artifacts, adoption and preferences across server restarts. Restarting the server invalidates in-memory login tokens, so select your demo identity again. Unfinished jobs become visibly failed instead of silently pretending to finish.
+The verifier lives outside generated code. Runtime code has a memory cap and an execution deadline. Local factory state is `.local/common-ground.sqlite`. Unfinished jobs show as failed instead of pretending to finish.
 
 ## Tools, libraries and licenses
 
@@ -87,6 +104,7 @@ Built during EVOLVE with AI coding tools (Claude Code; Eve agents), which the ru
 
 | What | Used for | License |
 |---|---|---|
+| Claude Code (headless, `claude -p`) | Live build agent in the local factory (`BUILD_PROVIDER=claude`) | Anthropic terms |
 | Fastify, @fastify/static | Local builder server | MIT |
 | QuickJS (quickjs-emscripten) | Sandbox that runs the seven checks | MIT |
 | Eve (eve) | Build agent framework | Apache-2.0 |
@@ -102,3 +120,7 @@ Built during EVOLVE with AI coding tools (Claude Code; Eve agents), which the ru
 | Wikimedia Commons images | Site backgrounds: NASA ISS and Landsat 8, NPS Katmai, NASA Earth Observatory, NASA/ESA/CSA/STScI Webb (public domain); walnut leaf venation by Cristian V. (CC BY 4.0) | As listed |
 | Company favicons | Portfolio company marks (illustrative) | Belong to their companies |
 | NOAA PMEL Saildrone data, NREL PVDAQ data | The checks' sample datasets | CC0, CC BY 4.0 (`fixtures/DATA_LICENSES.md`) |
+
+## Team notes
+
+Teammate setup and API variables: [docs/SETUP.md](docs/SETUP.md). Connor's editor handoff: [NEXT_FOR_CONNOR.md](NEXT_FOR_CONNOR.md).

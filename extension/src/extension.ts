@@ -88,7 +88,7 @@ export function activate(context:vscode.ExtensionContext){
     // the locally checked package goes up as-is; the service re-verifies its hash before storing it
     if(!/^[a-z0-9-]+$/.test(m.artifactId)||!/^[a-z0-9]+$/.test(m.orgId))throw new Error('Invalid tool');
     const art=await api(`/artifacts/${m.artifactId}`),pkg=await api(`/artifacts/${m.artifactId}/package`);
-    data=await hosted('tools','POST',{name:m.name||art.name,description:m.description||'',hours:m.hours,orgId:m.orgId,hash:pkg.hash,files:pkg.files,checks:art.checks});
+    data=await hosted('tools','POST',{provenance:art.provenance,name:m.name||art.name,description:m.description||'',hours:m.hours,orgId:m.orgId,hash:pkg.hash,files:pkg.files,checks:art.checks});
    }
    else if(m.action==='openHosted'){
     if(!/^[a-z0-9]+$/.test(m.toolId))throw new Error('Invalid tool');

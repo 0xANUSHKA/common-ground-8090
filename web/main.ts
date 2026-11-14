@@ -13,8 +13,8 @@ const local=(path:string,method='GET',body?:any)=>bridge('request',{path,method,
 // ── state ──
 let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:any[]=[];
 let builder:'unknown'|'ready'|'off'='unknown';
-let view:'start'|'shared'|'tool'|'build'|'built'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
-let busy=false,notice='',noticeKind:'ok'|'bad'='ok';
+let view:'start'|'shared'|'tool'|'build'|'built'|'already'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
+let busy=false,notice='',noticeKind:'ok'|'bad'='ok',already:any=null;
 let brief='Build a CSV telemetry completeness inspector. Detect missing timestamps and duplicates, distinguish missing values from zero, and preserve local time without guessing a timezone.';
 
 const esc=(s:unknown)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -38,7 +38,7 @@ const say=(m:string)=>{notice=m;noticeKind='ok';};
 
 // ── views ──
 function start(){
- if(!signedIn)return `<h1>Common Ground</h1><p class="lede">Tools other engineers in your company and portfolio have built, checked and shared with you, right where you work.</p>
+ if(!signedIn)return `<h1>Common Ground</h1><p class="lede">A software factory in your editor. Describe a tool and an agent builds it against your portfolio’s shared standard. Seven checks seal the exact version, and the people across the portfolio who need it get it here.</p>
   <div class="actions"><button class="primary" data-act="signin">Sign in to Common Ground</button></div>
   <p class="muted">Your fund or company sends you a link to join. Setting one up? <a href="${esc(server)}/join/">Set up your fund</a>.</p>
   ${recentList()}`;
@@ -69,11 +69,21 @@ function sharedView(){
 }
 function buildView(){
  if(builder!=='ready')return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Building runs on this machine so the code can be checked before anyone sees it.</p><p>Start the local builder with <span class="kbd">npm start</span> in the Common Ground repo, then come back.</p><div class="actions"><button data-act="recheck">Check again</button></div>`;
- return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Describe it. An agent builds it, then seven checks run against real ocean and solar data.</p>
+ return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Describe it. An agent builds it against Sensor time-series v1, the standard your portfolio shares, so it runs at any company that has mapped its data. Seven checks on real ocean and solar data decide whether it ships.</p>
   <label for="brief">What should it do?</label><textarea id="brief" rows="5">${esc(brief)}</textarea>
   <p class="muted">Or start from the meeting where someone asked for it: <button class="linkish" data-act="audio">use a recording…</button> It’s transcribed with ElevenLabs Scribe into a brief you can edit before anything is built.</p>
   <div class="actions"><button class="primary" data-act="build" ${busy?'disabled':''}>${busy?'Building…':'Build and check'}</button></div>
+  ${signedIn?'<p class="muted">Before anything is built, Common Ground looks for a checked tool in your portfolio that already does this.</p>':''}
   ${job?`<ul class="log">${job.events.map((e:string)=>`<li>${ic('check')}${esc(e)}</li>`).join('')}${job.status==='building'?'<li class="muted">Building and checking…</li>':''}${job.error?`<li class="bad">${esc(job.error)}</li>`:''}</ul>`:''}`;
+}
+// look before you build: a checked tool on the same standard may already exist in the portfolio
+function alreadyView(){
+ const s=already;
+ return `<button class="back" data-act="buildview">${ic('back')}Brief</button><h1>Already built.</h1>
+  <p class="lede">${esc(s.owner.name)} at ${esc(s.from?.name||'your company')} built ${esc(s.tool.name)} against the same standard${s.tool.uses?.length?`, and it has been reused ${s.tool.uses.length} ${s.tool.uses.length===1?'time':'times'}`:''}. It passed the same seven checks.</p>
+  <p class="who">${s.grant?.scope==='portfolio'?logo(s.from):person(s.owner)}<span><b>${esc(s.tool.name)}</b><small>${esc(s.tool.description||'')}</small></span></p>
+  <div class="actions"><button class="primary" data-act="takeit">Open it instead</button><button data-act="buildanyway">Build my own anyway</button></div>
+  <p class="muted">Opening it binds the checked code to your company’s mapping of the standard. Nothing runs until you choose to run it.</p>`;
 }
 function builtView(){
  const a=built,passed=a.checks.filter((c:any)=>c.passed).length;
@@ -107,7 +117,7 @@ async function loadPeople(){
  render();
 }
 function render(){
- const body=view==='shared'?sharedView():view==='build'?buildView():view==='built'?builtView():start();
+ const body=view==='shared'?sharedView():view==='build'?buildView():view==='built'?builtView():view==='already'?alreadyView():start();
  root.innerHTML=`<main>${notice?`<p class="notice ${noticeKind}" role="status">${esc(notice)}</p>`:''}${body}</main>`;
 }
 
@@ -130,7 +140,17 @@ root.addEventListener('click',e=>{
   if(act==='openfolder')await bridge('openFolder');
   if(act==='buildview'||act==='recheck'){view='build';job=null;await local('/health').then(()=>{builder='ready';}).catch(()=>{builder='off';});}
   if(act==='download'){const r=await bridge('openHosted',{toolId:active.tool.id});if(r.cancelled)say('Cancelled. Nothing was saved.');else say('Saved and opened in a new window.');}
-  if(act==='build'){
+  if(act==='takeit'){active=already;view='shared';const r=await bridge('openHosted',{toolId:already.tool.id});say(r.cancelled?'Cancelled. Nothing was saved.':'Saved and opened in a new window, bound to your company’s mapping.');return;}
+  if(act==='build'&&signedIn){
+   // the portfolio's checked tools on this standard: shared with you, or your own company's
+   const words=brief.toLowerCase().match(/[a-z]{5,}/g)||[];
+   const pool:any[]=[...shared];
+   for(const c of companies()){const v=await hosted(`orgs/${c.id}`).catch(()=>null);for(const t of v?.tools||[])if(t.checks===7&&t.owner!==me.id&&!pool.some((x:any)=>x.tool.id===t.id))pool.push({tool:t,owner:v.members.find((m:any)=>m.user.id===t.owner)?.user||{name:'A teammate'},from:c,grant:{scope:'team'}});}
+   const score=(x:any)=>words.filter((w:string)=>`${x.tool.name} ${x.tool.description||''}`.toLowerCase().includes(w)).length;
+   const best=pool.map((x:any)=>[score(x),x] as [number,any]).sort((a,b)=>b[0]-a[0])[0];
+   if(best&&best[0]>=2){already=best[1];view='already';return;}
+  }
+  if(act==='build'||act==='buildanyway'){
    // the local builder keeps its own demo identity; the hosted account decides who can receive the result
    await local('/demo-session','POST',{userId:'fabio'}).catch(()=>{});
    job=await local('/build','POST',{prompt:brief});render();

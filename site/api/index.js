@@ -295,7 +295,7 @@ on('POST', 'tools', async (req, res, me) => {
     if (names.reduce((n, f) => n + files[f].length, 0) > 600000) throw fail(413, 'Package is too large.');
     const main = files['inspector.js']; if (!main || createHash('sha256').update(main).digest('hex') !== b.hash) throw fail(400, 'Package hash doesn’t match its code.');
     if (!Array.isArray(b.checks) || b.checks.length !== 7 || !b.checks.every((c) => c.passed)) throw fail(400, 'Only tools that pass all seven factory checks can be published.');
-    tool.hash = b.hash; tool.checks = 7; tool.fromEditor = true;
+    tool.hash = b.hash; tool.checks = 7; tool.fromEditor = true; tool.provenance = ['agent-generated', 'eve-generated', 'reference-template'].includes(b.provenance) ? b.provenance : 'reference-template';
     pkg = { name, hash: b.hash, files };
   }
   await pipeline([['SET', K.tool(tool.id), JSON.stringify(tool)], ...(pkg ? [['SET', K.pkg(tool.id), JSON.stringify(pkg)]] : []), ['SADD', K.utools(me.id), tool.id], ...(orgId ? [['SADD', K.otools(orgId), tool.id]] : [])]);
@@ -441,7 +441,7 @@ on('POST', 'auth/demo', async (req, res) => {
   const reuse = { [fund.id]: [] };
   for (const [name, ck, gh, desc, hours, uses] of TOOLS) {
     const code = `// ${name}: ${desc}\n${INSPECTOR}`, hash = createHash('sha256').update(code).digest('hex');
-    const c = co[ck], author = ppl[gh], t = { id: `t${sx}${name.slice(0, 6)}`, name, description: desc, owner: author.id, orgId: c.id, createdAt: at(15), hash, checks: 7, hours, uses: [], demo: true, fromEditor: true };
+    const c = co[ck], author = ppl[gh], t = { id: `t${sx}${name.slice(0, 6)}`, name, description: desc, owner: author.id, orgId: c.id, createdAt: at(15), hash, checks: 7, hours, uses: [], demo: true, fromEditor: true, provenance: 'agent-generated' };
     cmds.push(['SET', K.pkg(t.id), JSON.stringify({ name, hash, files: { 'inspector.js': code, 'README.md': `# ${name}\n\n${desc}\n\nBuilt at ${c.name} by ${author.name}. Shared through Common Ground: this is the exact version that passed all seven checks.\n\nSample data from the Common Ground demo fund.\n` } })]);
     const grant = (target, scope, d) => { const g = { id: rid(10), toolId: t.id, issuer: author.id, revoked: false, at: at(d + 0.5), scope, target, expiresAt: new Date(Date.now() + (scope === 'portfolio' ? 7 : 30) * DAY).toISOString() }; cmds.push(['SET', K.grant(g.id), JSON.stringify(g)], ['SADD', K.tgrants(t.id), g.id], target.type === 'org' ? ['SADD', K.ogrants(target.orgId), g.id] : ['SADD', K.ugrants(target.userId), g.id]); };
     grant({ type: 'org', orgId: c.id }, 'team', 14);
