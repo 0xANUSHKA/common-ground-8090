@@ -16,6 +16,16 @@ try{
  // A second company owned by the recipient is created first: it must never be picked as the rebinding destination.
  const unrelated=(await call('recipient','POST','orgs',{kind:'company',name:'Unrelated'})).org.id;
  const to=(await call('recipient','POST',`invites/${invite.code}/accept`,{companyName:'Solar'})).orgId;
+ // Same account can run a fund and its own company, without role bleed or duplicate joins.
+ const own=(await call('fund','POST',`invites/${invite.code}/accept`,{companyName:'Fund Engineering'})).orgId;
+ const repeat=await call('fund','POST',`invites/${invite.code}/accept`,{companyName:' fund engineering '});
+ check('repeated company creation resumes the same owned company',repeat.already===true&&repeat.orgId===own);
+ const again=await call('fund','POST',`invites/${invite.code}/accept`,{companyId:own});
+ check('explicit rejoin is idempotent',again.already===true&&again.orgId===own);
+ const memberships=(await call('fund','GET','me')).orgs;
+ check('one account holds distinct fund and company memberships',memberships.some(o=>o.id===fund.id&&o.kind==='fund')&&memberships.some(o=>o.id===own&&o.kind==='company'));
+ check('invitation does not connect a similarly named existing company implicitly',(await call('recipient','POST',`invites/${invite.code}/accept`,{companyName:'Unrelated'})).status===409);
+ check('cannot attach a company owned by someone else',(await call('outsider','POST',`invites/${invite.code}/accept`,{companyId:own})).status===403);
  const member=(await call('author','POST',`orgs/${from}/invites`,{kind:'member'})).invite;
  await call('colleague','POST',`invites/${member.code}/accept`);
  const mapping={source:'sample.csv',binding:{timeColumn:'time',signalColumn:'power',cadenceSeconds:60},result:{state:'verified',detail:'admin supplied sample result'}};

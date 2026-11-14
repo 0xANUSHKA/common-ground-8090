@@ -269,11 +269,17 @@ on('POST', 'invites/:code/accept', async (req, res, me, p) => {
     inv.uses++; await setJSON(K.inv(inv.code), inv); await log(org.id, me.name, 'Joined with the invite link');
     return { orgId: org.id };
   }
-  // a company joining a fund: link a company you own, or create one
+  // A repeated invitation must not silently create a second company for the same owner.
   let co;
   if (b.companyId) { co = await getJSON(K.org(b.companyId)); if (!co || co.kind !== 'company' || !isAdmin(await membership(co.id, me.id))) throw fail(403, 'You need to be an admin of that company.'); }
-  else { const name = clean(b.companyName, 60); if (!name) throw fail(400, 'Name your company.'); co = { id: rid(10), kind: 'company', name, site: clean(b.site, 120), github: clean(b.github, 39), iconUrl: '', createdAt: now(), owner: me.id, settings: { ...DEFAULTS.company } }; if (co.site) { try { co.iconUrl = icon(new URL(/^https?:/.test(co.site) ? co.site : `https://${co.site}`).hostname); } catch {} } await setJSON(K.org(co.id), co); await addMember(co, me.id, 'owner'); }
+  else { const name = clean(b.companyName, 60); if (!name) throw fail(400, 'Name your company.');
+    const owned=(await getMany((await cmd('SMEMBERS',K.uorgs(me.id))).map(K.org))).filter(x=>x?.kind==='company' && x.owner===me.id && x.name.trim().toLowerCase()===name.toLowerCase());
+    const existing=owned.find(x=>x.fundId===org.id);
+    if(existing)return {orgId:existing.id,already:true};
+    if(owned.length)throw fail(409,'You already own a company with this name. Select your existing company instead of creating another.');
+    co = { id: rid(10), kind: 'company', name, site: clean(b.site, 120), github: clean(b.github, 39), iconUrl: '', createdAt: now(), owner: me.id, settings: { ...DEFAULTS.company } }; if (co.site) { try { co.iconUrl = icon(new URL(/^https?:/.test(co.site) ? co.site : `https://${co.site}`).hostname); } catch {} } await setJSON(K.org(co.id), co); await addMember(co, me.id, 'owner'); }
   if (co.fundId && co.fundId !== org.id) throw fail(400, 'That company is already in another fund.');
+  if(co.fundId===org.id)return {orgId:co.id,already:true};
   co.fundId = org.id; co.status = co.mapping?.result?.state === 'verified' ? 'joined' : 'invited';
   await pipeline([['SET', K.org(co.id), JSON.stringify(co)], ['SADD', K.fundcos(org.id), co.id]]);
   inv.uses++; await setJSON(K.inv(inv.code), inv);

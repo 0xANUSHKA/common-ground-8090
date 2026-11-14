@@ -114,3 +114,17 @@ This is a possible explanation for Connor landing in his existing SocialAcolyte 
 link/navigation path still needs confirming. Login alone does not create a company or assign an admin role.
 Deploy the updated `site/nav.js`; no extension rebuild is needed for this follow-up. Immediate workaround:
 while already signed in, reopen the original fund company invitation and use its main form.
+
+
+## Website onboarding refresh (14 Nov, after recipient execution)
+
+Deploy the current `main` from `site/` as usual. No new keys, database migrations, or extension update are required for this website change. Keep the packaged 0.1.1 VSIX available at `site/download/common-ground.vsix` when deploying.
+
+- `/join/` now starts with workspace choice, existing memberships, and invitation entry. It no longer assumes every new user is creating a fund.
+- After creating a fund, **Set up my own company** continues into that fund's company invitation with the same account. Fund Overview/Get started has the same action. Existing fund admins can use it immediately.
+- Company invitations require an explicit existing/new company choice. Companies already joined are shown as resume links. Repeated same-owner/same-name joins return the existing company; selecting an already-linked company does not recount the join. This guards normal retries, not concurrent transactions (that production hardening remains deferred).
+- An account can retain separate fund and company memberships. Fund access never becomes company code access. Dashboard remembers the last directly joined workspace per account/browser.
+- Company setup has one next-step banner: mapping → workflow brief → editor, with fund sharing pauses visible. The obsolete overview checklist that inferred extension installation from tool count is removed.
+- Cosmetic changes: clearer role labels, workspace cards, compact permission summary, responsive layout, and explicit completion/continuation states.
+
+Validated with the local real API + local Google stand-in: create fund, create own company, save ocean mapping, save brief, switch fund/company, reopen invitation, and generic dashboard returning to the last company. Checked the invitation at 390px. Hosted tests include five new membership/retry regressions; prior sharing and OAuth-navigation checks pass. This is UI/flow hardening, not a claim that all production security gaps above are solved.

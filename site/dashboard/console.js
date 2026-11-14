@@ -37,11 +37,13 @@ const companyInv = () => (V?.invites || []).find((i) => i.kind === 'company' && 
 async function load(orgId) {
   const me = await api('me'); ME = me.user; ORGS = me.orgs;
   if (!ORGS.length) { location.replace('/join/'); return false; }
-  const fallback = (ORGS.find((o) => o.kind === 'fund') || ORGS[0]).id;
+  let remembered; try { remembered=localStorage.getItem('cg:workspace:'+ME.id); } catch {}
+  const fallback = (ORGS.find(o=>o.id===remembered) || ORGS.find(o=>o.kind==='fund') || ORGS[0]).id;
   let target = { id: orgId || fallback };
   V = await api(`orgs/${target.id}`).catch(() => null);
   if (!V && target.id !== fallback) { target = { id: fallback }; V = await api(`orgs/${fallback}`).catch(() => null); }
   if (!V) throw new Error('Couldn’t open this workspace.');
+  if(ORGS.some(o=>o.id===V.org.id))try{localStorage.setItem('cg:workspace:'+ME.id,V.org.id);}catch{}
   if (V.org.kind === 'fund') CACHE.fundCos = (V.companies || []).map((c) => c.id);
   SHARED = V.org.kind === 'company' ? (await api('shared')).shared : [];
   if (target.id !== R().orgId) history.replaceState(null, '', href(target.id, R().orgId === target.id ? R().page : 'overview'));
@@ -59,7 +61,7 @@ function navItems() {
 function side() {
   const r = R(), o = V.org;
   const inv = isFund() ? companyInv() : memberInv();
-  const kindLabel = o.kind === 'fund' ? 'Fund' : V.myRole === 'fund' ? 'Company · fund view' : V.fund ? `Company · ${V.fund.name}` : 'Company';
+  const kindLabel = o.kind === 'fund' ? 'Fund network · ' + V.myRole : V.myRole === 'fund' ? 'Company · fund view' : V.fund ? `Company · ${V.fund.name}` : 'Company';
   return `<a class="brand" href="/">${LOGO}Common Ground</a>`
     + `<button type="button" class="org-btn" data-act="orgs" aria-haspopup="menu" aria-expanded="false">${fav(o)}<span><b>${esc(o.name)}</b><small>${kindLabel}</small></span>${ic('chev', 'i chev')}</button>`
     + `<ul class="nav-l">${navItems().map(([k, l, i, c]) => `<li><a href="${href(o.id, k)}" ${r.page === k ? 'aria-current="page"' : ''}>${ic(i)}${l}${c != null ? `<span class="n num">${c}</span>` : ''}</a></li>`).join('')}</ul>`
@@ -84,6 +86,18 @@ const reuseList = (evs, limit = 8, byPerson = false) => evs.length ? `<ul class=
 // ── fund pages ──
 const site = (s) => s ? `<a href="https://${esc(s)}" target="_blank" rel="noopener">${esc(s)}</a>` : '<span class="pill">None</span>';
 const coRow = (c) => `<li data-go="${href(V.org.id, 'portfolio', c.id)}">${fav(c)}<span class="grow"><b>${esc(c.name)}</b><small>${plural(c.memberCount, 'person', 'people')} · ${plural(c.tools, 'tool')}</small></span>${statusPill(c.status)}</li>`;
+function workspaceNext() {
+  const o=V.org;
+  if(isFund()) {
+    const own=ORGS.filter(c=>c.kind==='company'&&c.fundId===o.id);
+    return `<section class="workspace-next"><div><span class="context-label">FUND WORKSPACE · ${esc(V.myRole)}</span><h2>${own.length?'Your company workspace is one click away.':'Also building tools yourself?'}</h2><p>${own.length?'Manage the portfolio here. Switch to your company to configure your data and use the editor.':'Fund membership manages the network. Add your company to build, share, and receive tools with the same account.'}</p></div><div class="next-actions">${own.map(c=>`<a class="b" href="${href(c.id,'setup')}">${esc(c.name)} ${ic('arrow')}</a>`).join('')}${admin()?`<a class="b ${own.length?'':'is-primary'}" href="/join/?fund=${o.id}">${own.length?'Add another company':'Set up my company'} ${ic('arrow')}</a>`:''}</div></section>`;
+  }
+  if(V.myRole==='fund')return '';
+  const mapped=o.mapping?.result?.state==='verified', brief=!!o.needs?.trim(), ready=mapped&&brief;
+  const paused=o.settings?.participating===false || o.settings?.receive==='off';
+  const cross=V.fund?.settings?.crossCompany;
+  return `<section class="workspace-next ${ready?'is-ready':''}"><div><span class="context-label">COMPANY WORKSPACE · ${esc(V.myRole)} · ${Number(mapped)+Number(brief)} OF 2 SETUP STEPS</span><h2>${!mapped?'First, connect your data.':!brief?'Next, tell the network what you need.':paused?'Your setup is saved. Receiving is paused.':'Company setup complete. Open your editor.'}</h2><p>${!mapped?'Save a verified mapping so shared tools can use your company’s columns.':!brief?'A shared workflow brief gives recommendations evidence of a real need.':'Sign in to Common Ground in VS Code or Cursor with '+esc(ME.email)+'.'}${V.fund&&!cross?' Cross-company sharing is paused by your fund.':''}</p></div><div class="next-actions">${!ready?`<a class="b is-primary" href="${href(o.id,admin()&&!mapped?'data':'setup',admin()&&mapped?'brief':'')}">${admin()?(!mapped?'Map a sample':'Add workflow brief'):'View setup'} ${ic('arrow')}</a>`:`<a class="b is-primary" href="${VSIX}" download>${ic('download')}Get editor extension</a><a class="b" href="${href(o.id,'sharing')}">Sharing settings</a>`}</div></section>`;
+}
 function setupPage() {
   const o=V.org, fund=isFund(), isLead=admin(), inv=fund?companyInv():memberInv();
   const row=(done,title,description,action)=>`<li class="${done?'is-done':''}"><span class="t"><b>${title.replace(/^\d+\. /,'')}</b><small>${description}</small></span>${action||''}</li>`;
@@ -98,7 +112,7 @@ function setupPage() {
   const mapped=o.mapping?.result?.state==='verified';
   const membership=ORGS.find(x=>x.id===o.id)?.membership;
   return header(isLead?'Set your engineers up once.':'Your next stop is the editor.', `${esc(o.name)}${V.fund?' · '+esc(V.fund.name):' · not linked to a fund'}`)
-    + card('Your role',`<div class="setup-principle"><b>${isLead?'Company admin': 'Engineer'} · ${esc(ME.name)}</b><p>${isLead?'You control the company mapping, shared workflow context, and publishing permissions.':'You can receive approved tools. A company admin grants publishing and export permissions separately.'}</p><p>Receive: ${membership?.receiver?'on':'off'} · Share with team: ${membership?.publisher?'allowed':'not granted'} · Cross-company export: ${membership?.exporter?'allowed':'not granted'}</p></div>`)
+    + `<div class="role-strip"><span><b>${isLead?'Company admin':'Engineer'}</b> · ${esc(ME.name)}</span><span>Receive ${membership?.receiver?'on':'off'}</span><span>Publish ${membership?.publisher?'allowed':'not granted'}</span><span>Export ${membership?.exporter?'role granted':'not granted'}</span><a href="${href(o.id,'team')}">View roles →</a></div>`
     + (isLead?card('Company setup',`<ol class="steps">${row(mapped,'1. Map a sample','Only time/value mappings and check results are saved. Raw CSV data stays in your browser.',`<a class="b" href="${href(o.id,'data')}">${mapped?'Review':'Map'} data</a>`)}${row(!!o.needs,'2. Describe what your team needs','This shared brief is evidence for recommendations. Do not put confidential customer information here.')}</ol><div class="workflow-brief"><label for="workflow-brief">What should another engineer know your team is trying to solve?</label><textarea id="workflow-brief" maxlength="500" rows="3" placeholder="e.g. Find gaps and duplicate timestamps in our inverter telemetry before daily reporting.">${esc(o.needs||'')}</textarea><button class="b is-primary" data-act="save-needs">Save shared workflow brief</button></div><ol class="steps" style="counter-reset:s 2">${row(V.members.length>1,'3. Invite engineers and grant roles','New members can receive. Enable Publisher or Exporter only for the people you authorize.',link)}${row(false,'4. Review receiving and publishing rules','The company and each engineer can narrow access at any time.',`<a class="b" href="${href(o.id,'team')}">Team roles</a><a class="b" href="${href(o.id,'sharing')}">Sharing</a>`)}</ol>`):'')
     + card('Open Common Ground in your editor',`<ol class="steps">${row(false,'1. Install the extension','VS Code or Cursor → Extensions → Install from VSIX.',`<a class="b is-accent" href="${VSIX}" download>${ic('download')}Download extension</a>`)}${row(false,'2. Sign in from Common Ground: Open Start','Use the same account you joined with. Browser sign-in returns you to the editor.')}${row(false,'3. Receive a checked version','Receiving needs no local builder. Building requires Node 26 and the local factory; see the repository setup.',`<a class="b" href="https://github.com/0xANUSHKA/common-ground-8090#run-it" target="_blank" rel="noopener">Builder setup</a>`)}</ol>`);
 }
@@ -197,16 +211,9 @@ function membersTable(v) {
   }).join('')}</tbody></table></div>`;
 }
 function companyOverview() {
-  const s = V.stats, m = V.org.mapping, inv = memberInv(), fundView = V.myRole === 'fund';
-  const steps = [
-    [!!m && m.result?.state === 'verified', 'Map your data to the standard', 'Check a sample in your browser. Nothing is uploaded.', `<a class="b" href="${href(V.org.id, 'data')}">Map data${ic('arrow')}</a>`],
-    [V.members.length > 1, 'Bring your team', 'Send one link. Teammates sign in with Google.', inv ? `<button type="button" class="b" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy link</button>` : `<button type="button" class="b" data-act="mk-inv" data-kind="member">${ic('link')}Create link</button>`],
-    [V.tools.length > 0, 'Install the extension', 'When an agent finishes a tool, share it with your team or named people in the portfolio.', `<a class="b" href="${VSIX}" download>${ic('download')}Extension</a>`],
-  ];
-  const todo = !fundView && admin() && steps.some(([d]) => !d);
+  const s = V.stats, fundView = V.myRole === 'fund';
   return header('Overview', '', !fundView ? `<a class="b is-accent" href="${href(V.org.id,'setup')}">Get started →</a>` : '')
     + lede(`Your engineers have shared ${em(plural(s.tools, 'tool'))}${s.reuses ? `, reused ${em(plural(s.reuses, 'time'))}: an estimated ${em(plural(s.hours, 'hour'))} of potential rebuild effort` : ''}. ${SHARED.length ? `${em(plural(SHARED.length, 'tool'))} from ${V.fund ? `${esc(V.fund.name)}’s portfolio` : 'others'} ${SHARED.length === 1 ? 'is' : 'are'} shared with you.` : 'Nothing is shared with you yet.'}`)
-    + (todo ? `<div style="margin-bottom:56px">${card('Get set up', `<ol class="steps">${steps.map(([d, t, sm, act]) => `<li class="${d ? 'is-done' : ''}"><span class="t"><b>${t}</b><small>${sm}</small></span>${d ? '' : act}</li>`).join('')}</ol>`, '', `${steps.filter(([d]) => d).length} of ${steps.length} done`)}</div>` : '')
     + `<div class="grid2">${card('Recent reuse', reuseList(V.reuse || []))}<div class="stack">`
     + card('Shared with you', SHARED.length ? `<ul class="list">${SHARED.map((x) => `<li data-go="${href(V.org.id, 'tools', x.tool.id)}">${x.grant.scope === 'portfolio' ? fav(x.from, 'is-sm') : av(x.owner)}<span class="grow"><b class="tool-n">${esc(x.tool.name)}</b><small>${esc(x.owner.name)}${x.from ? ` · ${esc(x.from.name)}` : ''}</small></span><time>${ago(x.grant.at)}</time></li>`).join('')}</ul>` : empty('Nothing yet', 'Tools shared with you appear here and in your editor.'))
     + card('Team', `<ul class="list">${V.members.slice(0, 6).map((x) => `<li>${av(x.user)}<span class="grow"><b>${esc(x.user.name)}</b><small>${esc(x.user.email || '')}</small></span><span class="meta">${cap(x.role)}</span></li>`).join('')}</ul>`, `<a class="b is-ghost" href="${href(V.org.id, 'team')}">${fundView ? 'View all' : 'Manage'}</a>`) + `</div></div>`;
@@ -247,6 +254,7 @@ function toolPage(id) {
     + `</div><div class="stack">${card('Details', dl([author && ['Author', `${av(author)}${esc(author.name)}`], company && ['Company', `${fav(company, 'is-sm')}${esc(company.name)}`], ['Added', ago(t.createdAt)], ['Built by', t.provenance === 'agent-generated' || t.provenance === 'eve-generated' ? 'Coding agent, from a brief' : t.provenance === 'reference-template' ? 'Reference build' : t.checks === 7 ? 'The factory' : 'Registered by hand'], ...(t.requirementId ? [['Requirement', `8090 · ${esc(String(t.requirementId).slice(0, 12))}`]] : []), ['Time to build', plural(t.hours || 0, 'hour')], ['Version', t.hash ? esc(String(t.hash).slice(0, 7)) : 'Not sealed']]))}`
     + (t.checks === 7 ? card('Checks', `<div class="card-b">${checkList()}<p class="note" style="margin:14px 0 0">Version ${esc(String(t.hash || '').slice(0, 7))} is the exact code that passed. Any change runs the checks again.</p></div>`, '', '7 of 7 passed') : card('Checks', `<div class="card-b"><p class="note" style="margin:0">Not through the factory yet. Publish it from the editor to run the seven checks; until then it can’t be shared.</p></div>`, '', 'Not checked')) + `</div></div>`;
 }
+const oNeedsText=()=>V.org.needs?'Your next stop is the editor.':'Next, add your team’s workflow brief.';
 let MAP = null;
 function companyData() {
   const m = V.org.mapping, a = admin() && V.myRole !== 'fund', d = MAP?.id === V.org.id ? MAP : null, b = d?.b, res = d?.res;
@@ -254,6 +262,7 @@ function companyData() {
   const opt = (sel) => (b?.columns || []).map((c) => `<option ${c === sel ? 'selected' : ''}>${esc(c)}</option>`).join('');
   const std = esc(V.fund?.standard?.name || 'Sensor time-series v1');
   return header('Data', '', mapPill(m))
+    + (a && m?.result?.state==='verified' ? `<div class="banner">${ic('check')}<span>Mapping saved for ${esc(V.org.name)}. ${oNeedsText()}</span><a class="b" href="${href(V.org.id,'setup')}">Continue setup ${ic('arrow')}</a></div>` : '')
     + lede(m ? `${esc(m.source || 'Your source')} is mapped to ${em(std)}: <code>${esc(m.binding?.timeColumn || '')}</code> is the time and <code>${esc(m.binding?.signalColumn || '')}</code> the value. ${esc(m.result?.detail || '')}` : `Map ${esc(V.org.name)}’s readings to ${em(std)} so portfolio tools run on them. It takes one sample file.`)
     + (a ? card('Check a sample', `<div class="rows"><div><span class="t"><b>Source system</b><small>Where these readings come from.</small></span><input class="in" data-map="source" value="${esc(d?.source ?? m?.source ?? '')}" placeholder="e.g. SolarEdge export" aria-label="Source system"></div>`
       + `<div><span class="t"><b>Sample CSV</b><small>Checked in your browser. Nothing is uploaded.</small></span><span class="acts"><button type="button" class="b" data-act="sample" data-s="ocean">Ocean sample</button><button type="button" class="b" data-act="sample" data-s="solar">Solar sample</button><label class="b" style="position:relative">${ic('upload')}Upload CSV<input type="file" accept=".csv,text/csv" data-upload style="position:absolute;inset:0;opacity:0;cursor:pointer" aria-label="Upload CSV"></label></span></div>`
@@ -281,7 +290,8 @@ function render() {
   $('#side').innerHTML = side();
   const fundBanner = V.myRole === 'fund' ? `<div class="banner">${ic('building')}<span>You’re viewing ${esc(V.org.name)} as its fund. Only its own admins can change it.</span><a class="b" href="${href(V.fund?.id || ORGS.find((o) => o.kind === 'fund')?.id, 'portfolio')}">Back to portfolio</a></div>` : '';
   const demo = V.org.demo ? `<div class="banner">${ic('data')}<span>Illustrative network: company names are public references; people, needs, tools and reuse are seeded examples, not customer activity.</span><a class="b" href="/join/">Set up your real fund${ic('arrow')}</a></div>` : '';
-  $('#page').innerHTML = demo + fundBanner + fn(r.sub);
+  $('#page').innerHTML = demo + fundBanner + (['setup','overview'].includes(r.page)?workspaceNext():'') + fn(r.sub);
+  if(r.page==='setup'&&r.sub==='brief')$('#workflow-brief')?.focus();
   $('#top-title').textContent = V.org.name;
   document.title = `${({ setup: 'Get started', overview: 'Overview', portfolio: 'Portfolio', tools: 'Tools', people: 'People', standard: 'Standard', settings: 'Settings', team: 'Team', data: 'Data', sharing: 'Sharing' })[r.page] || 'Overview'} · ${V.org.name} · Common Ground`;
   document.body.classList.remove('is-loading');
@@ -382,7 +392,7 @@ document.addEventListener('click', async (e) => {
   const row = e.target.closest('tr[data-href]'); if (row && !e.target.closest('button,select,input,label,a')) { location.hash = row.dataset.href; return; }
   const t = e.target.closest('[data-act]'); if (!t) return;
   const a = t.dataset.act;
-  if (a === 'orgs') return menu(t, [...ORGS.map((o) => ({ label: o.name, small: o.kind === 'fund' ? 'Fund' : 'Company', icon: fav(o, 'is-sm'), href: href(o.id) })), '-', { label: 'Set up another fund', icon: ic('plus'), href: '/join/' }]);
+  if (a === 'orgs') return menu(t, [...ORGS.map((o) => ({ label: o.name, small: (o.kind === 'fund' ? 'Fund network' : 'Company') + ' · ' + o.role, icon: fav(o, 'is-sm'), href: href(o.id) })), '-', { label: 'Add or switch workspace', icon: ic('plus'), href: '/join/' }]);
   if (a === 'me') return menu(t, [{ label: 'Profile', icon: ic('people'), run: profileDialog }, { label: 'Get the VS Code extension', icon: ic('download'), href: VSIX }, '-', { label: 'Sign out', run: async () => { await api('auth/signout', { method: 'POST' }).catch(() => {}); location.href = '/'; } }]);
   if (a === 'copy') return copy(t.dataset.text);
   if (a === 'mk-inv') return doing(() => api(`orgs/${V.org.id}/invites`, { method: 'POST', body: { kind: t.dataset.kind } }), 'Invite link ready');

@@ -1,4 +1,4 @@
-// The right side of the top bar on the public pages: "Sign in" and "Set up your fund" when signed out, you when signed in.
+// The right side of the top bar on the public pages: "Sign in" and "Get started" when signed out, you when signed in.
 // Usage: <div class="nav-user" data-nav-user data-root="../"></div> (data-root: the path back to site/).
 import { lilGuy } from './film/lilguy.js';
 import { api } from './api.js';
@@ -16,7 +16,7 @@ export async function navUser() {
   let u = null; try { u = (await api('me')).user; } catch {}
   el.innerHTML = u
     ? `<a class="nav-me" href="${root}dashboard/" title="Your dashboard"><span class="cg-lg">${lilGuy(seed(u))}</span><span>${esc(u.name)}</span></a>`
-    : `<a class="nav-link" href="${esc(signIn)}">Sign in</a><a class="btn is-primary" href="${root}join/">Set up your fund</a>`;
+    : `<a class="nav-link" href="${esc(signIn)}">Sign in</a><a class="btn is-primary" href="${root}join/">Get started</a>`;
   if (!u) document.querySelectorAll('[data-dash-tab]').forEach((a) => { a.href = `${root}signin/`; });
   return u;
 }
