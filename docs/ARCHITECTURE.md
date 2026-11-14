@@ -55,7 +55,7 @@ The seeded demo fund contains illustrative history and reference-template tools,
 - Downloads use the destination company from the authorizing grant, including when a person belongs to several companies.
 - The extension binds credentials to the signed-in server. Changing that server requires a new sign-in.
 - The extension polls every 15 seconds. First login stays quiet; new tool/hash pairs may generate one native notification.
-  Notifications can be disabled. No automatic dependency install, code execution, Slack or email delivery occurs.
+  Notifications can be disabled. No automatic dependency install or code execution, Slack or email delivery occurs.
 - The extension verifies the source hash, restricts filenames, and writes into a fresh folder after the user chooses
   its parent. `binding.json` uses the destination's mapping. Recents is extension-managed, not VS Code's native history.
 - Revocation cannot erase an already saved copy. Drift checking currently compares `inspector.js`, not every package file.
@@ -74,3 +74,13 @@ The seeded demo fund contains illustrative history and reference-template tools,
    automatic code adaptation, Slack ingestion or automatic update propagation is implemented.
 6. Recommendation evaluation against realistic needs, negative examples and delivery budgets. Suggestions are capped;
    the inbox does not yet enforce a daily delivery budget. Author time estimates are not measured business impact.
+
+## Recipient execution (0.1.1)
+
+An explicit Run on solar sample action reads an existing download receipt's source and binding. The source hash must
+match the receipt. A bundled worker runs QuickJS with a 32 MB sandbox cap and 800 ms evaluation deadlines; the host
+terminates the worker after eight seconds. The generated source receives no host filesystem or network callbacks.
+The bundled fixture is hash-checked. The supported solar mapping is validated, then original and deliberately altered
+rows are executed and actual reports displayed. No model, local builder or hosted API request is involved. Saved files
+are untouched. The source receipt is not a signed full-package attestation; binding edits are validated for this fixture
+but not authenticated as an original company-authorized mapping.

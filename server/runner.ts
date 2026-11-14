@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'csv-parse/sync';
 import { getQuickJS, shouldInterruptAfterDeadline } from 'quickjs-emscripten';
-import { z } from 'zod';
+import { reportSchema } from './report.js';
 import { hash } from './policy.js';
 import { marine, solar } from './seed.js';
 import type { Binding, Check, Report } from './types.js';
@@ -30,8 +30,6 @@ export function records(b: Binding, challenge=false) {
  }
  return mapped;
 }
-const counter=z.number().int().min(0).max(100000);
-const reportSchema=z.object({rows:counter,uniqueTimestamps:counter,duplicateRows:counter,missingTimestamps:z.array(z.string().max(40)).max(10000),outsideGrid:counter,finiteValues:counter,missingValues:counter,malformedValues:counter,negativeValues:counter,zeroValues:counter,physicalValidity:z.literal('not_assessed')}).strict();
 export const CHECK_NAMES=['NOAA: 1,440 rows, 55 missing wind values','PVDAQ: 1,440 rows, negative power preserved','Detect three missing timestamps and one duplicate','First and last missing observations are detected','Zero is not missing; malformed is separate','Wrong units-row assumption is rejected','Unseen synthetic window, duplicates and off-grid rows'] as const;
 export const REPORT_FIELDS=Object.keys(reportSchema.shape);
 export async function execute(source:string, rows:{time:string;value:string}[], binding:Binding):Promise<Report> {

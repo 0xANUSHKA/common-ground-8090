@@ -14,8 +14,9 @@ const local=(path:string,method='GET',body?:any)=>bridge('request',{path,method,
 let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:any[]=[],receipts:any[]=[],lineage:any=null;
 let builder:'unknown'|'ready'|'off'='unknown', builderLabel='';
 let refreshEpoch=0,refreshInFlight=false;
-let view:'start'|'shared'|'tool'|'build'|'built'|'already'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
+let view:'start'|'shared'|'tool'|'build'|'built'|'already'|'solar'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
 let busy=false,notice='',noticeKind:'ok'|'bad'='ok',already:any=null;
+let solarResult:any=null,solarReceipt:any=null;
 let brief='Build a CSV telemetry completeness inspector. Detect missing timestamps and duplicates, distinguish missing values from zero, and preserve local time without guessing a timezone.';
 
 const esc=(s:unknown)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -63,7 +64,26 @@ function start(){
 function receiptList(){
  if(!receipts.length)return '';
  const word=(r:any)=>r.state==='sealed'?`<span class="ok">Sealed ${esc(String(r.hash).slice(0,7))}</span>`:r.state==='drifted'?`<span class="warn">Drifted from ${esc(String(r.hash).slice(0,7))}</span>`:'<span class="muted">Folder missing</span>';
- return `<h2>Opened from Common Ground</h2><ul class="rows">${receipts.slice(0,6).map((r:any)=>`<li><button class="row" data-receipt="${r.index}">${ic('package')}<span><b>${esc(r.name)}</b><small>${word(r)}</small></span><time>${ago(r.at)}</time></button></li>`).join('')}</ul>${receipts.some((r:any)=>r.state==='drifted')?'<p class="muted">A drifted copy has changed since it passed the factory’s checks. It still runs locally, but it isn’t the version that was shared.</p>':''}`;
+ return `<h2>Opened from Common Ground</h2><ul class="rows">${receipts.slice(0,6).map((r:any)=>`<li><button class="row" data-receipt="${r.index}">${ic('package')}<span><b>${esc(r.name)}</b><small>${word(r)}</small></span><time>${ago(r.at)}</time></button><button class="linkish" data-run-receipt="${r.index}">Run on solar sample</button></li>`).join('')}</ul>${receipts.some((r:any)=>r.state==='drifted')?'<p class="muted">A drifted copy has changed since it passed the factory’s checks. It still runs locally, but it isn’t the version that was shared.</p>':''}`;
+}
+function solarView(){
+ const r=solarResult;
+ return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Your shared tool. Solar data.</h1>
+  <p class="lede">Run the downloaded inspector in a local sandbox. No builder, model call or upload is required.</p>
+  ${!r?`<p>${busy?'Running the original sample and an altered copy…':'Select a downloaded project under Opened from Common Ground.'}</p>`:`
+  <p class="who">${ic('package')}<span><b>${esc(solarReceipt?.name)}</b><small>${esc(r.company)} · ${esc(r.timeColumn)} → time · ${esc(r.valueColumn)} → value</small></span></p>
+  <p class="${r.caught?'ok':'bad'} solar-verdict">${r.caught?'Caught all injected faults. Core code unchanged.':'The downloaded code did not pass this challenge.'}</p>
+  <table class="solar-report"><thead><tr><th>Measured result</th><th>Original sample</th><th>With injected faults</th></tr></thead><tbody>
+  ${[['Readings',r.baseline.rows,r.challenge.rows],['Missing timestamps',r.baseline.missingTimestamps.length,r.challenge.missingTimestamps.length],['Duplicate readings',r.baseline.duplicateRows,r.challenge.duplicateRows],['Negative values preserved',r.baseline.negativeValues,r.challenge.negativeValues]].map(([label,b,c])=>`<tr><th>${esc(label)}</th><td>${esc(b)}</td><td>${esc(c)}</td></tr>`).join('')}</tbody></table>
+  <h2>What it found</h2><p>Missing observations: ${r.challenge.missingTimestamps.length? r.challenge.missingTimestamps.map((t:string)=>`<span class="kbd">${esc(t)}</span>`).join(', '):'none'}.</p>
+  <h2>What changed in the data</h2><p class="muted">For this controlled demonstration, we removed 10:00, 10:01 and 10:02, and duplicated 15:00 from January 1, 2015. Both reports above come from executing your downloaded code. Original files stay untouched.</p>
+  <h2>Same code, recipient mapping</h2><p class="muted">Downloaded source matches the saved receipt. SHA-256:</p><code class="source-hash">${esc(r.sourceHash)}</code>
+  <p class="muted">${esc(r.sample)} Timezone remains unspecified; physical validity is not assessed.</p>`}
+  ${solarReceipt?`<div class="actions"><button data-act="rerunsolar" ${busy?'disabled':''}>Run on solar sample again</button></div>`:''}`;
+}
+async function runSolarReceipt(receipt:any){
+ solarReceipt=receipt;solarResult=null;view='solar';render();
+ solarResult=await bridge('runSolar',{uri:receipt.uri,hash:receipt.hash});
 }
 function recentList(){return recents.length?`<h2>Recent</h2><ul class="links">${recents.slice(0,6).map((r:any,i:number)=>`<li><button data-local="${i}">${ic('folder')}${esc(r.name)}</button></li>`).join('')}</ul>`:'';}
 function sharedView(){
@@ -129,7 +149,7 @@ async function loadPeople(){
  render();
 }
 function render(){
- const body=view==='shared'?sharedView():view==='build'?buildView():view==='built'?builtView():view==='already'?alreadyView():start();
+ const body=view==='solar'?solarView():view==='shared'?sharedView():view==='build'?buildView():view==='built'?builtView():view==='already'?alreadyView():start();
  root.innerHTML=`<main>${notice?`<p class="notice ${noticeKind}" role="status">${esc(notice)}</p>`:''}${body}</main>`;
 }
 
@@ -141,9 +161,11 @@ root.addEventListener('change',e=>{const t=e.target as HTMLInputElement;
  if(t.dataset.person){t.checked?share.pick.add(t.dataset.person):share.pick.delete(t.dataset.person);render();}
 });
 root.addEventListener('click',e=>{
- const el=(e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-shared],[data-local],[data-receipt]');if(!el)return;
+ const el=(e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-shared],[data-local],[data-receipt],[data-run-receipt]');if(!el)return;
  const act=el.dataset.act;
  void run(async()=>{
+  if(el.dataset.runReceipt!==undefined){const r=receipts.find((r:any)=>r.index===Number(el.dataset.runReceipt));if(!r)throw new Error('Refresh Start and select your downloaded project.');await runSolarReceipt(r);return;}
+  if(act==='rerunsolar'){await runSolarReceipt(solarReceipt);return;}
   if(el.dataset.shared){active=shared.find((s:any)=>s.tool.id===el.dataset.shared);view='shared';return;}
   if(el.dataset.receipt){await bridge('openReceipt',{index:Number(el.dataset.receipt)});return;}
   if(el.dataset.local){await bridge('openRecent',{index:Number(el.dataset.local)});return;}

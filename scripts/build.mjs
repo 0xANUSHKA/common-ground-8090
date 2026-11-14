@@ -7,3 +7,7 @@ await writeFile('dist/web/index.html',(await readFile('web/index.html','utf8')).
 for(const name of ['main.js','main.css'])await copyFile('dist/web/'+name,'extension/media/'+name);
 await build({entryPoints:['extension/src/extension.ts'],bundle:true,platform:'node',format:'cjs',external:['vscode'],outfile:'extension/dist/extension.cjs'});
 console.log('Built Start view and VS Code extension.');
+
+await build({entryPoints:['extension/src/solar-worker.ts'],bundle:true,platform:'node',format:'cjs',outfile:'extension/dist/solar-worker.cjs'});
+for(const name of ['pvdaq_system10_sample.csv','DATA_LICENSES.md'])await copyFile('fixtures/'+name,'extension/dist/'+name);
+await copyFile('node_modules/quickjs-emscripten-core/LICENSE','extension/dist/QUICKJS-LICENSE.txt');

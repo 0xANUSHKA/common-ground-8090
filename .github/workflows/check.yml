@@ -13,6 +13,7 @@ jobs:
       - run: npm run check
       - run: npm --prefix site test
       - run: npm run package:extension
+      - run: npm run check:package
       - uses: actions/upload-artifact@v4
         with:
           name: common-ground-vsix

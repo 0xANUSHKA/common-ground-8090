@@ -1,4 +1,4 @@
 import { mkdir, copyFile } from 'node:fs/promises';
 await mkdir('site/download', { recursive: true });
-await copyFile('common-ground-0.1.0.vsix', 'site/download/common-ground.vsix');
+await copyFile('common-ground-0.1.1.vsix', 'site/download/common-ground.vsix');
 console.log('Site download updated: site/download/common-ground.vsix');

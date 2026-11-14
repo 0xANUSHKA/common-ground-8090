@@ -2,6 +2,23 @@
 
 November 14, 2026. This builds on your `dbf2150` handoff on `main` and preserves the software-factory direction.
 
+## Latest: recipient execution in extension 0.1.1
+
+The two-person handoff succeeded. The recipient payoff is now implemented: **Opened from Common Ground → Run on solar sample**. It executes the saved `inspector.js` with the recipient's solar mapping, locally in bounded QuickJS in a worker. No model/API key/builder needed. It verifies the downloaded source hash before execution, runs original and deliberately faulted copies, and displays measured results + identical source hash. Generated source `3ffbf0b…` from Anushka's actual build passed this replay locally. This is a supported solar-fixture demo, not arbitrary CSV execution.
+
+**Update Connor's VS Code now:**
+
+```sh
+git pull --ff-only origin main
+npm ci
+npm run package:site
+code --install-extension common-ground-0.1.1.vsix --force
+```
+
+Reload VS Code when prompted. Open Common Ground Start. The existing downloaded receipt should remain; no rebuild or reshare is needed. Click **Run on solar sample** underneath the saved tool in **Opened from Common Ground**. Expect original: 1,440 rows / 0 missing / 0 duplicates; altered: 1,438 / 3 / 1. The UI explicitly labels injected faults and shows the source hash. If the receipt isn't listed, reopen/download the same already-shared version.
+
+To update the public VSIX download, deploy `site/` after `npm run package:site`; there is no hosted API change in this increment. The new extension is 0.1.1 so clients can distinguish it from 0.1.0. Root tests now total 16. The local UI harness uses a test receipt and real generated source; Connor's new native execution remains to rehearse after installation.
+
 ## What changed
 
 - Fund setup is now a three-step flow: identity → explicit company-only/cross-company choice → company invitation.

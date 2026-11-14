@@ -52,10 +52,10 @@ must pass. OAuth failures now explicitly request `claude auth login` instead of 
 ```sh
 npm --prefix site run dev   # localhost:3000, disposable in-memory data, fake Google login
 npm --prefix site test     # original hosted permission suite + 25 regression checks
-npm run check              # typecheck, 13 factory/editor tests, build
+npm run check              # typecheck, 16 factory/editor tests, build
 npm run package:site       # VSIX and site/download/common-ground.vsix
-code --install-extension common-ground-0.1.0.vsix --force
-# or cursor --install-extension common-ground-0.1.0.vsix --force
+code --install-extension common-ground-0.1.1.vsix --force
+# or cursor --install-extension common-ground-0.1.1.vsix --force
 ```
 
 For local hosted API testing set the extension's machine-scoped `commonGround.server` to `http://127.0.0.1:3000` and

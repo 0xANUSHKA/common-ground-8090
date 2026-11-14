@@ -67,3 +67,5 @@ input.short{width:100px}
 
 .linkish{padding:0;border:0;background:none;color:var(--vscode-textLink-foreground,#4daafc);font:inherit;cursor:pointer}.linkish:hover{text-decoration:underline}
 .ok{color:var(--vscode-testing-iconPassed,#73c991)}.warn{color:var(--vscode-editorWarning-foreground,#cca700)}
+
+.solar-report{width:100%;max-width:760px;border-collapse:collapse;margin:24px 0}.solar-report th,.solar-report td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--vscode-widget-border,#444)}.solar-report th{font-weight:500}.solar-report td{font-size:22px;font-variant-numeric:tabular-nums}.solar-verdict{font-size:20px;margin:24px 0}.source-hash{display:block;overflow-wrap:anywhere;color:var(--vscode-textLink-foreground)}.rows li>.linkish{margin:0 0 12px 32px}

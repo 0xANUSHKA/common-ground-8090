@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { newOffers } from './offers.js';
+import { runDownloaded } from './run-downloaded.js';
 import { randomBytes,createHash } from 'node:crypto';
 import { mkdir,writeFile,readFile } from 'node:fs/promises';
 import { join,basename } from 'node:path';
@@ -90,6 +91,11 @@ export function activate(context:vscode.ExtensionContext){
    else if(m.action==='receipts'){
     // drift: compare each saved copy's code with the version the factory sealed
     data=await Promise.all(receipts().map(async(r,i)=>{try{const src=await readFile(join(vscode.Uri.parse(r.uri).fsPath,'inspector.js'),'utf8');const h=createHash('sha256').update(src).digest('hex');return {...r,index:i,state:h===r.hash?'sealed':'drifted'};}catch{return {...r,index:i,state:'missing'};}}));
+   }
+   else if(m.action==='runSolar'){
+    if(!vscode.workspace.isTrusted)throw new Error('Trust this workspace before running the downloaded inspector.');
+    const r=receipts().find(r=>r.uri===m.uri && r.hash===m.hash);if(!r)throw new Error('Choose a downloaded project first.');
+    data=await runDownloaded(join(context.extensionPath,'dist','solar-worker.cjs'),vscode.Uri.parse(r.uri).fsPath,r.hash);
    }
    else if(m.action==='openReceipt'){const r=receipts()[m.index];if(!r)throw new Error('Unknown project');await vscode.commands.executeCommand('vscode.openFolder',vscode.Uri.parse(r.uri),{forceNewWindow:true});data={ok:true};}
    else if(m.action==='openRecent'){const r=recents()[m.index];if(!r)throw new Error('Unknown recent workspace');await vscode.commands.executeCommand('vscode.openFolder',vscode.Uri.parse(r.uri),{forceNewWindow:true});data={ok:true};}

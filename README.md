@@ -23,6 +23,14 @@ Built for EVOLVE (8090), November 13–14, 2026. MIT licensed. The demo fund is 
 6. **Shared by name.** The engineer shares that exact version with their team or with named people at other portfolio companies, within the fund's and both companies' rules.
 7. **Rebound and counted.** The recipient opens it in their editor. `inspector.js` arrives byte-identical, `binding.json` is replaced with their company's own mapping, and nothing runs on download. The fund's console counts the reuse.
 
+## Recipient execution demo (extension 0.1.1)
+
+After saving a shared tool, open Start and click **Run on solar sample** under **Opened from Common Ground**.
+It executes the actual downloaded source, checks its hash against the receipt, and uses the saved solar mapping.
+The extension bundles QuickJS and the public NREL sample: no local builder or model key is needed.
+The report compares the original data with a copy containing three intentionally removed observations and one duplicate.
+Source, binding and data files are not modified. This supports the known solar sample contract, not arbitrary CSVs.
+
 ## Run it
 
 **Hosted site and API** (`site/`): the static site, sign-in, join flow, console and one Vercel function. To run it locally with an in-memory database, use `cd site && npm run dev`. See [site/README.md](site/README.md) for pages, data layout, deploying and environment variables.
@@ -47,7 +55,7 @@ Optional keys: `SOFTWARE_FACTORY_API_KEY` (8090 requirements), `ELEVENLABS_API_K
 
 ```sh
 npm run package:extension
-code --install-extension common-ground-0.1.0.vsix     # or: cursor --install-extension …
+code --install-extension common-ground-0.1.1.vsix     # or: cursor --install-extension …
 ```
 
 The extension signs in to the hosted service through the browser. It requires workspace trust before building or downloading, and never installs dependencies or runs downloaded code.
@@ -100,7 +108,7 @@ Not yet built: company SSO and verified organization identity, independent expor
 
 ## Checks
 
-13 factory/editor tests (`npm test`), the original hosted permission suite, and 25 additional sharing/onboarding regression checks (`cd site && npm test`).
+16 factory/editor tests (`npm test`), the original hosted permission suite, and 25 additional sharing/onboarding regression checks (`cd site && npm test`).
 - `npm run check` typechecks, runs the builder's API, policy and execution tests on real data and denial paths, and builds the view and extension.
 - The site tests run against the real API on a fresh in-memory database. They cover invites, kicking, revoking, removing companies, fund and company policy, receiving off, rejected hashes and file names, outsiders denied downloads, rebinding, and the demo seed.
 
