@@ -1,0 +1,48 @@
+/* The home and about pages, on top of atlas.css. Hairlines and whitespace; no boxes. One typeface for labels:
+   the folio-style labels use Geist like everything else instead of a mixed-in monospace. */
+.folio,.specimen-label,.atlas-plate figcaption,.film-caption,.process-rule,.binding-title{font-family:var(--font,'Geist',system-ui,sans-serif);letter-spacing:.06em}
+.nav-tabs a[aria-current="page"]{color:var(--fg);font-weight:600}
+.binding-strip code,.specimens figcaption span{font-family:inherit}
+
+/* ── home ── */
+.home-hero{padding-top:clamp(36px,6vh,72px);padding-bottom:clamp(28px,4vh,44px);display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);column-gap:64px;align-items:end}
+.home-hero .folio{grid-column:1/-1;margin:0 0 22px;color:var(--accent)}
+.home-hero h1{font:400 clamp(44px,5vw,72px)/.98 var(--display);letter-spacing:-.035em;margin:0}
+.home-hero h1 em{font-style:normal;color:var(--accent)}
+.home-sub p{font-size:15px;line-height:1.75;color:var(--mute);margin:0;max-width:440px}
+.home-sub .hero-act{margin-top:24px}
+.is-home-film{margin-top:0;padding-top:36px}
+@media(max-width:900px){.home-hero{grid-template-columns:1fr;row-gap:26px}}
+
+/* ── about ── */
+.about-open{padding-top:clamp(56px,9vh,104px)}
+.about-open .folio{margin:0 0 22px;color:var(--accent)}
+.about-open h1{font:400 clamp(46px,5.6vw,84px)/1 var(--display);letter-spacing:-.035em;margin:0 0 48px;max-width:16ch}
+.about-open h1 em{font-style:normal;color:var(--accent)}
+.about-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px;padding-top:28px;border-top:1px solid var(--line-2)}
+.about-lede{font:400 clamp(22px,2vw,28px)/1.35 var(--display);letter-spacing:-.01em;margin:0}
+.about-cols p:not(.about-lede){font-size:14px;line-height:1.8;color:var(--mute);margin:0 0 14px}
+.about-plate{margin:64px 0 0}
+.about-why,.about-line{padding-top:96px;padding-bottom:24px}
+.about-why .role-index{margin-top:48px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:48px}
+.about-why .role-index li,.about-why .role-index li:first-child{padding:22px 0 0;border-top:1px solid var(--line-2)}
+.role-index li > span{color:var(--accent);font-size:12px;font-variant-numeric:tabular-nums}
+
+.line-groups{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px;margin-top:48px}
+.line-groups h3{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0 0 6px}
+.line{list-style:none;margin:0;padding:0;counter-reset:st}
+.line li{display:grid;grid-template-columns:28px 160px minmax(0,1fr);gap:0 12px;align-items:baseline;padding:16px 0;border-top:1px solid var(--line);counter-increment:st}
+.line li::before{content:counter(st,decimal-leading-zero);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.line-groups > div:last-child .line{counter-reset:st 5}
+.line b{font-size:15px;font-weight:500;letter-spacing:-.01em}
+.line span{font-size:13px;line-height:1.7;color:var(--mute)}
+.about-line + .screen-section{margin-top:72px}
+
+.end-act{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.end-act .text-action{margin-left:0}
+
+@media(max-width:900px){
+  .about-cols,.line-groups,.about-why .role-index{grid-template-columns:1fr;gap:28px}
+  .line li{grid-template-columns:28px minmax(0,1fr)}
+  .line span{grid-column:2}
+}

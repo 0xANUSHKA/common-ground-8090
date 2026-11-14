@@ -1,0 +1,33 @@
+@import url("./console.css");
+/* The dashboard film: the real fund console (styles scoped from dashboard/ by dev/scope-console.mjs), in a browser
+   window at 1200 × 750 design px. Pages swap by class; new rows and changed words arrive from the script. */
+
+.dash-film [data-tour-window]{--tour-win-radius:12px;background:#f6f3ec}
+.dash-film .tour-chrome{background:#eeebe2;border-bottom-color:#dedacd}
+.dfx{position:relative;width:100%;height:100%;overflow:hidden;text-align:left;font-size:14px}
+.dfx .app{height:100%;min-height:0}
+.dfx .side{position:relative;height:100%}
+.dfx .main{height:100%;overflow:auto;scrollbar-width:none}.dfx .main::-webkit-scrollbar{display:none}
+.dfx .page{display:none;padding:34px 44px 40px;--in:0;opacity:var(--in);transform:translateY(calc((1 - var(--in)) * 4px))}
+.dfx .page[data-tour="pg-overview"]{--in:1}
+.dfx .page.is-on{display:block}
+.dfx a{cursor:default}
+/* the editor film's .who (an avatar slot) is global; give the console's .who its own layout back */
+.dfx .who{position:static;width:auto;height:auto;place-items:normal}
+
+/* the newest reuse arrives at the top of the list */
+.dfx .list > li.is-new{min-height:calc(var(--in,0) * 58px);max-height:calc(var(--in,0) * 80px);padding-block:calc(var(--in,0) * 10px);opacity:var(--in,0);overflow:hidden}
+.dfx .list > li.is-new + li{border-top-color:color-mix(in srgb,var(--c-line) calc(var(--in,0) * 100%),transparent)}
+.dfx .list > li.is-new .tool-n,.dfx .list > li.is-new time{transition:color .6s}
+.dfx .list > li.is-new.is-fresh .tool-n,.dfx .list > li.is-new.is-fresh time{color:var(--c-accent)}
+
+/* the checks tick through one by one on the tool page: each arrives faint, then its tick lands */
+.dfx [data-tour="check-list"] li{opacity:calc(.25 + .75 * var(--in,0))}
+.dfx [data-tour="check-list"] li .i{transform:translateY(2px) scale(var(--in,0))}
+
+/* words that change: a short colour shift so the eye finds them */
+.dfx .is-bump{color:var(--c-accent)!important;transition:color .5s}
+.dfx [data-tour="groq-row"].is-live td{background:color-mix(in srgb,var(--c-ok) 6%,transparent);transition:background .6s}
+
+.dfx .toasts{position:absolute;bottom:22px}
+.dfx .toast{opacity:var(--in,0);transform:translateY(calc((1 - var(--in,0)) * 6px));animation:none}

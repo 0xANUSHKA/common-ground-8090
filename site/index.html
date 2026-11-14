@@ -2,39 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Common Ground — Good work travels further.</title>
+<title>Common Ground — the software factory for your portfolio</title>
 <meta name="description" content="A software factory for engineering teams. Build, verify, and distribute useful tools within a company and across a fund’s portfolio.">
 <meta name="theme-color" content="#f4f1e9">
 <link rel="icon" href="./art/mark.svg" type="image/svg+xml">
-<link rel="preload" as="image" href="./art/common-ground-atlas.webp" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Instrument+Serif&display=swap">
-<link rel="stylesheet" href="./base.css"><link rel="stylesheet" href="./film/section.css"><link rel="stylesheet" href="./site.css"><link rel="stylesheet" href="./atlas.css">
+<link rel="stylesheet" href="./base.css"><link rel="stylesheet" href="./film/section.css"><link rel="stylesheet" href="./site.css"><link rel="stylesheet" href="./atlas.css"><link rel="stylesheet" href="./pages.css"><link rel="stylesheet" href="./home.css">
 </head>
-<body class="atlas-home">
+<body class="atlas-home is-home is-v v6">
 <header class="nav">
 <a aria-label="Common Ground home" class="nav-brand" href="./"><img class="logo" src="./art/mark.svg" alt=""><span>Common Ground</span></a>
-<nav class="nav-tabs" aria-label="Pages"><a href="#factory">The factory</a><a href="#standard">Common ground</a><a href="./dashboard/" data-dash-tab>Workspace</a></nav>
+<nav class="nav-tabs" aria-label="Pages"><a href="./" aria-current="page">Product</a><a href="./about/">About</a><a href="./dashboard/" data-dash-tab>Dashboard</a></nav>
 <div class="nav-links"></div><div class="nav-user" data-nav-user data-root="./"></div>
 </header>
 <main>
-<section class="atlas-hero" id="top">
-<div class="atlas-hero-grid">
-<div class="atlas-copy"><h1>Good work<br><em>travels further.</em></h1><p>A useful tool shouldn’t end with the person who built it.</p><p class="hero-detail">Common Ground is a software factory that helps engineering teams build, verify, and distribute useful tools within their company and across a fund’s portfolio.</p><div class="hero-act"><a class="btn is-primary is-lg" href="./join/">Find your workspace <span aria-hidden="true">↗</span></a><a class="text-action" href="#factory">See it work <span aria-hidden="true">↓</span></a></div><div class="hero-note"><span class="registration-mark" aria-hidden="true">+</span><span>Authors approve each share, and recipients receive it in their editor.</span></div></div>
-<figure class="atlas-plate"><img src="./art/common-ground-atlas.webp" width="1536" height="1024" alt="An engraved coastal landscape, with a fine red line connecting a research vessel to a solar facility." fetchpriority="high"><figcaption><span>Fig. 01 — Useful work travels across company boundaries</span><span>Illustrative example</span></figcaption></figure>
-</div>
-<ol class="process-rule" aria-label="Factory process"><li><span>01</span>Build from a brief</li><li><span>02</span>Check the exact code</li><li><span>03</span>Find a useful connection</li><li><span>04</span>Reuse in the editor</li></ol>
+<section class="v6-map">
+<img src="./img/telegraph-1901.webp" width="1800" height="1458" alt="" aria-hidden="true">
+<div class="v6-words"><p class="v-kicker">A software factory for venture portfolios</p><h1>Every company,<br><em>one line.</em></h1><div class="v-act"><a class="btn is-primary is-lg" href="./download/common-ground.vsix" download>Download for VS Code &amp; Cursor <span aria-hidden="true">↓</span></a><a class="text-action" href="./about/">How it works <span aria-hidden="true">→</span></a></div></div>
 </section>
-<section class="screen-section" id="factory"><div class="atlas-wrap"><div class="section-heading"><p class="folio">01 / The factory in motion</p><h2>Build software with its next user in mind.</h2><p>The factory checks the code it produces, looks for colleagues with a relevant need, and lets the author approve who receives that version.<br><small>Illustrative walkthrough · people and activity shown are examples.</small></p></div>
-<div class="hero-film"><section class="film" id="film" data-tour-root data-driver="manual" data-captions="off" aria-label="Common Ground, a short film">
+<div class="v6-velvet-band"><img class="v6-velvet" src="./img/velvet.webp" width="1844" height="1217" alt="" aria-hidden="true"><section class="v-film v6-film" id="factory"><div class="atlas-wrap"><div class="hero-film"><section class="film" id="film" data-tour-root data-driver="manual" data-captions="off" aria-label="Common Ground, a short film">
   <div class="film-stage" data-tour-stage>
     <p class="film-mark"><img class="logo" src="./logo.svg" alt="">Common Ground</p>
-    <div class="film-intro" aria-hidden="true">
-      <p class="fi-line fi-c"><img class="logo" src="./logo.svg" alt=""><span>Common Ground</span></p>
-      <p class="fi-line fi-a">Every day, agents at your portfolio companies build new tools.</p>
-      <p class="fi-line fi-b">Most never leave the laptop they were built on.</p>
-    </div>
-    <div class="tour-rig">
+        <div class="tour-rig">
       <div class="cg-win" data-tour-window data-chrome="none" data-size="1200x750" data-size-tall="440x820">
         <div class="cg-app" data-tour="app">
 
@@ -169,107 +159,89 @@
                   </div>
                 </aside>
 
-                <!-- VS Code notification toasts, as the extension would raise them -->
-                <div class="vs-toasts">
-                  <div class="vs-toast" data-tour="pop" role="dialog" aria-label="Common Ground">
-                    <div class="vs-toast-msg">
-                      <span class="vs-toast-ic is-info">i</span>
-                      <p><b>telemetry-inspector</b> passed all 7 factory checks and is sealed as c54c31b. Maya at Palmetto maps her data to the same standard. Share this version with her?</p>
-                      <span class="vs-toast-tools"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></span>
-                    </div>
-                    <div class="vs-toast-foot">
-                      <span class="vs-toast-src">Source: Common Ground (Extension)</span>
-                      <button type="button" class="vs-btn is-primary" data-tour="share" tabindex="-1">Share</button>
-                      <button type="button" class="vs-btn" tabindex="-1">Not Now</button>
-                    </div>
+                <!-- The Common Ground tab opens over the editor: the sealed tool and who should get it next, with the evidence -->
+                <section class="cgv" data-tour="cgv" aria-label="Common Ground">
+                  <div class="vs-tabs"><span class="vs-tab"><span class="vs-ic is-ts">TS</span>inspector.ts</span><span class="vs-tab is-on"><img class="cgv-tabic" src="./logo.svg" alt="">Common Ground<span class="vs-x">×</span></span></div>
+                  <div class="cgv-body">
+                    <p class="cgv-crumb">telemetry-inspector</p>
+                    <h3 class="cgv-h">Sealed. Who should get it next?</h3>
+                    <p class="cgv-meta"><span class="is-ok">7 of 7 checks passed</span><span>Version c54c31b</span><span>Written by the coding agent from your brief</span></p>
+                    <p class="cgv-sec">Suggested by the factory, from each company’s workflow brief</p>
+                    <ul class="cgv-people">
+                      <li class="cgv-p" data-tour="sug-1"><span class="cg-lg" data-lilguy="maya-sun"></span><span class="cgv-who"><b>Maya Chen</b><small><img class="fav is-sm" src="./film/favicons/palmetto.png" alt="">Palmetto · mapped to Sensor time-series v1</small><q>Find missing timestamps and gaps in solar telemetry before daily reporting.</q></span><button type="button" class="vs-btn is-primary" data-tour="share" tabindex="-1">Share this version</button></li>
+                      <li class="cgv-p" data-tour="sug-2"><span class="cg-lg" data-lilguy="rhea-ml"></span><span class="cgv-who"><b>Rhea Malik</b><small><img class="fav is-sm" src="./film/favicons/mast.png" alt="">Mast Reforestation · mapped to Sensor time-series v1</small><q>Validate sensor readings and missing timestamps from field telemetry.</q></span><button type="button" class="vs-btn" tabindex="-1">Share</button></li>
+                    </ul>
+                    <p class="cgv-done" data-tour="shared">Shared with Maya at Palmetto. Only this exact version, and only her.</p>
                   </div>
-                  <div class="vs-toast" data-tour="toast-done" role="status">
-                    <div class="vs-toast-msg">
-                      <span class="vs-toast-ic is-info">i</span>
-                      <p>Shared <b>telemetry-inspector</b> c54c31b with Maya at Palmetto. Only she can open this exact version.</p>
-                      <span class="vs-toast-tools"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></span>
-                    </div>
-                    <div class="vs-toast-foot"><span class="vs-toast-src">Source: Common Ground (Extension)</span><button type="button" class="vs-btn" tabindex="-1">Manage Access</button></div>
-                  </div>
-                </div>
+                </section>
               </div>
 
-              <!-- Scene 2: Maya's Welcome page, at Palmetto -->
-              <div class="vs-welcome" data-tour="welcome">
-                <div class="vs-tabs"><span class="vs-tab is-on"><span class="vs-ic is-vs">⟩</span><em>Welcome</em><span class="vs-x">×</span></span></div>
-                <div class="wl">
-                  <div class="wl-left">
-                    <h3 class="wl-h">Visual Studio Code</h3>
-                    <p class="wl-sub">Editing evolved</p>
-                    <h4 class="wl-sec">Start</h4>
-                    <ul class="wl-start">
-                      <li><svg viewBox="0 0 16 16"><path d="M4 2h5l3 3v9H4zM9 2v3h3M8 8v4M6 10h4"/></svg>New File…</li>
-                      <li><svg viewBox="0 0 16 16"><path d="M3 3h6l3 3v8H3zM6 8l2 2 2-2"/></svg>Open File…</li>
-                      <li><svg viewBox="0 0 16 16"><path d="M2 4h4l1 1h7v8H2z"/></svg>Open Folder…</li>
-                      <li><svg viewBox="0 0 16 16"><circle cx="5" cy="4" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="6" r="1.5"/><path d="M5 5.5v5M11 7.5c0 2.5-6 2-6 3"/></svg>Clone Git Repository…</li>
-                    </ul>
-                    <h4 class="wl-sec">Recent</h4>
-                    <ul class="wl-recent" data-tour="recent">
-                      <li class="wl-row is-shared is-new" data-tour="row-new">
-                        <span class="who is-fav" data-tour="who-fabio"><img class="fav" src="./film/favicons/saildrone.png" alt=""><span class="cg-lg is-peek" data-tour="peek-fabio" data-lilguy="fabio-sd"></span>
-                          <span class="who-card" data-tour="card-fabio"><span class="cg-lg is-big" data-lilguy="fabio-sd"></span><span><b>Fabio</b><small>@fabio-sd on GitHub</small><small><img class="fav is-sm" src="./film/favicons/saildrone.png" alt="">Saildrone · portfolio company</small><small data-tour="card-ver">c54c31b · 7 of 7 factory checks</small></span></span></span>
-                        <a>telemetry-inspector</a><small>shared by Fabio at Saildrone · c54c31b</small></li>
-                      <li class="wl-row"><span class="who is-none"></span><a>pv-gap-finder</a><small>~/code</small></li>
-                      <li class="wl-row"><span class="who is-none"></span><a>inverter-fleet</a><small>~/code</small></li>
-                      <li class="wl-row"><span class="who is-none"></span><a>site-forecasts</a><small>~/work</small></li>
+              <!-- Scene 2: Maya's editor at Palmetto. The share arrives; she runs the same code on her solar data -->
+            <div class="vs-maya" data-tour="maya">
+              <aside class="vs-side">
+                <p class="vs-side-h">Explorer</p>
+                <p class="vs-side-repo"><svg viewBox="0 0 16 16"><path d="m5 6 3 3 3-3"/></svg>PALMETTO-OPS</p>
+                <ul class="vs-tree">
+                  <li class="is-dir"><svg viewBox="0 0 16 16"><path d="m5 6 3 3 3-3"/></svg>exports</li>
+                  <li class="is-in1"><span class="vs-ic is-csv">≡</span>pvdaq_system10.csv</li>
+                  <li class="is-in1"><span class="vs-ic is-csv">≡</span>inverter_daily.csv</li>
+                  <li class="is-dir"><svg viewBox="0 0 16 16"><path d="m5 6 3 3 3-3"/></svg>reports</li>
+                  <li class="is-in1"><span class="vs-ic is-ts">TS</span>daily-close.ts</li>
+                  <li class="is-u" data-tour="mx-file"><span class="vs-ic is-dir2">▸</span>telemetry-inspector<b>U</b></li>
+                  <li><span class="vs-ic is-json">{}</span>package.json</li>
+                </ul>
+              </aside>
+              <main class="mx-ed">
+                <div class="vs-tabs"><span class="vs-tab is-on"><img class="cgv-tabic" src="./logo.svg" alt="">Common Ground<span class="vs-x">×</span></span></div>
+                <div class="mx-body">
+                  <div class="mx-start" data-tour="mx-start">
+                    <p class="cgv-crumb">Palmetto · Maya Chen</p>
+                    <h3 class="cgv-h">Shared with you</h3>
+                    <ul class="cgv-people">
+                      <li class="cgv-p" data-tour="offer"><span class="cg-lg" data-lilguy="fabio-sd"></span><span class="cgv-who"><b>telemetry-inspector</b><small><img class="fav is-sm" src="./film/favicons/saildrone.png" alt="">Fabio Rossi · Saildrone · c54c31b · 7 of 7 checks</small><q>Finds missing, duplicate and off-grid readings in any sensor time series.</q></span><button type="button" class="vs-btn is-primary" data-tour="run" tabindex="-1">Run on solar sample</button></li>
                     </ul>
                   </div>
-                  <div class="wl-right">
-                    <h4 class="wl-sec">Walkthroughs</h4>
-                    <div class="wl-card is-star"><b>Get Started with VS Code</b><small>Customize your editor, learn the basics, and start coding</small><i style="--w:30%"></i></div>
-                    <div class="wl-card"><b>Learn the Fundamentals</b><i style="--w:18%"></i></div>
-                    <div class="wl-card"><b>Get Started with Common Ground</b><span class="wl-badge">New</span><i style="--w:60%"></i></div>
-                    <div class="wl-card"><b>Get Started with Python Development</b><i style="--w:24%"></i></div>
+                  <div class="mx-run" data-tour="mx-run">
+                    <p class="cgv-crumb">telemetry-inspector · Palmetto’s mapping</p>
+                    <h3 class="cgv-h">Same code. Your solar data.</h3>
+                    <p class="cgv-meta"><span>measured_on → time</span><span>ac_power__423 → value</span><span>Run locally, nothing uploaded</span></p>
+                    <table class="mx-table">
+                      <thead><tr><th>Measured result</th><th>Original sample</th><th>With injected faults</th></tr></thead>
+                      <tbody>
+                        <tr data-tour="r1"><th>Readings</th><td>1,440</td><td>1,438</td></tr>
+                        <tr data-tour="r2"><th>Missing timestamps</th><td>0</td><td class="is-hit">3</td></tr>
+                        <tr data-tour="r3"><th>Duplicate readings</th><td>0</td><td class="is-hit">1</td></tr>
+                        <tr data-tour="r4"><th>Negative values kept</th><td>913</td><td>913</td></tr>
+                      </tbody>
+                    </table>
+                    <p class="mx-verdict" data-tour="verdict">Caught all injected faults. Core code unchanged.</p>
+                    <p class="mx-hash" data-tour="hash">Source c54c31b, byte for byte the version Fabio sealed at Saildrone.</p>
                   </div>
                 </div>
-                <p class="wl-foot"><span class="wl-box">✓</span>Show welcome page on startup</p>
+              </main>
+              <div class="vs-toasts">
+                <div class="vs-toast" data-tour="notify" role="status">
+                  <div class="vs-toast-msg"><span class="vs-toast-ic is-info">i</span><p><b>Fabio Rossi</b> at Saildrone shared <b>telemetry-inspector</b> with you. Version c54c31b, 7 of 7 checks.</p></div>
+                  <div class="vs-toast-foot"><span class="vs-toast-src">Source: Common Ground (Extension)</span><button type="button" class="vs-btn is-primary" data-tour="open" tabindex="-1">Open</button></div>
+                </div>
               </div>
+            </div>
             </div>
 
             <footer class="vs-status">
               <span class="vs-remote">⟩⟨</span><span>⎇ inspector*</span><span>⊗ 0 ⚠ 0</span><span class="vs-st-agent" data-tour="st-agent">⟳ Agent working</span>
-              <span class="vs-st-cg" data-tour="status-cg"><b class="cg-dot"></b><span data-tour="status-text">Common Ground</span></span>
+              <span class="vs-st-cg" data-tour="status-cg"><span data-tour="status-text">Common Ground</span></span>
             </footer>
           </div>
 
-          <!-- Scene 3: the fund's view, an ontology map. Built by film/section.js from film/fund.js -->
-          <div class="cg-fund" data-tour="fund"></div>
+          
 
         </div>
       </div>
     </div>
   </div>
-</section></div><div class="film-caption"><span>Requirement → build → verify → share → reuse</span><button type="button" class="film-toggle" data-film-toggle>Pause walkthrough</button><a href="./download/common-ground.vsix" download>Download for VS Code & Cursor ↗</a></div></div></section>
-<section class="atlas-case atlas-wrap" id="standard"><div class="section-heading"><p class="folio">02 / Finding useful work</p><h2>Find reusable work beyond your own team.</h2><p>Common Ground uses shared workflow briefs, recorded reuse, and compatibility to suggest who could benefit from a tool. Company permissions and each person’s receiving preferences determine who is eligible.</p></div><div class="demo-context"><h3>The ocean and solar teams are our demonstration.</h3><p>An ocean research team and a solar operator both need to detect gaps in sensor readings. They can reuse the same completeness checker by supplying their own data mappings.</p></div><div class="specimens"><figure><div class="specimen-label"><span>A / At sea</span><span>NOAA sample</span></div><img src="./img/saildrone-arctic.webp" width="2000" height="1500" alt="An orange ocean research vessel at sea" loading="lazy"><figcaption><b>Ocean telemetry</b><span>time + WIND_SPEED_MEAN</span></figcaption></figure><figure><div class="specimen-label"><span>B / On land</span><span>NREL sample</span></div><img src="./img/solar-desert.webp" width="2000" height="1235" alt="A solar array in the desert" loading="lazy"><figcaption><b>Solar telemetry</b><span>measured_on + ac_power__423</span></figcaption></figure></div>
-<div class="binding-strip"><span class="binding-title">The shared contract</span><code>time + value + cadence</code><span>Each company runs the inspector with its own mapping.</span></div><p class="case-note">This build demonstrates the broader approach with sensor time-series completeness checks on public NOAA and NREL data. Supporting other kinds of tools requires additional contracts and verification suites. The example does not imply customer adoption.</p></section>
-<section class="atlas-roles atlas-wrap"><div class="section-heading"><p class="folio">03 / Clear ownership</p><h2>Each company controls what it shares.</h2></div><ol class="role-index"><li><span>01</span><div><h3>The fund sets the boundary.</h3><p>Invite portfolio companies and choose whether work can travel between them. Network membership does not grant access to every company’s code.</p></div></li><li><span>02</span><div><h3>The company supplies the context.</h3><p>Map a sample, describe the work, and authorize publishers. One account can manage the fund and participate in its own company.</p></div></li><li><span>03</span><div><h3>The engineer stays in their editor.</h3><p>Review why a checked tool might help someone. Approve the share. The recipient gets that version in VS Code or Cursor, with receiving controls of their own.</p></div></li></ol></section>
-<section class="atlas-security atlas-wrap" id="security"><div class="section-heading"><p class="folio">04 / Permission to travel</p><h2>Useful doesn’t mean<br><em>available to everyone.</em></h2><p>Try this illustrative permission check. Select a person, then change receiving or revoke the share.</p></div>      <div class="gate" data-gate>
-        <div class="gate-left">
-          <p class="gate-tool"><span class="cg-lg" data-lilguy="fabio-sd"></span><span><b>telemetry-inspector</b><small>c54c31b · Fabio · <img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</small></span><em>7 of 7 checks</em></p>
-          <p class="gate-l" id="gate-l">Share with</p>
-          <div class="gate-people" role="radiogroup" aria-labelledby="gate-l">
-            <button type="button" role="radio" aria-checked="true" data-who="theo"><span class="cg-lg" data-lilguy="theo-tides"></span><b>Theo</b><img class="fav" src="./film/favicons/saildrone.png" alt="Saildrone"></button>
-            <button type="button" role="radio" aria-checked="false" data-who="maya"><span class="cg-lg" data-lilguy="maya-sun"></span><b>Maya</b><img class="fav" src="./film/favicons/palmetto.png" alt="Palmetto"></button>
-            <button type="button" role="radio" aria-checked="false" data-who="elli"><span class="cg-lg" data-lilguy="elli-ops"></span><b>Elli</b><img class="fav" src="./film/favicons/palmetto.png" alt="Palmetto"></button>
-            <button type="button" role="radio" aria-checked="false" data-who="leo"><span class="cg-lg" data-lilguy="leo-billing"></span><b>Leo</b><img class="fav" src="./film/favicons/palmetto.png" alt="Palmetto"></button>
-          </div>
-          <div class="gate-flips">
-            <label class="flip"><input type="checkbox" data-flip="off"><span></span>Maya turns receiving off</label>
-            <label class="flip"><input type="checkbox" data-flip="revoke"><span></span>Fabio revokes it</label>
-          </div>
-        </div>
-        <div class="gate-right">
-          <ol class="gate-checks" aria-live="polite" data-checks></ol>
-          <div class="gate-out" data-out></div>
-        </div>
-      </div></section>
-<section class="atlas-end"><div class="atlas-wrap"><span class="folio">Common Ground / Start a new connection</span><h2>Give good work<br><em>somewhere to go.</em></h2><a class="btn is-primary is-lg" href="./join/">Find your workspace ↗</a><a class="text-action" href="./signin/">Explore the demo network →</a><img src="./art/connection.svg" width="220" height="120" alt="" loading="lazy"></div></section>
+</section></div><div class="film-caption"><span>Requirement → build → verify → share → reuse</span><button type="button" class="film-toggle" data-film-toggle>Pause walkthrough</button><a href="./download/common-ground.vsix" download>Download for VS Code & Cursor ↗</a></div></div></section></div>
 </main>
-<footer class="atlas-footer atlas-wrap"><div><a aria-label="Common Ground home" class="nav-brand" href="./"><img class="logo" src="./art/mark.svg" alt=""><span>Common Ground</span></a><p>A software factory for engineering teams and their portfolios.</p></div><div><a href="https://github.com/0xANUSHKA/common-ground-8090">Source ↗</a><span>8090 EVOLVE · 2026</span></div><p class="art-credit">Original atlas illustration generated for Common Ground. Research vessel imagery: NOAA. Solar array: public domain. Sample data: NOAA PMEL (CC0), NREL PVDAQ (CC BY 4.0). Company names, people and activity in the walkthrough are illustrative; no customer affiliation is implied.</p></footer>
+<footer class="atlas-footer atlas-wrap"><div><a aria-label="Common Ground home" class="nav-brand" href="./"><img class="logo" src="./art/mark.svg" alt=""><span>Common Ground</span></a><p>A software factory for engineering teams and their portfolios.</p></div><div><a href="https://github.com/0xANUSHKA/common-ground-8090">Source ↗</a><span>8090 EVOLVE · 2026</span></div><p class="art-credit">Original atlas illustration generated for Common Ground. Research vessel imagery: NOAA. Solar array: public domain. Green velvet: Shiva Theerthagiri, CC BY 4.0, via Wikimedia Commons. Sample data: NOAA PMEL (CC0), NREL PVDAQ (CC BY 4.0). Company names, people and activity in the walkthrough are illustrative; no customer affiliation is implied.</p></footer>
 <script type="module" src="./nav.js"></script><script type="module" src="./site.js"></script>
 </body></html>

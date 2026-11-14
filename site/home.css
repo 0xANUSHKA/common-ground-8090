@@ -1,0 +1,54 @@
+/* The home page: the 1901 cable map on paper with the headline, then the editor film on deep green velvet.
+   Built on atlas.css and pages.css. Paper, ink and one clay accent; Instrument Serif for display, Geist for the rest. */
+.is-v{--clay:var(--accent)}
+.v-kicker{margin:0;font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.v-act{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.v-act .text-action{margin-left:0}
+.v-act.is-light .btn.is-primary{background:#f4f1e9;color:#1d1f1a}
+.v-act.is-light .text-action{color:#f4f1e9;border-color:rgba(244,241,233,.4)}
+
+/* the film on paper: the dark stage reads as a screen set on the page, no glow */
+.v-film{padding:8px 0 64px}
+.v-film.is-paper{background:var(--bg)}
+.v-film.is-paper .film-caption{color:var(--mute);border-color:var(--line-2)}
+.v-film.is-paper .film-caption a,.v-film.is-paper .film-toggle{color:var(--fg)}
+.v-film.is-paper .film .film-stage{box-shadow:0 30px 70px -40px rgba(30,28,22,.55)}
+.v-film:not(.is-paper){background:#242823;color:#f4f1e9;--fg:#eeeee6;--mute:#b4b9ae;--line-2:#50584a;padding-top:56px}
+
+
+/* 6 · Telegraph: the 1901 cable map in grey on the paper, the words set on it. Below, the film sits on deep green
+   velvet that mostly hides behind the window: only a margin of it shows around the edges. */
+.v6-map{position:relative;min-height:min(88vh,900px);display:grid;place-items:center;overflow:hidden;text-align:center}
+.v6-map img{position:absolute;inset:-4% -2%;width:104%;height:108%;object-fit:cover;filter:grayscale(1) contrast(1.15);mix-blend-mode:multiply;opacity:.55}
+.v6-words{position:relative;padding:0 var(--gutter)}
+.v6-words h1{font:400 clamp(64px,9vw,150px)/.88 var(--display);letter-spacing:-.045em;margin:18px 0 34px}
+.v6-words h1 em{font-style:normal;color:var(--accent)}
+.v6-words .v-act{justify-content:center}
+.v6-velvet-band{position:relative;overflow:hidden;background:#0c1f16;isolation:isolate}
+/* depth: the velvet sits behind the window, softly out of focus, drifting very slowly */
+.v6-velvet{position:absolute;inset:-48px;width:calc(100% + 96px);height:calc(100% + 96px);object-fit:cover;filter:blur(4px) brightness(.46) saturate(.8) contrast(1.1);animation:velvet-drift 48s ease-in-out infinite alternate;will-change:transform}
+@keyframes velvet-drift{from{transform:scale(1.04) translate3d(-1%,0,0)}to{transform:scale(1.1) translate3d(1%,-1.5%,0)}}
+@media (prefers-reduced-motion:reduce){.v6-velvet{animation:none}}
+/* light: a low pool behind the window, darkness at the edges */
+.v6-velvet-band::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(55% 50% at 50% 46%,rgba(120,200,150,.09),transparent 70%),radial-gradient(120% 95% at 50% 50%,transparent 45%,rgba(3,10,6,.7) 100%)}
+.v6-film{position:relative;z-index:2;background:transparent!important;padding:clamp(20px,3vh,40px) 0 clamp(16px,2.4vh,32px)}
+.v6-film .atlas-wrap{max-width:none;padding-inline:2vw}
+.v6-film .hero-film,.v6-film .film-caption{max-width:min(96vw,calc((100svh - 70px) * 1.62));margin-inline:auto}
+.v6-film .hero-film{margin-top:0}
+.v6-film .film{--tour-stage:transparent}
+.v6-film .film .film-stage{border:0;box-shadow:none;background:none;border-radius:0}
+/* the window rises out of the velvet and settles flat */
+.v6-film .film .tour-rig{transform-origin:50% 92%;transform:perspective(2200px) translateY(calc((1 - var(--win-in,1)) * 7cqw)) rotateX(calc((1 - var(--win-in,1)) * 22deg)) scale(calc(.88 + .12 * var(--win-in,1)))}
+.v6-film .film [data-tour-window]{box-shadow:0 0 0 1px rgba(255,255,255,.08),0 70px 160px -40px rgba(0,0,0,.95)}
+/* titles: quiet serif lines over the velvet, no pill */
+.v6-film .film:not(.is-stack) .tour-card{z-index:8;background:none;box-shadow:none;padding:0;gap:16px;top:calc(var(--gutter) * .45);text-shadow:0 2px 24px rgba(0,0,0,.65)}
+.v6-film .film .tour-card-n{color:rgba(241,234,216,.5)}
+.v6-film .film .tour-card h3{font:400 max(17px,2.2cqw)/1.1 var(--display);letter-spacing:-.02em;color:#f1ead8}
+.v6-film .film .tour-card h3 em{color:#d9b98c}
+.v6-film .film .tour-card p{color:rgba(241,234,216,.72);font-size:max(11px,1.05cqw)}
+.v6-film .fi-line{font:400 clamp(22px,5.2cqw,68px)/1.04 var(--display);letter-spacing:-.025em;color:#f1ead8;text-shadow:0 2px 30px rgba(0,0,0,.6)}
+.v6-film .fi-b{color:#d9b98c}
+.v6-film .fi-c{font-family:var(--display);font-weight:400}
+.v6-film .film-caption{color:#cfd6c8;border-color:rgba(241,234,216,.2)}
+.v6-film .film-caption a,.v6-film .film-toggle{color:#f1ead8}
+
