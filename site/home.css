@@ -20,7 +20,12 @@
    velvet that mostly hides behind the window: only a margin of it shows around the edges. */
 .v6-map{position:relative;min-height:min(88vh,900px);display:grid;place-items:center;overflow:hidden;text-align:center}
 .v6-map img{position:absolute;inset:-4% -2%;width:104%;height:108%;object-fit:cover;filter:grayscale(1) contrast(1.15);mix-blend-mode:multiply;opacity:.55}
-.v6-words{position:relative;padding:0 var(--gutter)}
+.v6-words{position:relative;isolation:isolate;padding:0 var(--gutter)}
+/* a soft wash of paper behind the words, so the map recedes where the type sits */
+.v6-words::before{content:"";position:absolute;inset:-70px -140px;z-index:-1;background:radial-gradient(closest-side,rgba(244,241,233,.88) 35%,rgba(244,241,233,0) 100%);pointer-events:none}
+.v6-words .v-kicker{font-size:14px;font-weight:600;letter-spacing:.14em;color:#8f2c1e;text-shadow:0 0 6px var(--bg),0 0 14px var(--bg)}
+.v6-words .btn.is-white{display:inline-flex;align-items:center;gap:12px;background:#fffdf8;color:var(--fg);text-decoration:none;box-shadow:0 0 0 1px var(--line-2),0 10px 26px -14px rgba(30,28,22,.45)}
+.v6-words .btn.is-white:hover{background:#fff;box-shadow:0 0 0 1px var(--fg),0 10px 26px -14px rgba(30,28,22,.45)}
 .v6-words h1{font:400 clamp(64px,9vw,150px)/.88 var(--display);letter-spacing:-.045em;margin:18px 0 34px}
 .v6-words h1 em{font-style:normal;color:var(--accent)}
 .v6-words .v-act{justify-content:center}
