@@ -1,5 +1,5 @@
 // Common Ground API: one Vercel function, routed by path (vercel.json rewrites /api/* here).
-// Orgs are funds, portfolio companies or circles (friends). Every read re-checks permissions, so kicking someone,
+// Orgs are funds and their portfolio companies. Every read re-checks permissions, so kicking someone,
 // removing a company or revoking a tool takes effect immediately; files already downloaded stay with their owners.
 import { randomBytes } from 'node:crypto';
 import { cmd, pipeline, getJSON, setJSON, getMany, kvReady } from './_kv.js';
@@ -10,13 +10,12 @@ const now = () => new Date().toISOString();
 const rid = (n = 10) => Array.from(randomBytes(n), (b) => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const HANDLE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
-const KINDS = ['fund', 'company', 'circle'];
+const KINDS = ['fund', 'company'];
 const clean = (s, n = 80) => String(s ?? '').trim().slice(0, n);
 const STANDARD = { name: 'Sensor time-series v1', version: '1.0' };
 const DEFAULTS = {
   fund: { enabled: true, crossCompany: true, maxOpenOffers: 2, expiryDays: 7 },
   company: { participating: true, receive: 'portfolio', peers: null, classes: ['data-quality'] },
-  circle: {},
 };
 
 // ── storage helpers ──
@@ -26,7 +25,7 @@ const K = {
   fundcos: (f) => `fundcos:${f}`, inv: (c) => `inv:${c}`, oinv: (o) => `oinv:${o}`,
   tool: (id) => `tool:${id}`, utools: (u) => `utools:${u}`, otools: (o) => `otools:${o}`,
   grant: (id) => `grant:${id}`, tgrants: (t) => `tgrants:${t}`, ogrants: (o) => `ogrants:${o}`, ugrants: (u) => `ugrants:${u}`,
-  audit: (o) => `audit:${o}`,
+  audit: (o) => `audit:${o}`, reuse: (o) => `reuse:${o}`,
 };
 const pub = (u, withEmail) => u && ({ id: u.id, name: u.name, handle: u.handle || '', picture: u.picture || '', ...(withEmail ? { email: u.email } : {}) });
 async function members(orgId) { const h = await cmd('HGETALL', K.mem(orgId)); const out = {}; for (let i = 0; i < (h || []).length; i += 2) out[h[i]] = JSON.parse(h[i + 1]); return out; }
@@ -104,7 +103,7 @@ on('PATCH', 'me', async (req, res, me) => {
 // orgs
 on('POST', 'orgs', async (req, res, me) => {
   const b = req.body || {}, kind = b.kind, name = clean(b.name, 60);
-  if (!KINDS.includes(kind)) throw fail(400, 'Pick a fund, a company or a circle.');
+  if (!KINDS.includes(kind)) throw fail(400, 'Pick a fund or a company.');
   if (!name) throw fail(400, 'Give it a name.');
   const org = { id: rid(10), kind, name, site: clean(b.site, 120), github: clean(b.github, 39), iconUrl: '', createdAt: now(), owner: me.id, settings: { ...DEFAULTS[kind] } };
   if (org.site) { try { const h = new URL(/^https?:/.test(org.site) ? org.site : `https://${org.site}`).hostname; org.iconUrl = `https://${h}/favicon.ico`; } catch {} }
@@ -125,10 +124,17 @@ async function orgView(org, me, access) {
   const gIds = new Set([...(await cmd('SMEMBERS', K.ogrants(org.id)))]);
   for (const t of out.tools) for (const g of await cmd('SMEMBERS', K.tgrants(t.id))) gIds.add(g);
   out.grants = (await getMany([...gIds].map(K.grant))).filter(Boolean);
+  out.reuse = (await cmd('LRANGE', K.reuse(org.id), 0, 49)).map((x) => JSON.parse(x));
+  const tally = (tools) => ({ tools: tools.length, reuses: tools.reduce((n, t) => n + (t.uses || []).length, 0), hours: tools.reduce((n, t) => n + (t.uses || []).length * (t.hours || 0), 0) });
   if (org.kind === 'fund') {
     const cos = (await getMany((await cmd('SMEMBERS', K.fundcos(org.id))).map(K.org))).filter(Boolean);
-    out.companies = await Promise.all(cos.map(async (c) => ({ id: c.id, name: c.name, iconUrl: c.iconUrl, status: c.status, site: c.site, mapping: c.mapping || null, memberCount: await cmd('HLEN', K.mem(c.id)), settings: c.settings })));
-  }
+    const toolsBy = await Promise.all(cos.map(async (c) => (await getMany((await cmd('SMEMBERS', K.otools(c.id))).map(K.tool))).filter(Boolean)));
+    const counts = await Promise.all(cos.map((c) => cmd('HLEN', K.mem(c.id))));
+    out.companies = cos.map((c, i) => ({ id: c.id, name: c.name, iconUrl: c.iconUrl, status: c.status, site: c.site, mapping: c.mapping || null, memberCount: counts[i], settings: c.settings, ...tally(toolsBy[i]) }));
+    const authors = await getMany([...new Set(toolsBy.flat().map((t) => t.owner))].map(K.user)), byId = Object.fromEntries(authors.filter(Boolean).map((u) => [u.id, pub(u)]));
+    out.portfolioTools = toolsBy.flatMap((ts, i) => ts.map((t) => ({ ...t, company: { id: cos[i].id, name: cos[i].name, iconUrl: cos[i].iconUrl }, author: byId[t.owner] || null })));
+    out.stats = { companies: cos.length, joined: cos.filter((c) => c.status === 'joined').length, people: counts.reduce((a, b) => a + b, 0) + out.members.length, ...tally(toolsBy.flat()) };
+  } else out.stats = { people: out.members.length, ...tally(out.tools) };
   if (org.kind === 'company' && org.fundId) {
     const fund = await getJSON(K.org(org.fundId));
     const peers = (await getMany((await cmd('SMEMBERS', K.fundcos(org.fundId))).map(K.org))).filter((c) => c && c.id !== org.id);
@@ -268,8 +274,9 @@ on('DELETE', 'orgs/:id/companies/:cid', async (req, res, me, p) => {
 // tools and shares
 on('POST', 'tools', async (req, res, me) => {
   const b = req.body || {}, name = clean(b.name, 60).replace(/[^\w.\-]/g, '-'); if (!name) throw fail(400, 'Name the tool.');
-  let orgId = null; if (b.orgId) { const org = await getJSON(K.org(b.orgId)); if (!org || org.kind !== 'company' || !(await membership(org.id, me.id))) throw fail(403, 'Not your company.'); orgId = org.id; }
-  const tool = { id: rid(10), name, description: clean(b.description, 200), owner: me.id, orgId, createdAt: now(), hash: randomBytes(8).toString('hex'), checks: 7 };
+  const org = await getJSON(K.org(String(b.orgId || ''))); if (!org || org.kind !== 'company' || !(await membership(org.id, me.id))) throw fail(403, 'Pick your company.');
+  const orgId = org.id;
+  const tool = { id: rid(10), name, description: clean(b.description, 280), owner: me.id, orgId, createdAt: now(), hash: randomBytes(8).toString('hex'), checks: 7, hours: Math.min(400, Math.max(1, Math.round(+b.hours) || 8)), uses: [] };
   await pipeline([['SET', K.tool(tool.id), JSON.stringify(tool)], ['SADD', K.utools(me.id), tool.id], ...(orgId ? [['SADD', K.otools(orgId), tool.id]] : [])]);
   await log(orgId, me.name, 'Added a tool', name); return { tool };
 });
@@ -293,12 +300,11 @@ on('POST', 'tools/:id/grants', async (req, res, me, p) => {
   if (b.orgId) {
     const org = await getJSON(K.org(b.orgId)), m = org && await membership(org.id, me.id); if (!m) throw fail(403, 'You’re not in that group.');
     if (org.kind === 'company' && (!m.publisher || t.orgId !== org.id)) throw fail(403, 'You need Publisher, and the tool must belong to this company.');
-    if (org.kind === 'fund') throw fail(400, 'Share with named people at a company, not the whole fund.');
+    if (org.kind !== 'company') throw fail(400, 'Share with your company or with named people at another company.');
     const days = org.kind === 'company' && org.fundId ? ({ ...DEFAULTS.fund, ...(await getJSON(K.org(org.fundId)))?.settings }).expiryDays : 30;
-    g = { ...base, scope: org.kind === 'circle' ? 'circle' : 'team', target: { type: 'org', orgId: org.id }, expiresAt: new Date(Date.now() + days * DAY).toISOString() };
+    g = { ...base, scope: 'team', target: { type: 'org', orgId: org.id }, expiresAt: new Date(Date.now() + days * DAY).toISOString() };
   } else if (b.userId) {
     const u = await getJSON(K.user(b.userId)); if (!u || u.id === me.id) throw fail(404, 'No such person.');
-    if (!t.orgId) throw fail(400, 'Share personal tools with a circle.');
     const from = await getJSON(K.org(t.orgId)), mf = await membership(from.id, me.id);
     if (await membership(from.id, u.id)) { if (!mf?.publisher) throw fail(403, 'You need Publisher.'); g = { ...base, scope: 'team', target: { type: 'user', userId: u.id }, expiresAt: new Date(Date.now() + 7 * DAY).toISOString() }; }
     else {
@@ -333,6 +339,80 @@ on('GET', 'shared', async (req, res, me) => {
   }
   return { shared: out };
 });
+
+// someone downloaded or adapted a tool they can see: counts toward reuse, for the tool's company, theirs and the fund
+on('POST', 'tools/:id/uses', async (req, res, me, p) => {
+  const t = await getJSON(K.tool(p.id)); if (!t) throw fail(404, 'Not found.');
+  const kind = req.body?.kind === 'adapt' ? 'adapt' : 'download';
+  let toCo = (await membership(t.orgId, me.id)) ? t.orgId : null;
+  if (!toCo) { const gs = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean), cache = { [t.id]: t };
+    for (const g of gs) if (await grantReaches(g, me.id, cache)) { toCo = g.target.companyId || g.target.orgId || t.orgId; break; } }
+  if (!toCo || t.owner === me.id) throw fail(404, 'Not found.');
+  t.uses ||= []; if (t.uses.some((u) => u.uid === me.id && u.kind === kind)) return { ok: true, already: true };
+  const [from, to] = await getMany([K.org(t.orgId), K.org(toCo)]);
+  const ev = { at: now(), toolId: t.id, tool: t.name, kind, hours: t.hours || 0, by: me.name, from: from && { id: from.id, name: from.name, iconUrl: from.iconUrl }, to: to && { id: to.id, name: to.name, iconUrl: to.iconUrl } };
+  t.uses.push({ at: ev.at, uid: me.id, companyId: toCo, kind }); t.uses = t.uses.slice(-200);
+  const lists = [...new Set([t.orgId, toCo, from?.fundId].filter(Boolean))];
+  await pipeline([['SET', K.tool(t.id), JSON.stringify(t)], ...lists.flatMap((o) => [['LPUSH', K.reuse(o), JSON.stringify(ev)], ['LTRIM', K.reuse(o), 0, 199]])]);
+  return { ok: true };
+});
+
+// "Try the demo": a private sandbox fund with five portfolio companies, their people, tools and reuse, signed in as its owner
+on('POST', 'auth/demo', async (req, res) => {
+  const sx = rid(6), at = (daysAgo) => new Date(Date.now() - daysAgo * DAY).toISOString(), cmds = [];
+  const me = { id: `demo-${sx}`, email: 'Demo account', name: 'You', handle: 'you-demo', picture: '', createdAt: now(), demo: true, pref: { mode: 'portfolio', muted: [] } };
+  cmds.push(['SET', K.user(me.id), JSON.stringify(me)]);
+  const fund = { id: `f${sx}`, kind: 'fund', name: 'Social Capital', site: 'socialcapital.com', iconUrl: '', createdAt: at(30), owner: me.id, demo: true, settings: { ...DEFAULTS.fund }, standard: STANDARD };
+  const mem = (org, uid, role, extra = {}) => cmds.push(['HSET', K.mem(org.id), uid, JSON.stringify({ role, publisher: true, exporter: role !== 'member', receiver: true, at: org.createdAt, ...extra })], ['SADD', K.uorgs(uid), org.id]);
+  cmds.push(['SET', K.org(fund.id), JSON.stringify(fund)]); mem(fund, me.id, 'owner');
+  const map = (src, ok) => ({ source: src, binding: { timeColumn: 'time', signalColumn: 'value', unit: '', skipUnitsRow: false, timeBasis: 'utc', cadenceSeconds: 60 }, columns: [], result: { state: ok ? 'verified' : 'draft', detail: ok ? '1,440 observations · 0 missing timestamps' : 'Waiting for a sample' }, at: at(20) });
+  const COS = [
+    ['saildrone', 'Saildrone', 'saildrone.com', 'saildrone.png', 'ERDDAP / NetCDF', true, [['Fabio Rossi', 'fabio-sd', 'owner'], ['Theo Park', 'theo-sd', 'member'], ['Ines Duarte', 'ines-sd', 'member'], ['Sam Okafor', 'sam-sd', 'member']]],
+    ['palmetto', 'Palmetto', 'palmetto.com', 'palmetto.png', 'SolarEdge', true, [['Maya Chen', 'maya-pm', 'owner'], ['Leo Grant', 'leo-pm', 'member'], ['Elli Novak', 'elli-pm', 'member']]],
+    ['mast', 'Mast Reforestation', 'mast.eco', 'mast.png', 'Sensor logger', true, [['Rhea Malik', 'rhea-ml', 'owner'], ['Jon Bell', 'jon-ms', 'member']]],
+    ['groq', 'Groq', 'groq.com', 'groq.svg', 'Other CSV', false, [['Kai Moreno', 'kai-gq', 'owner']]],
+    ['netskope', 'Netskope', 'netskope.com', 'netskope.webp', '', false, []],
+  ];
+  const co = {}, ppl = {};
+  for (const [key, name, site, icon, src, ok, people] of COS) {
+    const c = { id: `c${sx}${key.slice(0, 3)}`, kind: 'company', name, site, iconUrl: `/film/favicons/${icon}`, createdAt: at(25), owner: null, demo: true, fundId: fund.id, status: ok ? 'joined' : 'invited', settings: { ...DEFAULTS.company }, ...(src ? { mapping: map(src, ok) } : {}) };
+    co[key] = c;
+    for (const [pname, gh, role] of people) { const u = { id: `u${sx}${gh}`, email: `${gh}@example.com`, name: pname, handle: gh, picture: '', createdAt: at(25), demo: true }; ppl[gh] = u; cmds.push(['SET', K.user(u.id), JSON.stringify(u)]); mem(c, u.id, role); if (role === 'owner') c.owner = u.id; }
+    cmds.push(['SADD', K.fundcos(fund.id), c.id]);
+  }
+  mem(co.saildrone, me.id, 'admin'); // so the demo can show a company's side too
+  const TOOLS = [
+    ['telemetry-inspector', 'saildrone', 'fabio-sd', 'Finds missing, duplicate and off-grid readings in any sensor time series before they reach a model.', 16, [['palmetto', 'maya-pm', 'adapt', 6], ['mast', 'rhea-ml', 'download', 3], ['saildrone', 'theo-sd', 'download', 9]]],
+    ['glider-dashboard', 'saildrone', 'theo-sd', 'Live map of every vehicle with battery, heading and last fix.', 24, [['saildrone', 'ines-sd', 'download', 12]]],
+    ['pv-gap-finder', 'palmetto', 'maya-pm', 'Flags dropped inverter intervals and fills short gaps without inventing peaks.', 12, [['saildrone', 'fabio-sd', 'adapt', 4], ['mast', 'jon-ms', 'download', 2]]],
+    ['inverter-alarm-digest', 'palmetto', 'leo-pm', 'One morning summary of overnight inverter alarms, grouped by site.', 6, []],
+    ['canopy-sensor-qa', 'mast', 'rhea-ml', 'Checks soil-moisture loggers for drift and stuck values across a planting.', 10, [['palmetto', 'elli-pm', 'download', 1]]],
+  ];
+  const reuse = { [fund.id]: [] };
+  for (const [name, ck, gh, desc, hours, uses] of TOOLS) {
+    const c = co[ck], author = ppl[gh], t = { id: `t${sx}${name.slice(0, 6)}`, name, description: desc, owner: author.id, orgId: c.id, createdAt: at(15), hash: randomBytes(8).toString('hex'), checks: 7, hours, uses: [], demo: true };
+    const grant = (target, scope, d) => { const g = { id: rid(10), toolId: t.id, issuer: author.id, revoked: false, at: at(d + 0.5), scope, target, expiresAt: new Date(Date.now() + (scope === 'portfolio' ? 7 : 30) * DAY).toISOString() }; cmds.push(['SET', K.grant(g.id), JSON.stringify(g)], ['SADD', K.tgrants(t.id), g.id], target.type === 'org' ? ['SADD', K.ogrants(target.orgId), g.id] : ['SADD', K.ugrants(target.userId), g.id]); };
+    grant({ type: 'org', orgId: c.id }, 'team', 14);
+    for (const [tk, ugh, kind, d] of uses) {
+      const to = co[tk], u = ppl[ugh];
+      if (tk !== ck) grant({ type: 'user', userId: u.id, companyId: to.id }, 'portfolio', d);
+      t.uses.push({ at: at(d), uid: u.id, companyId: to.id, kind });
+      const ev = { at: at(d), toolId: t.id, tool: name, kind, hours, by: u.name, from: { id: c.id, name: c.name, iconUrl: c.iconUrl }, to: { id: to.id, name: to.name, iconUrl: to.iconUrl } };
+      for (const o of new Set([fund.id, c.id, to.id])) (reuse[o] ||= []).push(ev);
+    }
+    cmds.push(['SET', K.tool(t.id), JSON.stringify(t)], ['SADD', K.utools(author.id), t.id], ['SADD', K.otools(c.id), t.id]);
+  }
+  for (const [o, evs] of Object.entries(reuse)) for (const ev of evs.sort((a, b) => a.at.localeCompare(b.at))) cmds.push(['LPUSH', K.reuse(o), JSON.stringify(ev)]);
+  const audit = [[30, 'You', 'Created the fund', 'Social Capital'], [25, 'You', 'Made a company invite link'], [24, 'Fabio Rossi', 'Brought a company in', 'Saildrone'], [23, 'Maya Chen', 'Brought a company in', 'Palmetto'], [21, 'Rhea Malik', 'Brought a company in', 'Mast Reforestation'], [8, 'Kai Moreno', 'Brought a company in', 'Groq']];
+  for (const [d, actor, action, subject = ''] of audit) cmds.push(['LPUSH', K.audit(fund.id), JSON.stringify({ at: at(d), actor, action, subject })]);
+  for (const c of Object.values(co)) cmds.push(['SET', K.org(c.id), JSON.stringify(c)]);
+  const inv = { code: rid(10), orgId: fund.id, kind: 'company', role: 'member', createdBy: me.id, at: at(25), expiresAt: new Date(Date.now() + 30 * DAY).toISOString(), uses: 4, revoked: false };
+  const tinv = { ...inv, code: rid(10), kind: 'member', uses: 0 };
+  cmds.push(['SET', K.inv(inv.code), JSON.stringify(inv)], ['SADD', K.oinv(fund.id), inv.code], ['SET', K.inv(tinv.code), JSON.stringify(tinv)], ['SADD', K.oinv(fund.id), tinv.code]);
+  for (let i = 0; i < cmds.length; i += 200) await pipeline(cmds.slice(i, i + 200));
+  startSession(res, req, me.id);
+  return { ok: true, fundId: fund.id };
+}, { open: true });
 
 // ── entry ──
 export default async function handler(req, res) {

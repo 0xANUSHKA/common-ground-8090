@@ -10,22 +10,23 @@ From `site/` (Node 20+, no installs):
 - `npm run dev` → http://localhost:3000 with real accounts on a fresh in-memory database. "Continue with Google"
   opens a local sign-in instead: type any name to be that person. Use a private window to be a second person.
 - `npm test` → the permission tests (invites, kicking, revoking, removing companies, settings, muting, deleting).
-- Design only: any static server works (`python3 -m http.server 8091 --directory site`); pages fall back to the
-  seeded in-browser demo. On the live site, add `?demo`: `/dashboard/?demo`, `/signin/?demo`.
+- "Explore a demo fund" on the sign-in page makes a private sandbox fund (five companies, people, tools, reuse) and
+  signs you in as its owner: the quickest way to see every screen, locally or live.
 
 ## Pages
 
 | Path | What it is | Files |
 |---|---|---|
 | `/` | Overview: the film, the standard, "Who gets it?" | `index.html`, `site.css`, `site.js`, `gate.js`, `film/` |
-| `/signin/` | Sign in | `signin/` |
-| `/join/` | Join as an individual, a portfolio company or a fund | `join/` |
-| `/dashboard/` | The VS Code-style workbench, signed in only | `dashboard/live.js` (real accounts), `dashboard/app.js` (demo), `dashboard/app.css` |
+| `/signin/` | Google sign-in, or a private demo fund | `signin/live.js` |
+| `/join/` | A fund sets itself up; `?invite=` joins a fund or a company | `join/live.js` |
+| `/dashboard/` | The console: a fund runs its portfolio, a company runs its team | `dashboard/console.js`, `dashboard/console.css` |
 
 ## Changing the design
 
 - **Colours, type, spacing:** the tokens at the top of `base.css` (`--bg`, `--fg`, `--accent`, `--font`, `--mono`, …)
-  apply to every page. The dashboard's VS Code palette is the `--v*` block at the top of `dashboard/app.css`.
+  apply to the public pages. The console has its own `--c-*` tokens at the top of `dashboard/console.css`, light and
+  dark.
 - **Logo:** `logo.svg`, used everywhere as an image (top bar, tab icon, dashboard, film). Replace the file to change it.
 - **The film:** each scene is HTML in `index.html` (inside `<section class="film">`) styled by `film/section.css`;
   timing is the step list in `film/script.js` (`?t=12.5` in the address freezes any moment). The engine in `tour/`
@@ -36,18 +37,15 @@ From `site/` (Node 20+, no installs):
 
 ## Data
 
-Live: `api/index.js` (one Vercel function; routes, permissions, Redis key layout at the top), `api/_auth.js` (Google
-sign-in, signed session cookie), `api/_kv.js` (Upstash REST). The browser side calls it through `api.js`.
-Demo: `store.js` holds the seeded state in the browser; `dashboard/app.js`, `signin/signin.js`, `join/join.js` use it.
+`api/index.js` (one Vercel function: routes, permissions, the demo fund, Redis key layout at the top), `api/_auth.js`
+(Google sign-in, signed session cookie), `api/_kv.js` (Upstash REST). The browser calls it through `api.js`.
 
-## Accounts (live)
+## Accounts
 
-The deployed site runs on real accounts: Google sign-in, Upstash Redis on Vercel, one serverless function at `api/index.js`.
-`api.js` checks `/api/status`; when the database and Google are both connected, the sign-in, join and dashboard pages load
-their `live.js`. Otherwise (or with `?demo` in the URL) they run on the seeded demo in your browser, so design work
-needs no backend: `/dashboard/?demo`, `/signin/?demo`.
+Funds and their portfolio companies; there is no individual plan. A fund sets itself up at `/join/`, sends its one
+company link to the portfolio, and each company sends its own link to its engineers.
 
-- Invite links: every circle, company and fund has one reusable link (`/join/?invite=…`); funds have a second for companies.
+- Invite links: every company and fund has a reusable team link (`/join/?invite=…`); funds have a second for companies.
 - Admins can change roles, remove people, turn links off, remove companies from a fund, revoke shares and remove tools.
   Every read re-checks permissions, so those take effect immediately.
 - Env vars: `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`.
@@ -62,8 +60,8 @@ needs no backend: `/dashboard/?demo`, `/signin/?demo`.
 
 ## Not done yet
 
-- Tools are added by hand in the dashboard ("Add a tool…"); the VS Code extension doesn't publish to or read from
-  this API yet.
+- Reuse is counted when someone downloads or adapts a tool (`POST /api/tools/:id/uses`); "hours saved" is reuses times
+  the author's build estimate.
 - No email or Slack notifications; invite links are copied and sent by hand.
 - Live sharing has been tested with local test users only; a second real person still needs to try invites,
   kicking and revoking on the live site.

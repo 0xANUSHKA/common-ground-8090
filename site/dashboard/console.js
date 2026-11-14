@@ -1,0 +1,366 @@
+// The Common Ground console: where a fund runs its portfolio's shared tooling, and each company runs its team.
+// Fund: Overview · Portfolio · Tools · People · Standard · Settings. Company: Overview · Team · Tools · Data · Sharing · Settings.
+// Everything comes from /api (api/index.js); every change goes back through it and the page reloads what it shows.
+import { api, inviteUrl } from '../api.js';
+import { lilGuy } from '../film/lilguy.js';
+import { sniff, inspect } from '../csvcheck.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const n = (x) => Number(x || 0).toLocaleString();
+const ago = (iso) => { const m = Math.round((Date.now() - Date.parse(iso)) / 60000); if (m < 1) return 'just now'; if (m < 60) return `${m}m ago`; const h = Math.round(m / 60); if (h < 24) return `${h}h ago`; const d = Math.round(h / 24); return d < 30 ? `${d}d ago` : new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+const left = (iso) => { const d = Math.round((Date.parse(iso) - Date.now()) / 86400000); return d <= 0 ? 'expired' : `${d} days left`; };
+const live = (g) => !g.revoked && Date.parse(g.expiresAt) > Date.now();
+const HANDLE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+const seedOf = (u) => (u?.handle || (u?.email || u?.name || 'someone').split('@')[0]).replace(/[^\w-]/g, '') || 'someone';
+const av = (u, cls = '') => `<span class="av ${cls}" title="${esc(u?.name || '')}">${lilGuy(seedOf(u))}</span>`;
+const mono = (name, cls = '') => `<span class="fav is-mono ${cls}">${esc((name || '?').trim()[0]?.toUpperCase() || '?')}</span>`;
+const fav = (o, cls = '') => !o ? '' : o.iconUrl ? `<img class="fav ${cls}" src="${esc(o.iconUrl)}" alt="" loading="lazy" onerror="this.outerHTML='${mono(o.name, cls).replace(/"/g, '&quot;')}'">` : mono(o.name, cls);
+const I = {
+  home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>', building: '<path d="M3 21h18M5 21V7l7-4v18M12 21V9h7v12M8 9h1M8 13h1M8 17h1M15 13h1M15 17h1"/>',
+  tool: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>', people: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>',
+  standard: '<circle cx="12" cy="12" r="2.6"/><path d="M12 9.4V4M9.8 13.4 5 16.5M14.2 13.4l4.8 3.1"/><circle cx="12" cy="3" r="1.5"/><circle cx="4" cy="17" r="1.5"/><circle cx="20" cy="17" r="1.5"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 2.7-1.1V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
+  data: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>', shield: '<path d="M12 3 5 6v5c0 4.6 3 8.4 7 10 4-1.6 7-5.4 7-10V6z"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>', chev: '<path d="m7 9 5-5 5 5M7 15l5 5 5-5"/>', back: '<path d="M15 18 9 12l6-6"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>', plus: '<path d="M12 5v14M5 12h14"/>', menu: '<path d="M4 7h16M4 12h16M4 17h16"/>', download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>', copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+};
+const ic = (k, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[k] || ''}</svg>`;
+const CHECKS = ['NOAA ocean sample: 1,440 rows, 55 missing wind values', 'NREL solar sample: 1,440 rows, negative power kept', 'Finds three missing timestamps and one duplicate', 'Finds missing first and last observations', 'Zero is a reading; malformed is separate', 'Rejects a wrong units-row assumption', 'Unseen window with duplicates and off-grid rows'];
+const VSIX = '/download/common-ground.vsix';
+const LOGO = '<svg viewBox="0 0 32 32" width="18" height="18" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-linecap="round"><path d="M16 5 5.5 23.5h21z" stroke-opacity=".35" stroke-width="1.6"/><path d="M16 16.5 16 5M16 16.5 5.5 23.5M16 16.5 26.5 23.5" stroke-opacity=".8" stroke-width="1.8"/></g><g fill="currentColor"><circle cx="16" cy="5" r="2.9"/><circle cx="5.5" cy="23.5" r="2.9"/><circle cx="26.5" cy="23.5" r="2.9"/></g><circle cx="16" cy="16.5" r="3.9" fill="#3794ff"/></svg>';
+
+// ── state ──
+let ME = null, ORGS = [], V = null, SHARED = [], CACHE = {};
+const R = () => { const [orgId = '', page = 'overview', sub = ''] = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent); return { orgId, page, sub }; };
+const href = (orgId, page = 'overview', sub = '') => `#/${orgId}/${page}${sub ? '/' + encodeURIComponent(sub) : ''}`;
+const isFund = () => V?.org.kind === 'fund';
+const admin = () => ['owner', 'admin'].includes(V?.myRole);
+const memberInv = () => (V?.invites || []).find((i) => i.kind === 'member' && !i.revoked && Date.parse(i.expiresAt) > Date.now());
+const companyInv = () => (V?.invites || []).find((i) => i.kind === 'company' && !i.revoked && Date.parse(i.expiresAt) > Date.now());
+
+async function load(orgId) {
+  const me = await api('me'); ME = me.user; ORGS = me.orgs;
+  if (!ORGS.length) { location.replace('/join/'); return false; }
+  const fallback = (ORGS.find((o) => o.kind === 'fund') || ORGS[0]).id;
+  let target = { id: orgId || fallback };
+  V = await api(`orgs/${target.id}`).catch(() => null);
+  if (!V && target.id !== fallback) { target = { id: fallback }; V = await api(`orgs/${fallback}`).catch(() => null); }
+  if (!V) throw new Error('Couldn’t open this workspace.');
+  if (V.org.kind === 'fund') CACHE.fundCos = (V.companies || []).map((c) => c.id);
+  SHARED = V.org.kind === 'company' ? (await api('shared')).shared : [];
+  if (target.id !== R().orgId) history.replaceState(null, '', href(target.id, R().orgId === target.id ? R().page : 'overview'));
+  return true;
+}
+
+// ── shell ──
+function navItems() {
+  const id = V.org.id;
+  return isFund()
+    ? [['overview', 'Overview', 'home'], ['portfolio', 'Portfolio', 'building', V.companies?.length], ['tools', 'Tools', 'tool', V.portfolioTools?.length], ['people', 'People', 'people'], ['standard', 'Standard', 'standard'], ['settings', 'Settings', 'gear']]
+    : [['overview', 'Overview', 'home'], ['team', 'Team', 'people', V.members.length], ['tools', 'Tools', 'tool', V.tools.length + SHARED.length], ['data', 'Data', 'data'], ['sharing', 'Sharing', 'shield'], ['settings', 'Settings', 'gear']].filter(([k]) => V.myRole !== 'fund' || ['overview', 'team', 'tools', 'data'].includes(k))
+    ;
+}
+function side() {
+  const r = R(), o = V.org;
+  const inv = isFund() ? companyInv() : memberInv();
+  const kindLabel = o.kind === 'fund' ? 'Fund' : V.myRole === 'fund' ? 'Portfolio company · fund view' : 'Portfolio company';
+  return `<a class="brand" href="/">${LOGO}Common Ground</a>`
+    + `<button type="button" class="org-btn" data-act="orgs" aria-haspopup="menu" aria-expanded="false">${fav(o)}<span><b>${esc(o.name)}</b><small>${kindLabel}</small></span>${ic('chev', 'i chev')}</button>`
+    + `<ul class="nav-l">${navItems().map(([k, l, i, c]) => `<li><a href="${href(o.id, k)}" ${r.page === k ? 'aria-current="page"' : ''}>${ic(i)}${l}${c != null ? `<span class="n num">${c}</span>` : ''}</a></li>`).join('')}</ul>`
+    + `<div class="side-foot">`
+    + (admin() ? `<div class="invite-card"><b>${isFund() ? 'Invite portfolio companies' : 'Invite your team'}</b><p>${isFund() ? 'One link for every company. Each signs in with Google and sets up its team.' : 'One link for everyone. They sign in with Google and they’re in.'}</p>${inv ? `<button type="button" class="b is-full" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy invite link</button>` : `<button type="button" class="b is-full" data-act="mk-inv" data-kind="${isFund() ? 'company' : 'member'}">${ic('link')}Create invite link</button>`}</div>` : '')
+    + `<a class="b is-ghost is-full" href="${VSIX}" download style="justify-content:flex-start">${ic('download')}Get the VS Code extension</a>`
+    + `<button type="button" class="me-btn" data-act="me">${av(ME)}<span><b>${esc(ME.name)}</b><small>${esc(ME.email)}</small></span></button></div>`;
+}
+const header = (title, sub = '', actions = '', crumb = '') => `${crumb}<div class="ph"><div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div>${actions ? `<div class="ph-act">${actions}</div>` : ''}</div>`;
+const crumb = (to, label) => `<a class="crumb" href="${to}">${ic('back')}${esc(label)}</a>`;
+const stat = (label, value, small = '') => `<div class="stat"><span>${label}</span><b class="num">${value}</b>${small ? `<small>${small}</small>` : ''}</div>`;
+const card = (title, body, action = '', sub = '') => `<section class="card"><div class="card-h"><h2>${title}</h2>${sub ? `<span class="sub">${sub}</span>` : ''}${action}</div>${body}</section>`;
+const empty = (title, text = '', action = '') => `<div class="empty"><b>${title}</b>${text}${action ? `<div style="margin-top:12px">${action}</div>` : ''}</div>`;
+const statusPill = (s) => s === 'joined' ? '<span class="pill is-ok">Live</span>' : s === 'invited' ? '<span class="pill is-warn">Mapping data</span>' : '<span class="pill">Not in a fund</span>';
+const mapPill = (m) => !m ? '<span class="pill">Not started</span>' : m.result?.state === 'verified' ? '<span class="pill is-ok">Mapped</span>' : m.result?.state === 'failed' ? '<span class="pill is-bad">Failing</span>' : '<span class="pill is-warn">In progress</span>';
+const reuseList = (evs, limit = 8, byPerson = false) => evs.length ? `<ul class="list">${evs.slice(0, limit).map((e) => `<li>${byPerson ? fav(e.to, 'is-sm') : fav(e.from, 'is-sm')}<span class="grow">${byPerson ? `<b>${esc(e.by)}</b><small>${esc(e.to?.name || '')} · ${e.kind === 'adapt' ? 'adapted it to their data' : 'downloaded it'}</small>` : `<b><span class="tool-n">${esc(e.tool)}</span></b><small>${esc(e.by)} at ${esc(e.to?.name || '')} ${e.kind === 'adapt' ? 'adapted it to their data' : 'downloaded it'}</small>`}</span><span class="flow">${fav(e.from, 'is-sm')}${ic('arrow')}${fav(e.to, 'is-sm')}</span><time>${ago(e.at)}</time></li>`).join('')}</ul>` : empty('No reuse yet', '<br>When someone downloads or adapts a shared tool, it shows up here.');
+
+// ── fund pages ──
+function fundOverview() {
+  const s = V.stats, cos = V.companies || [], inv = companyInv();
+  if (!cos.length) return header('Welcome to Common Ground', `${esc(V.org.name)} · ${esc(V.org.standard?.name || 'Sensor time-series v1')}`)
+    + card('Set up your portfolio', `<ol class="steps"><li class="is-done"><span class="t"><b>Create your fund</b><small>You hold the shared standard every company maps to.</small></span></li>`
+      + `<li><span class="t"><b>Send one link to your portfolio companies</b><small>Each company signs in with Google, names itself and maps its data.</small></span>${inv ? `<button type="button" class="b is-accent" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy company link</button>` : `<button type="button" class="b is-accent" data-act="mk-inv" data-kind="company">Create company link</button>`}</li>`
+      + `<li><span class="t"><b>Companies invite their engineers</b><small>Engineers install the extension; tools they finish can be shared with named people across the portfolio.</small></span><a class="b" href="${VSIX}" download>${ic('download')}Extension</a></li>`
+      + `<li><span class="t"><b>Watch reuse add up</b><small>Every download and adaptation is counted here, with the hours it saved.</small></span></li></ol>`);
+  const top = [...(V.portfolioTools || [])].sort((a, b) => (b.uses?.length || 0) - (a.uses?.length || 0)).slice(0, 5);
+  return header('Overview', `${esc(V.org.name)} · ${n(s.companies)} portfolio companies on ${esc(V.org.standard?.name || 'Sensor time-series v1')}`, `<button type="button" class="b" data-act="invite-dlg">${ic('link')}Invite companies</button>`)
+    + `<div class="stats">${stat('Tools in the portfolio', n(s.tools), `from ${n(cos.filter((c) => c.tools).length)} companies`)}${stat('Reuses', n(s.reuses), 'downloads and adaptations')}${stat('Est. hours saved', n(s.hours), 'build time not repeated')}${stat('Companies live', `${n(s.joined)}<span style="font-size:16px;color:var(--c-faint)"> / ${n(s.companies)}</span>`, 'mapped to the standard')}</div>`
+    + `<div class="grid2">${card('Recent reuse', reuseList(V.reuse || []), `<a class="b is-ghost" href="${href(V.org.id, 'tools')}">All tools</a>`)}`
+    + `<div class="stack">${card('Most reused', top.length ? `<ul class="list">${top.map((t) => `<li style="cursor:pointer" data-go="${href(V.org.id, 'tools', t.id)}">${fav(t.company, 'is-sm')}<span class="grow"><b class="tool-n">${esc(t.name)}</b><small>${esc(t.company.name)}</small></span><span class="meta num">${n(t.uses?.length)} ${t.uses?.length === 1 ? 'reuse' : 'reuses'}</span></li>`).join('')}</ul>` : empty('No tools yet'))}`
+    + card('Companies', `<ul class="list">${cos.slice(0, 6).map((c) => `<li style="cursor:pointer" data-go="${href(V.org.id, 'portfolio', c.id)}">${fav(c)}<span class="grow"><b>${esc(c.name)}</b><small>${n(c.memberCount)} people · ${n(c.tools)} tools</small></span>${statusPill(c.status)}</li>`).join('')}</ul>`, `<a class="b is-ghost" href="${href(V.org.id, 'portfolio')}">View all</a>`) + `</div></div>`;
+}
+function fundPortfolio(sub) {
+  if (sub) return fundCompany(sub);
+  const cos = V.companies || [];
+  return header('Portfolio', `${n(cos.length)} companies · ${n(V.stats.joined)} live on the standard`, admin() ? `<button type="button" class="b is-primary" data-act="invite-dlg">${ic('plus')}Invite companies</button>` : '')
+    + card('Companies', cos.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Company</th><th class="r">People</th><th>Data</th><th class="r">Tools</th><th class="r">Reuses</th><th>Status</th>${admin() ? '<th></th>' : ''}</tr></thead><tbody>${cos.map((c) => `<tr data-href="${href(V.org.id, 'portfolio', c.id)}" tabindex="0"><td><div class="who">${fav(c)}<span><b>${esc(c.name)}</b><small>${esc(c.site || '')}</small></span></div></td><td class="r num">${n(c.memberCount)}</td><td>${mapPill(c.mapping)}</td><td class="r num">${n(c.tools)}</td><td class="r num">${n(c.reuses)}</td><td>${statusPill(c.status)}</td>${admin() ? `<td class="r"><button type="button" class="b is-ghost is-danger" data-act="drop-co" data-cid="${c.id}" data-name="${esc(c.name)}">Remove</button></td>` : ''}</tr>`).join('')}</tbody></table></div>`
+      : empty('No companies yet', '<br>Send your company link; each company appears here as it joins.', `<button type="button" class="b is-accent" data-act="invite-dlg">Invite companies</button>`), '', `${n(V.stats.people)} people`);
+}
+function fundCompany(cid) {
+  const c = (V.companies || []).find((x) => x.id === cid); if (!c) return empty('Company not found');
+  const cv = CACHE[`co:${cid}`];
+  const tools = (V.portfolioTools || []).filter((t) => t.company.id === cid);
+  return header(`<span style="display:inline-flex;align-items:center;gap:12px">${fav(c, 'is-lg')}${esc(c.name)}</span>`, `${esc(c.site || '')}`, `${statusPill(c.status)}<a class="b" href="${href(c.id)}">Open workspace</a>`, crumb(href(V.org.id, 'portfolio'), 'Portfolio'))
+    + `<div class="stats">${stat('People', n(c.memberCount))}${stat('Tools shared', n(c.tools))}${stat('Times reused', n(c.reuses))}${stat('Est. hours saved', n(c.hours))}</div>`
+    + `<div class="grid2">${card('Tools', tools.length ? `<ul class="list">${tools.map((t) => `<li style="cursor:pointer" data-go="${href(V.org.id, 'tools', t.id)}">${ic('tool')}<span class="grow"><b class="tool-n">${esc(t.name)}</b><small>${esc(t.description || '')}</small></span><span class="meta num">${n(t.uses?.length)} reuses</span></li>`).join('')}</ul>` : empty('No tools shared yet'))}`
+    + `<div class="stack">${card('Data mapping', `<div class="card-b">${mapPill(c.mapping)}${c.mapping ? `<p style="margin:10px 0 0;color:var(--c-mute)">${esc(c.mapping.source || 'Source')} → ${esc(V.org.standard?.name || 'standard')}<br>${esc(c.mapping.result?.detail || '')}</p>` : '<p style="margin:10px 0 0;color:var(--c-mute)">The company maps a sample of its data to the standard before it can trade tools with the portfolio.</p>'}</div>`)}`
+    + card('People', cv ? `<ul class="list">${cv.members.map((m) => `<li>${av(m.user)}<span class="grow"><b>${esc(m.user.name)}</b><small>${esc(m.user.email || (m.user.handle ? '@' + m.user.handle : ''))}</small></span><span class="pill is-plain">${m.role}</span></li>`).join('')}</ul>` : `<div class="card-b" style="color:var(--c-mute)">Loading…</div>`) + `</div></div>`;
+}
+function toolsTable(tools, orgId, withCompany = true) {
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tool</th>${withCompany ? '<th>Company</th>' : ''}<th>Author</th><th class="r">Reuses</th><th class="r">Est. hours saved</th><th>Added</th></tr></thead><tbody>${tools.map((t) => `<tr data-href="${href(orgId, 'tools', t.id)}" tabindex="0"><td><div class="who">${ic('tool')}<span><b class="tool-n">${esc(t.name)}</b><small>${esc(t.description || '')}</small></span></div></td>${withCompany ? `<td><div class="who">${fav(t.company, 'is-sm')}<span>${esc(t.company?.name || '')}</span></div></td>` : ''}<td><div class="who">${av(t.author)}<span>${esc(t.author?.name || '')}</span></div></td><td class="r num">${n(t.uses?.length)}</td><td class="r num">${n((t.uses?.length || 0) * (t.hours || 0))}</td><td style="color:var(--c-mute)">${ago(t.createdAt)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function fundTools(sub) {
+  if (sub) return toolPage(sub);
+  const tools = [...(V.portfolioTools || [])].sort((a, b) => (b.uses?.length || 0) - (a.uses?.length || 0));
+  return header('Tools', 'Everything your companies have shared, checked and ready to reuse')
+    + card('Portfolio tools', tools.length ? toolsTable(tools, V.org.id) : empty('No tools yet', '<br>Engineers share tools from the VS Code extension when an agent finishes one.'), '', `${n(tools.length)} tools`);
+}
+function fundPeople() {
+  const cos = V.companies || [];
+  return header('People', `${n(V.members.length)} on your fund team · ${n(V.stats.people - V.members.length)} across the portfolio`, admin() ? `<button type="button" class="b is-primary" data-act="team-dlg">${ic('plus')}Invite fund team</button>` : '')
+    + card('Fund team', membersTable(V), '')
+    + `<div style="height:16px"></div>` + card('Across the portfolio', cos.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Person</th><th>Company</th><th>Role</th></tr></thead><tbody>${cos.flatMap((c) => (CACHE[`co:${c.id}`]?.members || []).map((m) => `<tr><td><div class="who">${av(m.user)}<span><b>${esc(m.user.name)}</b><small>${esc(m.user.email || '')}</small></span></div></td><td><div class="who">${fav(c, 'is-sm')}<span>${esc(c.name)}</span></div></td><td><span class="pill is-plain">${m.role}</span></td></tr>`)).join('') || '<tr><td colspan="3" style="color:var(--c-mute)">Loading…</td></tr>'}</tbody></table></div>` : empty('No companies yet'), '', 'Read only · each company manages its own team');
+}
+function fundStandard() {
+  const s = V.org.settings || {}, a = admin(), cos = V.companies || [];
+  const tog = (k, t, d, dis) => `<div><span class="t"><b>${t}</b><small>${d}</small></span><label class="sw"><input type="checkbox" data-set="${k}" ${s[k] ? 'checked' : ''} ${!a || dis ? 'disabled' : ''} aria-label="${esc(t)}"><i></i></label></div>`;
+  const num = (k, t, d, lo, hi) => `<div><span class="t"><b>${t}</b><small>${d}</small></span><input class="in is-num num" type="number" min="${lo}" max="${hi}" data-set="${k}" value="${s[k]}" ${a ? '' : 'disabled'}></div>`;
+  return header(esc(V.org.standard?.name || 'Sensor time-series v1'), 'The common ground: one shape for the data, so a tool built at one company runs at another', '<span class="pill is-ok">v1.0</span>')
+    + `<div class="grid2"><div class="stack">${card('What every company maps to', `<div class="card-b"><p style="margin-top:0;color:var(--c-mute)">A reading is a <code>time</code>, a <code>value</code> and its <code>unit</code>, at a known cadence. Each company maps its own columns once, and every shared tool reads that shape.</p><ul class="checks">${CHECKS.map((c) => `<li>${esc(c)}</li>`).join('')}</ul><p style="margin-bottom:0;color:var(--c-mute);font-size:13px">A tool can only be shared after it passes all seven checks.</p></div>`, '', '7 required checks')}`
+    + card('Companies on the standard', cos.length ? `<ul class="list">${cos.map((c) => `<li>${fav(c)}<span class="grow"><b>${esc(c.name)}</b><small>${esc(c.mapping?.source || 'No source yet')}</small></span>${mapPill(c.mapping)}</li>`).join('')}</ul>` : empty('No companies yet')) + `</div>`
+    + card('Sharing policy', `<div class="rows">${tog('enabled', 'Network on', 'Pause to stop all sharing across the portfolio at once.')}${tog('crossCompany', 'Cross-company sharing', 'Named people at one company can receive another company’s tools.', !s.enabled)}${num('maxOpenOffers', 'Open offers per person', 'Most unopened tools anyone sees at once.', 1, 5)}${num('expiryDays', 'Share expiry (days)', 'A cross-company share lapses unless renewed.', 1, 90)}<div><span class="t"><b>Named recipients only</b><small>Always on. Tools go to people, never to a whole company outside the author’s own.</small></span><span class="pill is-plain">Always</span></div><div><span class="t"><b>Onward resharing</b><small>Always off. Only the author shares a tool.</small></span><span class="pill is-plain">Off</span></div></div>`) + `</div>`;
+}
+function inviteCard(kind) {
+  const inv = (V.invites || []).find((i) => i.kind === kind && !i.revoked && Date.parse(i.expiresAt) > Date.now());
+  const what = kind === 'company' ? 'Portfolio companies' : isFund() ? 'Your fund team' : 'Your team';
+  return `<div><span class="t"><b>${what}</b><small>${inv ? `${n(inv.uses)} joined · ${left(inv.expiresAt)}` : 'No active link'}</small></span>${inv ? `<button type="button" class="b" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy</button><button type="button" class="b" data-act="mk-inv" data-kind="${kind}">New link</button><button type="button" class="b is-danger" data-act="kill-inv" data-code="${inv.code}">Turn off</button>` : `<button type="button" class="b" data-act="mk-inv" data-kind="${kind}">Create link</button>`}</div>`;
+}
+function settingsPage() {
+  const o = V.org, a = admin();
+  return header('Settings', esc(o.name))
+    + `<div class="stack">${card('Details', `<div class="rows"><div><span class="t"><b>Name</b></span><input class="in" data-field="name" value="${esc(o.name)}" ${a ? '' : 'disabled'}></div><div><span class="t"><b>Website</b><small>The favicon comes from here.</small></span><input class="in" data-field="site" value="${esc(o.site || '')}" placeholder="example.com" ${a ? '' : 'disabled'}></div>${a ? `<div><span class="t"></span><button type="button" class="b is-primary" data-act="save-org">Save</button></div>` : ''}</div>`)}`
+    + (a ? card('Invite links', `<div class="rows">${inviteCard('member')}${isFund() ? inviteCard('company') : ''}</div>`, '', 'Anyone with a link can join; turn it off any time') : '')
+    + (V.myRole === 'owner' ? card('Delete', `<div class="rows"><div><span class="t"><b>Delete ${esc(o.name)}</b><small>${isFund() ? 'Companies stay, but leave the fund and stop sharing across the portfolio.' : 'Removes everyone, turns off its links and revokes its shares. Files already downloaded stay with the people who have them.'}</small></span><button type="button" class="b is-danger" data-act="delete-org">Delete</button></div></div>`) : '')
+    + (V.myRole !== 'owner' && V.myRole !== 'fund' ? card('Leave', `<div class="rows"><div><span class="t"><b>Leave ${esc(o.name)}</b></span><button type="button" class="b is-danger" data-act="leave">Leave</button></div></div>`) : '') + `</div>`;
+}
+
+// ── company pages ──
+function membersTable(v) {
+  const a = ['owner', 'admin'].includes(v.myRole), company = v.org.kind === 'company';
+  const flag = (m, k, label) => `<td><label class="sw" title="${label}"><input type="checkbox" data-flag="${k}" data-uid="${m.user.id}" ${m[k] ? 'checked' : ''} ${a ? '' : 'disabled'} aria-label="${label} for ${esc(m.user.name)}"><i></i></label></td>`;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Person</th><th>Role</th>${company ? '<th>Can share</th><th>Across portfolio</th><th>Receives</th>' : ''}<th></th></tr></thead><tbody>${v.members.map((m) => {
+    const self = m.user.id === ME.id, canEdit = a && (v.myRole === 'owner' || m.role !== 'owner');
+    return `<tr><td><div class="who">${av(m.user)}<span><b>${esc(m.user.name)}${self ? ' <span class="pill is-plain" style="margin-left:4px">You</span>' : ''}</b><small>${esc(m.user.email || (m.user.handle ? '@' + m.user.handle : ''))}</small></span></div></td>`
+      + `<td><select class="sel is-sm" data-role="${m.user.id}" ${canEdit ? '' : 'disabled'} aria-label="Role">${['owner', 'admin', 'member'].map((x) => `<option value="${x}" ${m.role === x ? 'selected' : ''}>${x[0].toUpperCase() + x.slice(1)}</option>`).join('')}</select></td>`
+      + (company ? flag(m, 'publisher', 'Can share with the team') + flag(m, 'exporter', 'Can share with other portfolio companies') + flag(m, 'receiver', 'Receives shared tools') : '')
+      + `<td class="r">${self ? '' : canEdit ? `<button type="button" class="b is-ghost is-danger" data-act="kick" data-uid="${m.user.id}" data-name="${esc(m.user.name)}">Remove</button>` : ''}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+function companyOverview() {
+  const s = V.stats, m = V.org.mapping, inv = memberInv(), fundView = V.myRole === 'fund';
+  const steps = [
+    [!!m && m.result?.state === 'verified', 'Map your data to the standard', 'Check a sample in your browser; nothing is uploaded.', `<a class="b" href="${href(V.org.id, 'data')}">Map data</a>`],
+    [V.members.length > 1, 'Bring your team', 'Send one link; teammates sign in with Google.', inv ? `<button type="button" class="b" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy link</button>` : `<button type="button" class="b" data-act="mk-inv" data-kind="member">Create link</button>`],
+    [V.tools.length > 0, 'Install the extension', 'When an agent finishes a tool, share it with your team or named people in the portfolio.', `<a class="b" href="${VSIX}" download>${ic('download')}Extension</a>`],
+  ];
+  const todo = !fundView && admin() && steps.some(([d]) => !d);
+  return header('Overview', `${esc(V.org.name)}${V.fund ? ` · in ${esc(V.fund.name)}’s portfolio` : ''}`, '')
+    + (todo ? `<div style="margin-bottom:16px">${card('Get set up', `<ol class="steps">${steps.map(([d, t, sm, act]) => `<li class="${d ? 'is-done' : ''}"><span class="t"><b>${t}</b><small>${sm}</small></span>${d ? '' : act}</li>`).join('')}</ol>`)}</div>` : '')
+    + `<div class="stats">${stat('Tools shared', n(s.tools), 'by your engineers')}${stat('Times reused', n(s.reuses), 'by your team and the portfolio')}${stat('Est. hours saved', n(s.hours), 'for the people who reused them')}${stat('Shared with you', n(SHARED.length), 'ready to open in the editor')}</div>`
+    + `<div class="grid2">${card('Recent reuse', reuseList(V.reuse || []))}<div class="stack">`
+    + card('Shared with you', SHARED.length ? `<ul class="list">${SHARED.map((x) => `<li style="cursor:pointer" data-go="${href(V.org.id, 'tools', x.tool.id)}">${x.grant.scope === 'portfolio' ? fav(x.from, 'is-sm') : av(x.owner)}<span class="grow"><b class="tool-n">${esc(x.tool.name)}</b><small>${esc(x.owner.name)}${x.from ? ` · ${esc(x.from.name)}` : ''}</small></span><time>${ago(x.grant.at)}</time></li>`).join('')}</ul>` : empty('Nothing yet', '<br>Tools shared with you appear here and in your editor.'))
+    + card('Team', `<ul class="list">${V.members.slice(0, 6).map((x) => `<li>${av(x.user)}<span class="grow"><b>${esc(x.user.name)}</b><small>${x.role}</small></span></li>`).join('')}</ul>`, `<a class="b is-ghost" href="${href(V.org.id, 'team')}">Manage</a>`) + `</div></div>`;
+}
+function companyTeam() {
+  return header('Team', `${n(V.members.length)} ${V.members.length === 1 ? 'person' : 'people'} at ${esc(V.org.name)}`, admin() ? `<button type="button" class="b is-primary" data-act="team-dlg">${ic('plus')}Invite people</button>` : '')
+    + card('Members', membersTable(V), '', admin() ? 'Changes take effect immediately' : '');
+}
+function companyTools(sub) {
+  if (sub) return toolPage(sub);
+  const tab = new URLSearchParams(location.search).get('t') === 'shared' ? 'shared' : 'ours';
+  const ours = V.tools.map((t) => ({ ...t, author: V.members.find((m) => m.user.id === t.owner)?.user }));
+  return header('Tools', `Built at ${esc(V.org.name)}, and shared with you from the portfolio`, V.myRole !== 'fund' ? `<button type="button" class="b" data-act="add-tool">${ic('plus')}Add a tool</button>` : '')
+    + card(`${esc(V.org.name)}’s tools`, ours.length ? toolsTable(ours, V.org.id, false) : empty('No tools yet', '<br>Engineers share tools from the VS Code extension when an agent finishes one.', `<a class="b" href="${VSIX}" download>${ic('download')}Get the extension</a>`), '', `${n(ours.length)}`)
+    + (V.myRole === 'fund' ? '' : `<div style="height:16px"></div>` + card('Shared with you', SHARED.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tool</th><th>From</th><th>Scope</th><th>Shared</th></tr></thead><tbody>${SHARED.map((x) => `<tr data-href="${href(V.org.id, 'tools', x.tool.id)}" tabindex="0"><td><div class="who">${ic('tool')}<span><b class="tool-n">${esc(x.tool.name)}</b><small>${esc(x.tool.description || '')}</small></span></div></td><td><div class="who">${x.grant.scope === 'portfolio' ? fav(x.from, 'is-sm') : av(x.owner)}<span>${esc(x.owner.name)}${x.from ? ` · ${esc(x.from.name)}` : ''}</span></div></td><td><span class="pill ${x.grant.scope === 'portfolio' ? 'is-blue' : ''}">${x.grant.scope === 'portfolio' ? 'Portfolio' : 'Team'}</span></td><td style="color:var(--c-mute)">${ago(x.grant.at)}</td></tr>`).join('')}</tbody></table></div>` : empty('Nothing shared with you yet'), '', `${n(SHARED.length)}`));
+}
+function toolPage(id) {
+  const t = (V.portfolioTools || V.tools || []).find((x) => x.id === id) || SHARED.find((x) => x.tool.id === id)?.tool;
+  if (!t) return crumb(href(V.org.id, 'tools'), 'Tools') + empty('This tool isn’t available', '<br>It may have been removed, or its share revoked.');
+  const shared = SHARED.find((x) => x.tool.id === id), author = t.author || V.members.find((m) => m.user.id === t.owner)?.user || shared?.owner;
+  const company = t.company || (t.orgId === V.org.id ? V.org : shared?.from);
+  const mine = t.owner === ME.id, manage = mine || (t.orgId === V.org.id && admin());
+  const grants = (V.grants || []).filter((g) => g.toolId === t.id);
+  const people = Object.fromEntries([...V.members.map((m) => [m.user.id, m.user]), ...(V.peerPeople || []).map((p) => [p.user.id, p.user])]);
+  const peer = (cid) => (V.peers || []).find((p) => p.id === cid);
+  const evs = (V.reuse || []).filter((e) => e.toolId === t.id);
+  return crumb(href(V.org.id, 'tools'), 'Tools')
+    + header(`<span class="tool-n" style="font-size:20px">${esc(t.name)}</span>`, `${esc(author?.name || '')}${company ? ` · ${esc(company.name)}` : ''} · added ${ago(t.createdAt)}`,
+      `<span class="pill is-ok">${t.checks}/7 checks</span>${mine ? `<button type="button" class="b is-primary" data-act="share" data-id="${t.id}">Share…</button>` : ''}${manage ? `<button type="button" class="b is-danger" data-act="rm-tool" data-id="${t.id}" data-name="${esc(t.name)}">Remove</button>` : ''}`)
+    + (t.description ? `<p style="margin:-8px 0 20px;max-width:720px">${esc(t.description)}</p>` : '')
+    + `<div class="stats">${stat('Reuses', n(t.uses?.length))}${stat('Est. hours saved', n((t.uses?.length || 0) * (t.hours || 0)), `${n(t.hours)}h to build, by the author’s estimate`)}${stat('Companies using it', n(new Set((t.uses || []).map((u) => u.companyId)).size))}${stat('Version', `<span class="mono" style="font-size:18px">${esc(String(t.hash).slice(0, 7))}</span>`, 'exact code that passed the checks')}</div>`
+    + `<div class="grid2"><div class="stack">${card('Who reused it', reuseList(evs, 20, true))}`
+    + (grants.length || manage ? card('Shared with', grants.length ? `<ul class="list">${grants.map((g) => { const p = g.target.type === 'user' ? people[g.target.userId] : null, o = g.target.type === 'org' ? (g.target.orgId === V.org.id ? V.org : null) : peer(g.target.companyId);
+      return `<li>${p ? av(p) : fav(o, 'is-sm')}<span class="grow"><b>${p ? esc(p.name) : `Everyone at ${esc(o?.name || 'the company')}`}</b><small>${g.scope === 'portfolio' ? `Portfolio · ${esc(o?.name || '')}` : 'Team'}</small></span>${g.revoked ? '<span class="pill is-bad">Revoked</span>' : live(g) ? `<span class="meta">${left(g.expiresAt)}</span>${manage || g.issuer === ME.id ? `<button type="button" class="b is-ghost" data-act="revoke" data-id="${g.id}">Revoke</button>` : ''}` : '<span class="pill">Expired</span>'}</li>`; }).join('')}</ul>` : empty('Not shared yet'), '', 'Revoking stops future access; files already downloaded stay') : '')
+    + `</div>${card('Checks', `<div class="card-b"><ul class="checks">${CHECKS.map((c) => `<li>${esc(c)}</li>`).join('')}</ul></div>`, '', `${t.checks} of 7 passed`)}</div>`;
+}
+let MAP = null;
+function companyData() {
+  const m = V.org.mapping, a = admin() && V.myRole !== 'fund', d = MAP?.id === V.org.id ? MAP : null, b = d?.b, res = d?.res;
+  const ok = res && res.ok && !res.missing && !res.duplicates && !res.offGrid;
+  const opt = (sel) => (b?.columns || []).map((c) => `<option ${c === sel ? 'selected' : ''}>${esc(c)}</option>`).join('');
+  return header('Data', `Map ${esc(V.org.name)}’s readings to ${esc(V.fund?.standard?.name || 'Sensor time-series v1')} so portfolio tools run on them`, mapPill(m))
+    + (m ? `<div class="note" style="margin-bottom:16px">${esc(m.source || 'Source')}: <code>${esc(m.binding?.timeColumn || '')}</code> → time, <code>${esc(m.binding?.signalColumn || '')}</code> → value. ${esc(m.result?.detail || '')}</div>` : '')
+    + (a ? card('Check a sample', `<div class="rows"><div><span class="t"><b>Source system</b><small>Where these readings come from.</small></span><input class="in" data-map="source" value="${esc(d?.source ?? m?.source ?? '')}" placeholder="e.g. SolarEdge export"></div>`
+      + `<div><span class="t"><b>Sample CSV</b><small>Checked in your browser. Nothing is uploaded.</small></span><button type="button" class="b" data-act="sample" data-s="ocean">Ocean sample</button><button type="button" class="b" data-act="sample" data-s="solar">Solar sample</button><label class="b" style="position:relative">Upload CSV<input type="file" accept=".csv,text/csv" data-upload style="position:absolute;inset:0;opacity:0;cursor:pointer"></label></div>`
+      + (b ? `<div><span class="t"><b>Time column</b></span><select class="sel" style="width:200px" data-b="timeColumn">${opt(b.timeColumn)}</select><select class="sel" style="width:180px" data-b="timeBasis"><option value="utc" ${b.timeBasis === 'utc' ? 'selected' : ''}>UTC</option><option value="local-unspecified" ${b.timeBasis !== 'utc' ? 'selected' : ''}>Local, no timezone</option></select></div>`
+        + `<div><span class="t"><b>Value column</b></span><select class="sel" style="width:200px" data-b="valueColumn">${opt(b.valueColumn)}</select></div>`
+        + `<div><span class="t"><b>Cadence</b><small>Seconds between readings.</small></span><input class="in is-num" type="number" min="1" data-b="cadenceSeconds" value="${b.cadenceSeconds}"></div>`
+        + `<div><span class="t"><b>Units row</b><small>The second row holds units, not readings.</small></span><label class="sw"><input type="checkbox" data-b="unitsRow" ${b.unitsRow ? 'checked' : ''} aria-label="Units row"><i></i></label></div>`
+        + `<div><span class="t">${res?.error ? `<b style="color:var(--c-bad)">${esc(res.error)}</b>` : `<b style="color:${ok ? 'var(--c-ok)' : 'var(--c-bad)'}">${ok ? 'Passes' : 'Doesn’t pass yet'}</b><small>${n(res.unique)} readings · ${n(res.missing)} missing timestamps · ${n(res.duplicates)} duplicates · ${n(res.missingValues)} missing values</small>`}</span><button type="button" class="b is-primary" data-act="save-map">Save mapping</button></div>` : '') + `</div>`)
+      : card('Mapping', `<div class="card-b" style="color:var(--c-mute)">${m ? 'Only the company’s admins can change the mapping.' : 'Not mapped yet.'}</div>`));
+}
+function companySharing() {
+  const s = V.org.settings || {}, a = admin(), fs = V.fund?.settings, cross = !fs || (fs.enabled && fs.crossCompany);
+  const rad = (v, t, d, dis) => `<div><span class="t"><b>${t}</b><small>${d}</small></span><input type="radio" name="receive" value="${v}" ${s.receive === v ? 'checked' : ''} ${!a || dis ? 'disabled' : ''} aria-label="${esc(t)}" style="width:16px;height:16px;accent-color:var(--c-accent)"></div>`;
+  return header('Sharing', V.fund ? `${esc(V.fund.name)} sets the outer limits; you choose within them` : 'Join a fund to share across a portfolio')
+    + `<div class="stack">${card('Take part', `<div class="rows"><div><span class="t"><b>Share and receive tools</b><small>Off pauses everything in and out. People and mappings stay.</small></span><label class="sw"><input type="checkbox" data-set="participating" ${s.participating !== false ? 'checked' : ''} ${a ? '' : 'disabled'} aria-label="Take part"><i></i></label></div></div>`)}`
+    + card('Receive tools from', `<div class="rows">${rad('off', 'Nobody', 'No tools come in.')}${rad('company', 'Your company only', 'Tools from your own engineers.')}${rad('portfolio', 'Your company and the portfolio', cross ? 'Plus tools named for your people by other portfolio companies.' : 'Your fund has cross-company sharing off right now.', !cross)}</div>`)
+    + ((V.peers || []).length ? card('Portfolio companies', `<div class="rows">${V.peers.map((p) => `<div><span class="t" style="display:flex;align-items:center;gap:10px">${fav(p, 'is-sm')}<b>${esc(p.name)}</b></span><label class="sw"><input type="checkbox" data-peer="${p.id}" ${!s.peers || s.peers.includes(p.id) ? 'checked' : ''} ${a ? '' : 'disabled'} aria-label="Receive from ${esc(p.name)}"><i></i></label></div>`).join('')}</div>`, '', 'Who your people can receive from') : '') + `</div>`;
+}
+
+// ── render ──
+const PAGES = { fund: { overview: fundOverview, portfolio: fundPortfolio, tools: fundTools, people: fundPeople, standard: fundStandard, settings: settingsPage }, company: { overview: companyOverview, team: companyTeam, tools: companyTools, data: companyData, sharing: companySharing, settings: settingsPage } };
+function render() {
+  const r = R(), fn = PAGES[V.org.kind][r.page] || PAGES[V.org.kind].overview;
+  $('#side').innerHTML = side();
+  const fundBanner = V.myRole === 'fund' ? `<div class="banner">${ic('building')}You’re viewing ${esc(V.org.name)} as its fund. Only its own admins can change it.<a class="b" href="${href(V.fund?.id || ORGS.find((o) => o.kind === 'fund')?.id, 'portfolio')}">Back to portfolio</a></div>` : '';
+  const demo = ME.id.startsWith('demo-') ? `<div class="banner">This is a private demo fund with sample data. Change anything; it’s yours.<a class="b" href="/join/">Set up your real fund</a></div>` : '';
+  $('#page').innerHTML = demo + fundBanner + fn(r.sub);
+  $('#top-title').textContent = V.org.name;
+  document.title = `${({ overview: 'Overview', portfolio: 'Portfolio', tools: 'Tools', people: 'People', standard: 'Standard', settings: 'Settings', team: 'Team', data: 'Data', sharing: 'Sharing' })[r.page] || 'Overview'} · ${V.org.name} · Common Ground`;
+  document.body.classList.remove('is-loading');
+  lazy(r);
+}
+async function lazy(r) { // company detail pages for a fund: load each company's people
+  if (!isFund() || !['people', 'portfolio'].includes(r.page)) return;
+  const ids = r.page === 'people' ? (V.companies || []).map((c) => c.id) : r.sub ? [r.sub] : [];
+  const need = ids.filter((id) => !CACHE[`co:${id}`]); if (!need.length) return;
+  await Promise.all(need.map(async (id) => { CACHE[`co:${id}`] = await api(`orgs/${id}`).catch(() => ({ members: [] })); }));
+  if (R().page === r.page) render();
+}
+async function go() { const ok = await load(R().orgId).catch((e) => { if (e.status === 401) location.replace(`/signin/?next=${encodeURIComponent('/dashboard/' + location.hash)}`); else fatal(e); return false; }); if (ok) render(); }
+async function refresh(msg) { try { const keep = R(); await load(keep.orgId); render(); if (msg) toast(msg); } catch (e) { toast(e.message); } }
+const fatal = (e) => { document.body.classList.remove('is-loading'); $('#page').innerHTML = empty('Something went wrong', `<br>${esc(e.message)}`, '<a class="b" href="/dashboard/">Reload</a>'); };
+
+// ── toasts, menus, dialogs ──
+function toast(msg) { const el = document.createElement('div'); el.className = 'toast'; el.setAttribute('role', 'status'); el.textContent = msg; $('#toasts').append(el); setTimeout(() => el.remove(), 3200); }
+async function copy(text, what = 'Invite link copied') { try { await navigator.clipboard.writeText(text); toast(what); } catch { dialog('Copy this link', `<input class="in mono" readonly value="${esc(text)}" onfocus="this.select()">`, [{ label: 'Done' }]); } }
+let menuEl = null;
+function menu(anchor, items) {
+  closeMenu(); const rc = anchor.getBoundingClientRect();
+  menuEl = document.createElement('div'); menuEl.className = 'menu'; menuEl.setAttribute('role', 'menu');
+  menuEl.innerHTML = items.map((x, i) => x === '-' ? '<hr>' : x.href ? `<a role="menuitem" href="${x.href}">${x.icon || ''}<span>${esc(x.label)}</span>${x.small ? `<small>${esc(x.small)}</small>` : ''}</a>` : `<button type="button" role="menuitem" data-i="${i}">${x.icon || ''}<span>${esc(x.label)}</span>${x.small ? `<small>${esc(x.small)}</small>` : ''}</button>`).join('');
+  document.body.append(menuEl);
+  const up = rc.top > innerHeight / 2; menuEl.style.left = `${Math.max(8, rc.left)}px`; menuEl.style.width = `${Math.max(240, rc.width)}px`;
+  if (up) menuEl.style.bottom = `${innerHeight - rc.top + 6}px`; else menuEl.style.top = `${rc.bottom + 6}px`;
+  menuEl.addEventListener('click', (e) => { const b = e.target.closest('[data-i]'); if (b) { const it = items[+b.dataset.i]; closeMenu(); it.run(); } if (e.target.closest('a')) closeMenu(); });
+  anchor.setAttribute('aria-expanded', 'true'); menuEl._anchor = anchor; menuEl.querySelector('a,button')?.focus();
+}
+function closeMenu() { if (menuEl) { menuEl._anchor?.setAttribute('aria-expanded', 'false'); menuEl.remove(); menuEl = null; } }
+addEventListener('mousedown', (e) => { if (menuEl && !menuEl.contains(e.target) && !e.target.closest('[aria-haspopup]')) closeMenu(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+// dialog(title, bodyHtml, buttons[{label, primary, danger, run(dlg) → false keeps it open}], sub)
+function dialog(title, body, buttons, sub = '') {
+  const d = document.createElement('dialog'); d.className = 'dlg';
+  d.innerHTML = `<form method="dialog"><div class="dlg-h"><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div><div class="dlg-b">${body}<p class="err" data-err></p></div><div class="dlg-f">${buttons.map((b, i) => `<button type="${b.primary ? 'submit' : 'button'}" class="b ${b.primary ? (b.danger ? 'is-danger is-solid' : 'is-primary') : ''}" data-bi="${i}">${esc(b.label)}</button>`).join('')}</div></form>`;
+  document.body.append(d);
+  const run = async (b) => { if (!b.run) return d.close(); const btns = d.querySelectorAll('.dlg-f .b'); btns.forEach((x) => (x.disabled = true)); try { const r = await b.run(d); if (r !== false) d.close(); } catch (e) { d.querySelector('[data-err]').textContent = e.message; } btns.forEach((x) => (x.disabled = false)); };
+  d.querySelector('form').addEventListener('submit', (e) => { e.preventDefault(); run(buttons.find((b) => b.primary)); });
+  d.querySelectorAll('[data-bi]').forEach((el) => el.type === 'button' && el.addEventListener('click', () => run(buttons[+el.dataset.bi])));
+  d.addEventListener('close', () => d.remove());
+  d.showModal(); d.querySelector('input,select,textarea')?.focus();
+  return d;
+}
+const confirmDo = (title, sub, label, fn, ok) => dialog(title, '', [{ label: 'Cancel' }, { label, primary: true, danger: true, run: async () => { await fn(); await refresh(ok); } }], sub);
+const doing = async (fn, msg) => { try { await fn(); await refresh(msg); } catch (e) { toast(e.message); } };
+async function ensureInv(kind) { const have = kind === 'company' ? companyInv() : memberInv(); if (have) return have; const { invite } = await api(`orgs/${V.org.id}/invites`, { method: 'POST', body: { kind } }); await refresh(); return invite; }
+async function inviteDialog(kind) {
+  const inv = await ensureInv(kind).catch((e) => toast(e.message)); if (!inv) return;
+  const url = inviteUrl(inv.code), company = kind === 'company';
+  dialog(company ? 'Invite your portfolio companies' : isFund() ? 'Invite your fund team' : `Invite people to ${esc(V.org.name)}`,
+    `<div class="link-row"><input class="in" readonly value="${esc(url)}" onfocus="this.select()" aria-label="Invite link"><button type="button" class="b is-accent" data-copy>${ic('copy')}Copy</button></div>`
+    + `<p class="note" style="margin:14px 0 0">${company ? 'Send this one link to every founder or engineering lead. Each signs in with Google, names their company and lands in its own workspace with a link for their team.' : 'Anyone with this link joins after signing in with Google. Turn it off in Settings when you’re done.'}</p>`,
+    [{ label: 'Done', primary: true }], `${n(inv.uses)} joined so far · ${left(inv.expiresAt)}`)
+    .querySelector('[data-copy]').addEventListener('click', () => copy(url));
+}
+function shareDialog(t) {
+  const opts = [];
+  if (V.org.kind === 'company' && t.orgId === V.org.id) {
+    opts.push({ label: `Everyone at ${V.org.name}`, small: 'Your team', icon: fav(V.org, 'is-sm'), body: { orgId: V.org.id } });
+    V.members.filter((m) => m.user.id !== ME.id && m.receiver).forEach((m) => opts.push({ label: m.user.name, small: 'Teammate', icon: av(m.user), body: { userId: m.user.id } }));
+    (V.peerPeople || []).forEach((p) => { const c = (V.peers || []).find((x) => x.id === p.companyId); opts.push({ label: p.user.name, small: c?.name || 'Portfolio', icon: av(p.user), body: { userId: p.user.id, companyId: p.companyId }, portfolio: true }); });
+  }
+  if (!opts.length) return toast('Nobody to share with yet. Invite your team first.');
+  let pick = 0;
+  const d = dialog(`Share ${esc(t.name)}`, `<div style="max-height:340px;overflow:auto;padding:2px">${opts.map((o, i) => `<button type="button" class="choice" data-pick="${i}" aria-pressed="${i === 0}">${o.icon}<span><b>${esc(o.label)}</b><small>${esc(o.small)}${o.portfolio ? ' · across the portfolio' : ''}</small></span></button>`).join('')}</div><p class="note" style="margin:12px 0 0">Only this checked version is shared. Cross-company shares go to named people and lapse after ${V.fund?.settings?.expiryDays || 7} days.</p>`,
+    [{ label: 'Cancel' }, { label: 'Share', primary: true, run: async () => { await api(`tools/${t.id}/grants`, { method: 'POST', body: opts[pick].body }); await refresh(`Shared with ${opts[pick].label}`); } }]);
+  d.addEventListener('click', (e) => { const b = e.target.closest('[data-pick]'); if (!b) return; pick = +b.dataset.pick; d.querySelectorAll('[data-pick]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); });
+}
+function profileDialog() {
+  dialog('Your profile', `<label class="lbl"><span>Name</span><input class="in" name="name" value="${esc(ME.name)}"></label><label class="lbl"><span>GitHub username <small>· draws your avatar</small></span><input class="in" name="handle" value="${esc(ME.handle || '')}" placeholder="octocat" autocapitalize="off" spellcheck="false"></label>`,
+    [{ label: 'Cancel' }, { label: 'Save', primary: true, run: async (d) => { const f = d.querySelector('form').elements; const h = f.namedItem('handle').value.trim().replace(/^@/, ''); if (h && !HANDLE.test(h)) throw new Error('That isn’t a GitHub username.'); await api('me', { method: 'PATCH', body: { name: f.namedItem('name').value, handle: h } }); await refresh('Profile saved'); } }], esc(ME.email));
+}
+function addToolDialog() {
+  dialog('Add a tool', `<label class="lbl"><span>Name</span><input class="in mono" name="tname" required placeholder="telemetry-inspector"></label><label class="lbl"><span>What it does</span><textarea class="in" name="desc" maxlength="280" placeholder="One sentence a teammate would understand."></textarea></label><label class="lbl"><span>Hours it took to build <small>· used to estimate time saved</small></span><input class="in num" name="hours" type="number" min="1" max="400" value="8" style="width:100px"></label><p class="note" style="margin:0">Usually engineers share straight from the VS Code extension when an agent finishes. Use this to register a tool by hand.</p>`,
+    [{ label: 'Cancel' }, { label: 'Add tool', primary: true, run: async (d) => { const f = d.querySelector('form'); if (!f.tname.value.trim()) throw new Error('Name the tool.'); const { tool } = await api('tools', { method: 'POST', body: { name: f.tname.value, description: f.desc.value, hours: f.hours.value, orgId: V.org.id } }); await refresh('Tool added'); location.hash = href(V.org.id, 'tools', tool.id); } }]);
+}
+
+// ── events ──
+document.addEventListener('click', async (e) => {
+  const go = e.target.closest('[data-go]'); if (go) { location.hash = go.dataset.go; return; }
+  const row = e.target.closest('tr[data-href]'); if (row && !e.target.closest('button,select,input,label,a')) { location.hash = row.dataset.href; return; }
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  const a = t.dataset.act;
+  if (a === 'orgs') return menu(t, [...ORGS.map((o) => ({ label: o.name, small: o.kind === 'fund' ? 'Fund' : 'Company', icon: fav(o, 'is-sm'), href: href(o.id) })), '-', { label: 'Set up another fund', icon: ic('plus'), href: '/join/' }]);
+  if (a === 'me') return menu(t, [{ label: 'Profile', icon: ic('people'), run: profileDialog }, { label: 'Get the VS Code extension', icon: ic('download'), href: VSIX }, '-', { label: 'Sign out', run: async () => { await api('auth/signout', { method: 'POST' }).catch(() => {}); location.href = '/'; } }]);
+  if (a === 'copy') return copy(t.dataset.text);
+  if (a === 'mk-inv') return doing(() => api(`orgs/${V.org.id}/invites`, { method: 'POST', body: { kind: t.dataset.kind } }), 'Invite link ready');
+  if (a === 'kill-inv') return confirmDo('Turn off this invite link?', 'People who already joined stay. Anyone who opens the old link is told it’s inactive.', 'Turn off', () => api(`invites/${t.dataset.code}`, { method: 'DELETE' }), 'Invite link turned off');
+  if (a === 'invite-dlg') return inviteDialog('company');
+  if (a === 'team-dlg') return inviteDialog('member');
+  if (a === 'kick') return confirmDo(`Remove ${esc(t.dataset.name)}?`, 'Their access to shared tools stops now. Files they already downloaded stay with them.', 'Remove', () => api(`orgs/${V.org.id}/members/${t.dataset.uid}`, { method: 'DELETE' }), `${t.dataset.name} removed`);
+  if (a === 'leave') return confirmDo(`Leave ${esc(V.org.name)}?`, 'You’ll need a new invite link to come back.', 'Leave', async () => { await api(`orgs/${V.org.id}/members/${ME.id}`, { method: 'DELETE' }); history.replaceState(null, '', '/dashboard/'); }, 'You left');
+  if (a === 'delete-org') return confirmDo(`Delete ${esc(V.org.name)}?`, 'This can’t be undone.', 'Delete', async () => { await api(`orgs/${V.org.id}`, { method: 'DELETE' }); history.replaceState(null, '', '/dashboard/'); }, 'Deleted');
+  if (a === 'drop-co') return confirmDo(`Remove ${esc(t.dataset.name)} from the portfolio?`, 'Cross-company shares to and from it stop now. The company keeps its own workspace and team.', 'Remove', () => api(`orgs/${V.org.id}/companies/${t.dataset.cid}`, { method: 'DELETE' }), `${t.dataset.name} removed`);
+  if (a === 'save-org') { const v = (k) => $(`[data-field="${k}"]`).value; return doing(() => api(`orgs/${V.org.id}`, { method: 'PATCH', body: { name: v('name'), site: v('site') } }), 'Saved'); }
+  if (a === 'rm-tool') return confirmDo(`Remove ${esc(t.dataset.name)}?`, 'Every share of it stops. Files people already downloaded stay with them.', 'Remove tool', async () => { await api(`tools/${t.dataset.id}`, { method: 'DELETE' }); history.replaceState(null, '', href(V.org.id, 'tools')); }, 'Tool removed');
+  if (a === 'revoke') return doing(() => api(`grants/${t.dataset.id}`, { method: 'DELETE' }), 'Revoked. They can’t open it again.');
+  if (a === 'share') return shareDialog(V.tools.find((x) => x.id === t.dataset.id));
+  if (a === 'add-tool') return addToolDialog();
+  if (a === 'sample') { try { const r = await fetch(t.dataset.s === 'ocean' ? '/samples/saildrone_1045_2021-09-30.csv' : '/samples/pvdaq_system10_sample.csv'); loadCsv(await r.text(), t.dataset.s === 'ocean' ? 'Ocean sample' : 'Solar sample'); } catch { toast('Couldn’t load the sample'); } return; }
+  if (a === 'save-map') { const d = MAP, res = d.res, ok = res && res.ok && !res.missing && !res.duplicates && !res.offGrid;
+    return doing(() => api(`orgs/${V.org.id}`, { method: 'PATCH', body: { mapping: { source: $('[data-map="source"]').value || d.file, binding: { timeColumn: d.b.timeColumn, signalColumn: d.b.valueColumn, unit: d.b.unit, skipUnitsRow: d.b.unitsRow, timeBasis: d.b.timeBasis, cadenceSeconds: d.b.cadenceSeconds }, columns: d.b.columns, result: { state: ok ? 'verified' : 'failed', detail: res.error || `${n(res.unique)} readings · ${n(res.missing)} missing timestamps · ${n(res.missingValues)} missing values` } } } }), ok ? 'Mapping verified' : 'Saved, but it doesn’t pass yet'); }
+});
+document.addEventListener('keydown', (e) => { const row = e.target.closest?.('tr[data-href]'); if (row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); location.hash = row.dataset.href; } });
+function loadCsv(text, file) { try { const b = sniff(text); MAP = { id: V.org.id, text, file, b, res: inspect(text, b), source: $('[data-map="source"]')?.value }; } catch (e) { MAP = { id: V.org.id, file, res: { error: e.message } }; } render(); }
+document.addEventListener('change', async (e) => {
+  const t = e.target, id = V.org.id;
+  if (t.matches('[data-upload]')) { const f = t.files[0]; if (!f) return; if (f.size > 5e6) return toast('Under 5 MB, please'); return loadCsv(await f.text(), f.name); }
+  if (t.dataset.b) { MAP.b[t.dataset.b] = t.type === 'checkbox' ? t.checked : t.type === 'number' ? Math.max(1, Math.round(+t.value) || 1) : t.value; MAP.res = inspect(MAP.text, MAP.b); return render(); }
+  if (t.dataset.role) return doing(() => api(`orgs/${id}/members/${t.dataset.role}`, { method: 'PATCH', body: { role: t.value } }), 'Role changed');
+  if (t.dataset.flag) return doing(() => api(`orgs/${id}/members/${t.dataset.uid}`, { method: 'PATCH', body: { [t.dataset.flag]: t.checked, ...(t.dataset.flag === 'exporter' && t.checked ? { publisher: true } : {}), ...(t.dataset.flag === 'publisher' && !t.checked ? { exporter: false } : {}) } }), 'Saved');
+  if (t.dataset.set) return doing(() => api(`orgs/${id}`, { method: 'PATCH', body: { settings: { [t.dataset.set]: t.type === 'checkbox' ? t.checked : +t.value } } }), 'Saved');
+  if (t.name === 'receive') return doing(() => api(`orgs/${id}`, { method: 'PATCH', body: { settings: { receive: t.value } } }), 'Saved');
+  if (t.dataset.peer) { const all = (V.peers || []).map((p) => p.id), cur = V.org.settings?.peers || all; const next = t.checked ? [...new Set([...cur, t.dataset.peer])] : cur.filter((x) => x !== t.dataset.peer); return doing(() => api(`orgs/${id}`, { method: 'PATCH', body: { settings: { peers: next.length === all.length ? null : next } } }), 'Saved'); }
+});
+$('#nav-open').addEventListener('click', () => $('.app').classList.toggle('is-nav'));
+addEventListener('hashchange', () => { $('.app').classList.remove('is-nav'); closeMenu(); const r = R(); if (r.orgId && r.orgId !== V?.org.id) go(); else { render(); scrollTo(0, 0); } });
+go();
