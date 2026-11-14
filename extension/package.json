@@ -2,7 +2,7 @@
   "name": "common-ground",
   "displayName": "Common Ground",
   "description": "A software factory in your editor: agents build tools against your portfolio's shared standard, seven checks seal each version, and the people who need it get it.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "common-ground-demo",
   "engines": {
     "vscode": "^1.90.0"
@@ -24,6 +24,10 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "commonGround.clearLocalHistory",
+        "title": "Common Ground: Clear Local History"
+      },
       {
         "command": "commonGround.start",
         "title": "Common Ground: Open Start"

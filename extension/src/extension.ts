@@ -124,6 +124,17 @@ export function activate(context:vscode.ExtensionContext){
   vscode.commands.registerCommand('commonGround.start',show),
   vscode.commands.registerCommand('commonGround.signIn',signIn),
   vscode.commands.registerCommand('commonGround.signOut',async()=>{await context.secrets.delete('hostedToken');await panel?.webview.postMessage({action:'signedIn'});}),
+  vscode.commands.registerCommand('commonGround.clearLocalHistory',async()=>{
+   const choice=await vscode.window.showWarningMessage('Clear Common Ground history on this computer? This signs you out and clears recent-project entries and download receipts. Downloaded folders, local builder records and hosted company data remain.',{modal:true},'Clear local history');
+   if(choice!=='Clear local history')return;
+   signInState='';signInServer='';offerToken='';offerIds=null;
+   await Promise.all([
+    context.globalState.update('recents',[]),context.globalState.update('receipts',[]),
+    context.secrets.delete('hostedToken'),context.secrets.delete('hostedServer'),context.secrets.delete('session')
+   ]);
+   panel?.dispose();await show();
+   void vscode.window.showInformationMessage('Local Common Ground history cleared. Downloaded folders and server data were not deleted.');
+  }),
   vscode.commands.registerCommand('commonGround.settings',async()=>{await show();await panel?.webview.postMessage({action:'showSettings'});}));
  // One quiet native notification for newly arriving approved versions. Never notify on initial login.
  async function pollOffers(){
