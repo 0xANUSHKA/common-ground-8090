@@ -64,7 +64,7 @@
                 <span class="vs-act-cg" title="Common Ground"><img class="logo" src="./logo.svg" alt=""></span>
               </nav>
 
-              <!-- Scene 1: Fabio's repo, deep into a long agent session -->
+              <!-- Scene 1: Fabio's repo at Saildrone, deep into a long agent session; the factory checks run in the Output panel -->
               <div class="vs-ide" data-tour="ide">
                 <aside class="vs-side">
                   <p class="vs-side-h">Explorer</p>
@@ -132,13 +132,27 @@
                     <p class="cl"><i>35</i><span class="c-c">// Units live in row two of the Saildrone export; never count them as data.</span></p>
                     <p class="cl"><i>36</i><span class="c-k">export const</span> marine: <span class="c-t">Binding</span> = { timeColumn: <span class="c-s">'time'</span>, signalColumn: <span class="c-s">'WIND_SPEED_MEAN'</span>, skipUnitsRow: <span class="c-k">true</span> };</p>
                   </div>
+                  <section class="vs-panel" data-tour="factory" aria-label="Output">
+                    <div class="vs-panel-tabs"><span>Problems</span><span class="is-on">Output</span><span>Terminal</span><span class="vs-panel-ch">Common Ground: Factory checks</span></div>
+                    <ol class="vs-out" data-tour="fx">
+                      <li class="is-dim" data-tour="fx-head">telemetry-inspector · sandbox: 32 MB, 800 ms, no network, no files</li>
+                      <li class="is-ok">✓ NOAA: 1,440 rows, 55 missing wind values</li>
+                      <li class="is-ok">✓ PVDAQ: 1,440 rows, negative power preserved</li>
+                      <li class="is-ok">✓ Detect three missing timestamps and one duplicate</li>
+                      <li class="is-ok">✓ First and last missing observations are detected</li>
+                      <li class="is-ok">✓ Zero is not missing; malformed is separate</li>
+                      <li class="is-bad" data-tour="fx-6">✗ Wrong units-row assumption is rejected · 1,439 rows, expected 1,440</li>
+                      <li class="is-ok">✓ Unseen synthetic window, duplicates and off-grid rows</li>
+                      <li class="is-sum" data-tour="fx-sum">6 of 7 passed. Sent back to the agent.</li>
+                    </ol>
+                  </section>
                 </main>
 
                 <aside class="vs-agent" data-tour="agent">
                   <header class="ag-head"><b>Agent</b><span class="ag-state" data-tour="ag-state"><i class="ag-spin"></i><span data-tour="timer">Working · 2:14:06</span></span></header>
                   <div class="ag-thread" data-tour="thread" data-tour-follow>
                     <div class="ag-earlier">▸ Earlier in this session · 63 tool calls · 11 files</div>
-                    <div class="ag-msg is-user is-in"><p>Keep going until every check passes. Handle the units row and the minute grid, and keep missing values separate from zeros.</p></div>
+                    <div class="ag-msg is-user is-in"><p>Keep going until the tests pass. Handle the units row and the minute grid, and keep missing values separate from zeros.</p></div>
                     <div class="ag-msg is-ai is-in">
                       <p>On it. Splitting parsing and the time grid out of the inspector first.</p>
                       <ol class="ag-tools" data-tour="tools">
@@ -149,11 +163,12 @@
                         <li class="is-in"><span class="ag-tool">Edit</span><code>src/parse.ts</code><small class="is-add">+14 −2</small></li>
                         <li><span class="ag-tool">Run</span><code>npm test</code><small class="is-bad">6 passed · 1 failed</small></li>
                         <li><span class="ag-tool">Edit</span><code>src/inspector.ts</code><small class="is-add">+3 −1</small></li>
-                        <li><span class="ag-tool">Run</span><code>npm test</code><small class="is-ok">7 passed</small></li>
+                        <li><span class="ag-tool">Run</span><code>npm test</code><small class="is-ok">12 passed</small></li>
                         <li><span class="ag-tool">Edit</span><code>README.md</code><small class="is-add">+18</small></li>
                       </ol>
                     </div>
                     <div class="ag-msg is-ai" data-tour="ai-2"><p data-tour="ai-2-text"></p></div>
+                    <div class="ag-msg is-ai" data-tour="ai-3"><p data-tour="ai-3-text"></p><ol class="ag-tools" data-tour="tools-2"><li><span class="ag-tool">Edit</span><code>src/inspector.ts</code><small class="is-add">+4 −2</small></li></ol></div>
                   </div>
                   <div class="ag-composer" data-tour="composer">
                     <div class="ag-input"><span data-placeholder="Ask the agent…"></span></div>
@@ -166,7 +181,7 @@
                   <div class="vs-toast" data-tour="pop" role="dialog" aria-label="Common Ground">
                     <div class="vs-toast-msg">
                       <span class="vs-toast-ic is-info">i</span>
-                      <p>Your agent finished <b>telemetry-inspector</b> and all 7 checks passed. Theo and Ines on your team work with the same kind of data. Share this version with them?</p>
+                      <p><b>telemetry-inspector</b> passed all 7 factory checks and is sealed as c54c31b. Maya at Palmetto maps her data to the same standard. Share this version with her?</p>
                       <span class="vs-toast-tools"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.6M8 12.6v1.6M1.8 8h1.6M12.6 8h1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></span>
                     </div>
                     <div class="vs-toast-foot">
@@ -178,7 +193,7 @@
                   <div class="vs-toast" data-tour="toast-done" role="status">
                     <div class="vs-toast-msg">
                       <span class="vs-toast-ic is-info">i</span>
-                      <p>Shared <b>telemetry-inspector</b> with Theo and Ines. Only they can open this exact version.</p>
+                      <p>Shared <b>telemetry-inspector</b> c54c31b with Maya at Palmetto. Only she can open this exact version.</p>
                       <span class="vs-toast-tools"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></span>
                     </div>
                     <div class="vs-toast-foot"><span class="vs-toast-src">Source: Common Ground (Extension)</span><button type="button" class="vs-btn" tabindex="-1">Manage Access</button></div>
@@ -186,7 +201,7 @@
                 </div>
               </div>
 
-              <!-- Scene 2: Theo's Welcome page -->
+              <!-- Scene 2: Maya's Welcome page, at Palmetto -->
               <div class="vs-welcome" data-tour="welcome">
                 <div class="vs-tabs"><span class="vs-tab is-on"><span class="vs-ic is-vs">⟩</span><em>Welcome</em><span class="vs-x">×</span></span></div>
                 <div class="wl">
@@ -203,16 +218,12 @@
                     <h4 class="wl-sec">Recent</h4>
                     <ul class="wl-recent" data-tour="recent">
                       <li class="wl-row is-shared is-new" data-tour="row-new">
-                        <span class="who" data-tour="who-fabio"><span class="cg-lg" data-lilguy="fabio-sd"></span>
-                          <span class="who-card" data-tour="card-fabio"><span class="cg-lg is-big" data-lilguy="fabio-sd"></span><span><b>Fabio</b><small>@fabio-sd on GitHub</small><small>Saildrone · your team</small></span></span></span>
-                        <a>telemetry-inspector</a><small>shared by Fabio · 7 checks passed</small></li>
-                      <li class="wl-row"><span class="who is-none"></span><a>glider-dashboard</a><small>~/code</small></li>
-                      <li class="wl-row is-shared" data-tour="row-fav">
-                        <span class="who is-fav" data-tour="who-maya"><img class="fav" src="./film/favicons/palmetto.png" alt=""><span class="cg-lg is-peek" data-tour="peek-maya" data-lilguy="maya-sun"></span>
-                          <span class="who-card" data-tour="card-maya"><span class="cg-lg is-big" data-lilguy="maya-sun"></span><span><b>Maya</b><small>@maya-sun on GitHub</small><small><img class="fav is-sm" src="./film/favicons/palmetto.png" alt="">Palmetto · portfolio company</small></span></span></span>
-                        <a>pv-gap-finder</a><small>shared from Palmetto</small></li>
-                      <li class="wl-row"><span class="who is-none"></span><a>ocean-models</a><small>~/code/sim</small></li>
-                      <li class="wl-row"><span class="who is-none"></span><a>mission-planner</a><small>~/work</small></li>
+                        <span class="who is-fav" data-tour="who-fabio"><img class="fav" src="./film/favicons/saildrone.png" alt=""><span class="cg-lg is-peek" data-tour="peek-fabio" data-lilguy="fabio-sd"></span>
+                          <span class="who-card" data-tour="card-fabio"><span class="cg-lg is-big" data-lilguy="fabio-sd"></span><span><b>Fabio</b><small>@fabio-sd on GitHub</small><small><img class="fav is-sm" src="./film/favicons/saildrone.png" alt="">Saildrone · portfolio company</small><small data-tour="card-ver">c54c31b · 7 of 7 factory checks</small></span></span></span>
+                        <a>telemetry-inspector</a><small>shared by Fabio at Saildrone · c54c31b</small></li>
+                      <li class="wl-row"><span class="who is-none"></span><a>pv-gap-finder</a><small>~/code</small></li>
+                      <li class="wl-row"><span class="who is-none"></span><a>inverter-fleet</a><small>~/code</small></li>
+                      <li class="wl-row"><span class="who is-none"></span><a>site-forecasts</a><small>~/work</small></li>
                     </ul>
                   </div>
                   <div class="wl-right">
