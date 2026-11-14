@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Common Ground</title>
-<meta name="description" content="Your portfolio is building the same tools twice. Common Ground offers each internal tool your companies' agents finish to the people across the portfolio who would otherwise rebuild it.">
+<meta name="description" content="Common Ground is a software factory for venture portfolios. Agents build tools against the fund’s shared ontology, so a tool checked at one company runs at the next.">
 <link rel="icon" href="./logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap">
@@ -24,8 +24,8 @@
 <main>
   <section class="hero has-bg bg-night" id="top">
     <div class="hero-copy">
-      <h1>Your portfolio is building the same tools twice.</h1>
-      <p class="lede">Agents at your companies finish new internal tools every day. Common Ground offers each one to the people across your portfolio who would otherwise rebuild it.</p>
+      <h1>One software factory for the whole portfolio.</h1>
+      <p class="lede">Agents at your companies build tools against the fund’s shared ontology. A tool that passes the checks at one company runs at any other that has mapped its data.</p>
       <div class="hero-act">
         <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
         <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
@@ -244,6 +244,22 @@
     </div>
   </section>
 
+  <section class="sec" id="factory">
+    <div class="wrap">
+      <h2>The factory line.</h2>
+      <p class="sub">Every tool goes through the same seven stations before anyone else can open it.</p>
+      <ol class="line">
+        <li><span class="ln-n">1</span><h3>Brief</h3><p>“Find missing timestamps and duplicates in a sensor CSV. Never guess a timezone.” Recorded as a requirement in 8090’s Software Factory.</p></li>
+        <li><span class="ln-n">2</span><h3>Built against the standard</h3><p>The agent writes one function that sees only time and value from Sensor time-series v1, never Saildrone’s column names.</p></li>
+        <li><span class="ln-n">3</span><h3>Seven checks</h3><p>In a sandbox the agent can’t touch, on real NOAA ocean and NREL solar data. Wrong units row: 1,439 rows, expected 1,440. <span class="is-bad">Fails.</span> Repaired: <span class="is-ok">7 of 7.</span></p></li>
+        <li><span class="ln-n">4</span><h3>Sealed</h3><p>The exact code that passed gets a SHA-256 fingerprint, c54c31b. Change a byte and it is no longer the checked version.</p></li>
+        <li><span class="ln-n">5</span><h3>Shared by name</h3><p>Fabio shares this version with Maya at Palmetto. No one else can open it.</p></li>
+        <li><span class="ln-n">6</span><h3>Rebound</h3><p>Palmetto’s mapping swaps in: measured_on for time, ac_power__423 for value, local time kept local. Same hash.</p></li>
+        <li><span class="ln-n">7</span><h3>Counted</h3><p>The fund console records one reuse, about 16 hours not spent rebuilding.</p></li>
+      </ol>
+    </div>
+  </section>
+
   <section class="sec has-bg bg-streams" id="reuse">
     <div class="wrap">
       <h2>Built once at Saildrone. <span>Running at Palmetto.</span></h2>
@@ -255,13 +271,13 @@
         </li>
         <li class="tr-step">
           <p class="tr-where"><img class="fav" src="./film/favicons/palmetto.png" alt=""><b>Palmetto</b>solar data</p>
-          <h3>Maya is offered it, and adapts it.</h3>
-          <p>Her inverter data already maps to the fund’s standard, so only the binding changes. The code is the exact version that passed.</p>
+          <h3>Maya is offered it, and rebinds it.</h3>
+          <p>Palmetto’s mapping to the standard replaces Saildrone’s, so the checked code runs on solar data unchanged. Here public NREL solar data stands in for Palmetto’s.</p>
         </li>
         <li class="tr-step is-sum">
           <p class="tr-where">Not rebuilt</p>
-          <p class="tr-big">16<span>hours</span></p>
-          <p>The time it took to build. Reused three times in the demo fund so far, 48 hours in all.</p>
+          <h3>16 hours not spent rebuilding it at Palmetto.</h3>
+          <p>Reused three times in the demo fund so far, 48 hours in all.</p>
         </li>
       </ol>
     </div>
@@ -270,8 +286,8 @@
   <section class="sec has-bg bg-veins" id="standard">
     <div class="wrap std">
       <div class="std-copy">
-        <h2>The fund holds the standard.</h2>
-        <p class="sub">Each company maps its data to it once. After that, a tool built at one company runs at the next without a rewrite.</p>
+        <h2>The ontology is the factory’s context.</h2>
+        <p class="sub">The fund holds one shared standard and each company maps its data to it once. Tools are written against these fields, not against any one company’s columns. That is what makes them portable.</p>
         <dl class="std-cos">
           <div><dt class="is-ok">Mapped</dt><dd><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span><span><img class="fav" src="./film/favicons/mast.png" alt="">Mast Reforestation</span></dd></div>
           <div><dt class="is-wait">Invited</dt><dd><span><img class="fav" src="./film/favicons/groq.svg" alt="">Groq</span><span><img class="fav" src="./film/favicons/netskope.webp" alt="">Netskope</span></dd></div>
@@ -280,7 +296,7 @@
       <figure class="std-map">
         <figcaption><img class="logo" src="./logo.svg" alt=""><b>Sensor time-series v1</b><span>held by the fund</span></figcaption>
         <table class="map">
-          <thead><tr><th scope="col">Field</th><th scope="col"><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span></th><th scope="col"><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span></th></tr></thead>
+          <thead><tr><th scope="col">Field</th><th scope="col"><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span><small>NOAA mission 1045</small></th><th scope="col"><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span><small>NREL PVDAQ sample</small></th></tr></thead>
           <tbody>
             <tr><th scope="row">time</th><td>time</td><td>measured_on</td></tr>
             <tr><th scope="row">value</th><td>WIND_<wbr>SPEED_<wbr>MEAN</td><td>ac_power_<wbr>_423</td></tr>
@@ -289,30 +305,30 @@
             <tr><th scope="row">cadence</th><td>1 minute</td><td>1 minute</td></tr>
           </tbody>
         </table>
-        <p class="std-note">Copy Saildrone’s units-row setting to Palmetto and one solar reading disappears. The binding check refuses it.</p>
+        <p class="std-note">Column names are the real public samples’ own. Copy Saildrone’s units-row setting to Palmetto and one solar reading disappears. The binding check refuses it.</p>
       </figure>
     </div>
   </section>
 
   <section class="sec has-bg bg-outflow" id="spread">
     <div class="wrap">
-      <h2>One link from the fund reaches every engineer.</h2>
+      <h2>One link puts the factory in every editor.</h2>
       <ol class="spread">
         <li><span class="sp-n">1</span><h3>The fund</h3><p>Sets the standard and sends one link to its portfolio companies.</p></li>
         <li><span class="sp-n">2</span><h3>Each company</h3><p>Maps its data once and sends its own link to its engineers.</p></li>
-        <li><span class="sp-n">3</span><h3>Their engineers</h3><p>Install the extension. When an agent finishes a tool, it is checked and offered to the people who could use it, in the company or across the portfolio.</p></li>
+        <li><span class="sp-n">3</span><h3>Their engineers</h3><p>Install the extension. Every tool their agents finish goes down the line and is offered to the people who could use it.</p></li>
       </ol>
-      <p class="more spread-more">Every shared tool, reuse and hour saved shows up in the fund’s console. <a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
+      <p class="more spread-more">Every tool off the line, every reuse and every hour saved shows up in the fund’s console. <a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
     </div>
   </section>
 
   <section class="sec" id="security">
     <div class="wrap">
-      <h2>Who gets it?</h2>
-      <p class="sub">Nothing moves without a name on it. Pick a person to run the same check the server runs.</p>
+      <h2>Delivery is checked too.</h2>
+      <p class="sub">The factory only delivers to a name. Pick a person to run the same check the server runs.</p>
       <div class="gate" data-gate>
         <div class="gate-left">
-          <p class="gate-tool"><span class="cg-lg" data-lilguy="fabio-sd"></span><span><b>telemetry-inspector</b><small>a1f3c9e · Fabio · <img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</small></span><em>7 of 7 checks</em></p>
+          <p class="gate-tool"><span class="cg-lg" data-lilguy="fabio-sd"></span><span><b>telemetry-inspector</b><small>c54c31b · Fabio · <img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</small></span><em>7 of 7 checks</em></p>
           <p class="gate-l" id="gate-l">Share with</p>
           <div class="gate-people" role="radiogroup" aria-labelledby="gate-l">
             <button type="button" role="radio" aria-checked="true" data-who="theo"><span class="cg-lg" data-lilguy="theo-tides"></span><b>Theo</b><img class="fav" src="./film/favicons/saildrone.png" alt="Saildrone"></button>
@@ -335,7 +351,7 @@
 
   <section class="sec end has-bg bg-deep">
     <div class="wrap">
-      <h2>Your portfolio already built it.</h2>
+      <h2>Build it at one company. Run it at the next.</h2>
       <div class="hero-act">
         <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
         <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
