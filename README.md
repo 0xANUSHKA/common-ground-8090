@@ -10,10 +10,13 @@ Built for EVOLVE, November 13–14, 2026. MIT licensed. Public demo data; illust
 
 Requires Node **26.x** (uses built-in SQLite), npm, and optionally VS Code/Cursor.
 
+**Joining the project?** Start with [teammate setup, all API variables, and verified integration status](docs/SETUP.md).
+
 ```sh
 npm ci
 cp .env.example .env
 npm run check
+npm run doctor
 npm start
 ```
 
