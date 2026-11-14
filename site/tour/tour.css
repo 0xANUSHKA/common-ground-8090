@@ -67,13 +67,13 @@
 .tour-cur[data-look=agent] .tour-tag{background:var(--tour-agent,#3b4bc8)}
 .tour-ring[data-who]:not([data-who=main]){--tour-ring:var(--tour-agent,#3b4bc8)}
 
-/* chapter card: "02 / 05", a title with one italic word, one line */
+/* chapter card: "02 / 05", a title with one emphasized word, one line */
 .tour-card{position:absolute;z-index:6;left:var(--gutter,32px);bottom:var(--gutter,32px);width:min(calc(var(--su)*44),calc(100% - 2 * var(--gutter,32px)));
   padding:calc(var(--su)*1.8) calc(var(--su)*2.1) calc(var(--su)*2);background:var(--ph,#fff);box-shadow:0 0 0 1px var(--ph-line,#e3dfd7),0 20px 44px -24px rgba(25,24,22,.45);
   opacity:0;transform:translateY(calc((1 - var(--o,0)) * 10px));pointer-events:none}
 .tour-card-n{font:500 max(10.5px,calc(var(--su)*1.15))/1 var(--sans,system-ui);letter-spacing:.14em;color:var(--ink-3,#9c968c)}
 .tour-card h3{margin:calc(var(--su)*1) 0 calc(var(--su)*.75);font:400 max(25px,calc(var(--su)*3.7))/1 var(--serif,Georgia,serif);letter-spacing:-.018em;color:var(--ink,#191816)}
-.tour-card h3 em{font-style:italic}
+.tour-card h3 em{font-style:normal}
 .tour-card p{margin:0;font:400 max(13.5px,calc(var(--su)*1.7))/1.45 var(--sans,system-ui);color:var(--ink-2,#5f5a53)}
 .tour-card,.tour-cap{transition:translate .55s cubic-bezier(.2,.7,.2,1)}
 .tour-card[data-dodge=hide]{opacity:0!important}

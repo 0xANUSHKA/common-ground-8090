@@ -60,7 +60,7 @@
 .vs-tab{display:flex;align-items:center;gap:6px;padding:0 14px;border-right:1px solid var(--vs-line);color:var(--vs-dim);white-space:nowrap}
 .vs-tab:first-child,.vs-tab.is-on{background:var(--vs-bg);color:#fff;box-shadow:inset 0 1px 0 var(--vs-blue)}
 .vs-tab.is-in.is-on ~ .vs-tab,.vs-tabs:has(.vs-tab.is-on) .vs-tab:not(.is-on){background:var(--vs-bar);color:var(--vs-dim);box-shadow:none}
-.vs-tab em{font-style:italic}.vs-x{margin-left:6px;color:var(--vs-dim)}
+.vs-tab em{font-style:normal}.vs-x{margin-left:6px;color:var(--vs-dim)}
 .vs-crumbs{margin:0;padding:3px 16px;font-size:12px;color:var(--vs-dim)}
 .vs-code{grid-area:3/1;padding-top:4px;font:400 12.5px/19px Menlo,'SF Mono',ui-monospace,monospace;color:#d4d4d4;overflow:hidden;opacity:var(--in,1)}
 .vs-code .cl{display:block;margin:0;white-space:pre;position:relative}

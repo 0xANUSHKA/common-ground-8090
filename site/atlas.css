@@ -18,3 +18,6 @@ html{color-scheme:light;scroll-behavior:smooth;scroll-padding-top:90px}body{back
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
 
 .film-toggle{background:none;border:0;border-bottom:1px solid var(--line-2);color:var(--fg);font:inherit;text-transform:uppercase;letter-spacing:inherit;padding:0;cursor:pointer}.film-toggle:hover{color:var(--accent)}.film-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:5px}
+
+/* Brand typography stays upright, including semantic emphasis. */
+em{font-style:normal}
