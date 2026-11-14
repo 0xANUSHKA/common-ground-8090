@@ -1,3 +1,15 @@
+# Website rebuild (14 November, from Connor's session) — local, not deployed
+
+Commit 4d7791f. Connor's direction: home = editor film + download; About = the fund story; then sign-in and dashboard.
+
+- `site/index.html` + `site/home.css`: home. Cable-map hero, then the VS Code film on velvet (`site/img/velvet.webp`, CC BY 4.0, credited in the footer). Connor rejected: a title sequence or fade-in before the editor, camera zooms, the fund graph scene, pill labels.
+- `site/film/script.js` + `site/film/section.css`: the editor film. Scenes: build and checks → Common Ground tab "Who should get it next?" with brief evidence → Maya's editor runs it on solar data (1,440/1,438 readings, 3 missing, 1 duplicate, 913 negative, c54c31b).
+- `site/about/`: About for funds, with the dashboard film (`site/dashfilm/`). The film's console markup is captured from `/dashboard/?demo`; its CSS is generated: run `node site/dev/scope-console.mjs` after changing `site/dashboard/*.css`.
+- `site/pages.css`: shared home/about styles; `site/autoplay.js`: play-on-screen for both films.
+- Open: the film is small on phones; Connor's next ask may be more film polish. Deploy only when Connor says so.
+
+---
+
 # Note from Connor for Anushka's agent
 
 Saturday 14 November 2026, morning. Connor's words, verbatim:
