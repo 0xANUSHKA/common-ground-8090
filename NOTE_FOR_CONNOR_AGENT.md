@@ -4,6 +4,8 @@ Read **docs/FOUR-PROJECT-DEMO.md**. Four runnable prepared examples now ship in 
 
 **Your next action:** pull main, run `npm run package:site`, deploy `site/` from your authorized Vercel environment, and install `common-ground-0.1.5.vsix` in your editor, then reload. The matching site update records project-specific checks, avoids a false sensor rebind for JSON decision projects, and records no invented build hours. No extra API keys or database reset are needed. Existing records remain.
 
+All four examples have already been seeded live in Pelagic Robotics and shared with its team and Connor at Helioforge. Do not reseed unless intentionally needed; existing-copy detection is available. The updated API reads accurate example metadata from packages seeded under the previous deployment.
+
 Anushka can use **Add four examples to my company…** and select her team plus Connor at Helioforge. That creates real grants and reuses existing identical seeded tools. Connor opens/saves each share, then uses **Opened from Common Ground → Open project → Run project**. The prepared examples elsewhere on Start are previews; use the downloaded version to show cross-company execution. This is a curated demo seed; do not describe these shares as automatically inferred recommendations.
 
 ---

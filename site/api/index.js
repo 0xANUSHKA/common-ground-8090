@@ -44,6 +44,19 @@ async function addMember(org, uid, role, extra = {}) {
   return m;
 }
 
+// Older deployments accepted prepared packages before storing their contract metadata.
+// Normalize their presentation from the saved package; do not rewrite user records or permissions.
+async function describeTool(t){
+ if(!t||t.example||t.provenance!=='reference-template')return t;
+ const pkg=await getJSON(K.pkg(t.id));if(!pkg?.files?.['common-ground.json']||pkg.hash!==t.hash)return t;
+ try{
+  const m=JSON.parse(pkg.files['common-ground.json']),checks=JSON.parse(pkg.files['checks.json']||'null');
+  if(m.contract!=='decision-report/v1'||!Array.isArray(checks)||checks.length!==7||!checks.every(c=>c.passed===true))return t;
+  return {...t,example:true,contract:m.contract,hours:0,checkResults:checks.map(c=>({name:clean(c.name,160),passed:true}))};
+ }catch{return t;}
+}
+const describeTools=async(ts)=>Promise.all(ts.filter(Boolean).map(describeTool));
+
 // ── who can see what (mirrors server/policy.ts) ──
 async function canView(org, uid) {
   if (await membership(org.id, uid)) return 'member';
@@ -138,7 +151,7 @@ async function orgView(org, me, access) {
     members: users.filter(Boolean).map((u) => ({ user: pub(u, admin), ...ms[u.id] })),
     audit: (await cmd('LRANGE', K.audit(org.id), 0, 49)).map((x) => JSON.parse(x)) };
   if (isAdmin(my)) { const codes = await cmd('SMEMBERS', K.oinv(org.id)); out.invites = (await getMany(codes.map(K.inv))).filter((i) => i && !i.revoked); }
-  const toolIds = await cmd('SMEMBERS', K.otools(org.id)); out.tools = (await getMany(toolIds.map(K.tool))).filter(Boolean);
+  const toolIds = await cmd('SMEMBERS', K.otools(org.id)); out.tools = await describeTools(await getMany(toolIds.map(K.tool)));
   const gIds = new Set([...(await cmd('SMEMBERS', K.ogrants(org.id)))]);
   for (const t of out.tools) for (const g of await cmd('SMEMBERS', K.tgrants(t.id))) gIds.add(g);
   out.grants = (await getMany([...gIds].map(K.grant))).filter(Boolean);
@@ -146,7 +159,7 @@ async function orgView(org, me, access) {
   const tally = (tools) => ({ tools: tools.length, reuses: tools.reduce((n, t) => n + (t.uses || []).length, 0), hours: tools.reduce((n, t) => n + (t.uses || []).length * (t.hours || 0), 0) });
   if (org.kind === 'fund') {
     const cos = (await getMany((await cmd('SMEMBERS', K.fundcos(org.id))).map(K.org))).filter(Boolean);
-    const toolsBy = await Promise.all(cos.map(async (c) => (await getMany((await cmd('SMEMBERS', K.otools(c.id))).map(K.tool))).filter(Boolean)));
+    const toolsBy = await Promise.all(cos.map(async (c) => describeTools(await getMany((await cmd('SMEMBERS', K.otools(c.id))).map(K.tool)))));
     const counts = await Promise.all(cos.map((c) => cmd('HLEN', K.mem(c.id))));
     out.companies = cos.map((c, i) => ({ id: c.id, name: c.name, iconUrl: c.iconUrl, status: c.status, site: c.site, mapping: c.mapping || null, memberCount: counts[i], settings: c.settings, ...tally(toolsBy[i]) }));
     const authors = await getMany([...new Set(toolsBy.flat().map((t) => t.owner))].map(K.user)), byId = Object.fromEntries(authors.filter(Boolean).map((u) => [u.id, pub(u)]));
@@ -323,7 +336,7 @@ on('POST', 'tools', async (req, res, me) => {
   await log(orgId, me.name, 'Added a tool', name); return { tool };
 });
 on('GET', 'tools/mine', async (req, res, me) => {
-  const tools = (await getMany((await cmd('SMEMBERS', K.utools(me.id))).map(K.tool))).filter(Boolean);
+  const tools = await describeTools(await getMany((await cmd('SMEMBERS', K.utools(me.id))).map(K.tool)));
   const grants = []; for (const t of tools) grants.push(...(await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean));
   return { tools, grants };
 });
@@ -416,7 +429,7 @@ on('GET', 'shared', async (req, res, me) => {
     const t = cache[g.toolId]; if (pref.muted.includes(t.owner) || pref.mode === 'off' || (pref.mode === 'company' && g.scope === 'portfolio')) continue;
     if (context && (grantCompany(g,t) !== context.id || out.some(x=>x.tool.id===t.id))) continue;
     const owner = await getJSON(K.user(t.owner)), from = t.orgId && await getJSON(K.org(t.orgId));
-    out.push({ grant: g, tool: t, owner: pub(owner), from: from && { id: from.id, name: from.name, iconUrl: from.iconUrl } });
+    out.push({ grant: g, tool: await describeTool(t), owner: pub(owner), from: from && { id: from.id, name: from.name, iconUrl: from.iconUrl } });
   }
   return { shared: out, ...(context ? {companyId:context.id} : {}) };
 });

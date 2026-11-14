@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { start } from './serve.mjs';
 const {url,close}=await start({port:0,quiet:true});
+const {getJSON,setJSON}=await import('../api/_kv.js');
 const sessions={}; let checks=0;
 async function login(name){const r=await fetch(`${url}/dev-login?as=${name}`,{redirect:'manual'});sessions[name]=r.headers.get('set-cookie').split(';')[0];}
 async function call(who,method,path,body){const r=await fetch(`${url}/api/${path}`,{method,headers:{cookie:sessions[who],'content-type':'application/json'},body:method==='GET'?undefined:JSON.stringify(body||{})});return {status:r.status,...await r.json()};}
@@ -98,7 +99,7 @@ try{
  check('selected context still enforces live receiving permissions',(await call('recipient','GET',`shared?companyId=${to}`)).shared.length===0&&(await call('recipient','GET',`tools/${tool.id}/package?companyId=${to}`)).status===404);
  check('disabling one membership does not break another authorized context',(await call('recipient','GET',`shared?companyId=${to2}`)).shared.length===1);
  const decisionSource='function run(input){return input}';
- const decision=(await call('author','POST','tools',{orgId:from,name:'decision-example',hours:0,provenance:'reference-template',hash:createHash('sha256').update(decisionSource).digest('hex'),files:{'inspector.js':decisionSource,'common-ground.json':JSON.stringify({contract:'decision-report/v1',scenarios:[{name:'Synthetic baseline',input:{}}]})},checks:Array.from({length:7},(_,i)=>({name:`Project-specific check ${i+1}`,passed:true}))})).tool;
+ const decision=(await call('author','POST','tools',{orgId:from,name:'decision-example',hours:0,provenance:'reference-template',hash:createHash('sha256').update(decisionSource).digest('hex'),files:{'inspector.js':decisionSource,'common-ground.json':JSON.stringify({contract:'decision-report/v1',scenarios:[{name:'Synthetic baseline',input:{}}]}),'checks.json':JSON.stringify(Array.from({length:7},(_,i)=>({name:`Project-specific check ${i+1}`,passed:true})))},checks:Array.from({length:7},(_,i)=>({name:`Project-specific check ${i+1}`,passed:true}))})).tool;
  check('prepared decisions retain their own contract and unmeasured build time',decision.contract==='decision-report/v1'&&decision.hours===0&&decision.checkResults[0].name==='Project-specific check 1');
  await call('author','POST',`tools/${decision.id}/grants`,{orgId:from});
  check('decision example supports teammate access',!!(await call('colleague','GET',`tools/${decision.id}/package?companyId=${from}`)).files);
@@ -106,5 +107,9 @@ try{
  const decisionPackage=await call('recipient','GET',`tools/${decision.id}/package?companyId=${to2}`);
  check('cross-company decision project preserves code without inserting a false sensor mapping',decisionPackage.files['inspector.js']===decisionSource&&!decisionPackage.files['binding.json']);
  check('another membership cannot access decision code without a grant',(await call('recipient','GET',`tools/${decision.id}/package?companyId=${unrelated}`)).status===404);
+ const legacy=await getJSON('tool:'+decision.id);delete legacy.example;delete legacy.contract;delete legacy.checkResults;legacy.hours=8;await setJSON('tool:'+decision.id,legacy);
+ const normalized=(await call('author','GET',`orgs/${from}`)).tools.find(t=>t.id===decision.id);
+ check('examples seeded on the previous deployment get accurate check labels and zero invented hours',normalized.example&&normalized.hours===0&&normalized.checkResults[0].name==='Project-specific check 1');
+
  console.log(`${checks} setup and sharing regression checks passed.`);
 }finally{await close();}
