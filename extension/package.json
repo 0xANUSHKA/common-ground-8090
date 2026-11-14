@@ -2,7 +2,7 @@
   "name": "common-ground",
   "displayName": "Common Ground",
   "description": "A software factory in your editor: agents build tools against your portfolio's shared standard, seven checks seal each version, and the people who need it get it.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "publisher": "common-ground-demo",
   "engines": {
     "vscode": "^1.90.0"

@@ -2,7 +2,7 @@ import './style.css';
 // The Start view inside VS Code / Cursor. It looks like the editor it lives in (VS Code's own theme variables).
 // Hosted Common Ground: your account, what's shared with you, sharing your tools. Local builder (optional, `npm start`):
 // build a tool and run its seven checks on this machine before it can be shared.
-declare const acquireVsCodeApi:undefined|(()=>{postMessage:(m:any)=>void});
+declare const acquireVsCodeApi:undefined|(()=>{postMessage:(m:any)=>void;getState:()=>any;setState:(s:any)=>void});
 const vscode=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
 const root=document.querySelector<HTMLDivElement>('#app')!;
 const pending=new Map<string,{resolve:(v:any)=>void;reject:(e:Error)=>void}>();
@@ -16,6 +16,9 @@ let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:a
 let builder:'unknown'|'ready'|'off'='unknown', builderLabel='';
 let refreshEpoch=0,refreshInFlight=false;
 let view:'start'|'shared'|'tool'|'build'|'built'|'already'|'solar'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
+let disconnected=false,lastContact=0;
+let savedBuild=vscode?.getState()?.build as {id:string;companyId:string;userId:string;server:string}|undefined;
+async function rememberBuild(){savedBuild={id:job.id,companyId,userId:me?.id||'',server};vscode?.setState({build:savedBuild});await bridge('buildSession',{build:savedBuild});}
 let busy=false,notice='',noticeKind:'ok'|'bad'='ok',already:any=null;
 let solarResult:any=null,solarReceipt:any=null;
 let brief='Build a CSV telemetry completeness inspector. Detect missing timestamps and duplicates, distinguish missing values from zero, and preserve local time without guessing a timezone.';
@@ -42,6 +45,7 @@ async function load(){
  const a=await bridge('account');signedIn=a.signedIn;server=a.server;
  me=null;orgs=[];shared=[];companyId='';
  if(signedIn){try{const r=await bridge('workspace');me=r.user;orgs=r.orgs;companyId=r.companyId;shared=await companyShares();}catch(e){notice=(e as Error).message;noticeKind='bad';if(!me)signedIn=false;}}
+ savedBuild=await bridge('buildSession').catch(()=>savedBuild);
  recents=await bridge('recents');receipts=await bridge('receipts').catch(()=>[]);
  builder='unknown';local('/health').then((h:any)=>{builder='ready';builderLabel=h.integrations?.builder||'';render();}).catch(()=>{builder='off';render();});
 }
@@ -68,7 +72,7 @@ function start(){
    <h2>You</h2><p class="who">${person(me)}<span><b>${esc(me.name)}</b><small>${esc(co?co.name:companies().length?'Choose a company below':'Not in a company yet')}${co?.fundId?' · in a fund portfolio':''}</small></span></p>
    ${companies().length?`<label for="working-company">Working company</label><select id="working-company" ${busy?'disabled':''}><option value="" disabled ${!companyId?'selected':''}>Choose your company…</option>${companies().map(c=>`<option value="${esc(c.id)}" ${c.id===companyId?'selected':''}>${esc(c.name)} · ${esc(c.role||'member')}</option>`).join('')}</select><p class="muted">Build and receive tools for this company.</p>`:''}
    <ul class="links"><li><button data-act="refreshcompanies">Refresh companies</button></li><li><a href="${esc(server)}/dashboard/${companyId?'#/'+esc(companyId)+'/setup':''}">${ic('user')}Open your dashboard</a></li><li><button data-act="signout">Sign out</button></li></ul>
-   <h2>Builder</h2><p class="muted">${builder==='ready'?'The local builder is running. Tools you build are checked on this machine before anyone else can see them.':builder==='off'?'Building needs the local builder: run <span class="kbd">npm start</span> in the Common Ground repo. Receiving tools works without it.':'Looking for the local builder…'}</p>
+   <h2>Builder</h2><p class="muted">${builder==='ready'?'The local builder is running. Tools you build are checked on this machine before anyone else can see them.':builder==='off'?'Building needs the local builder: run <span class="kbd">npm run builder:start</span> in the Common Ground repo. Receiving tools works without it.':'Looking for the local builder…'}</p>
   </div></div>`;
 }
 function receiptList(){
@@ -106,14 +110,46 @@ function sharedView(){
   <div class="actions"><button class="primary" data-act="download">Open in editor</button></div>
   <p class="muted">If the share is revoked later, you keep the copy you saved.</p>`;
 }
+function buildActivity(){
+ if(!job)return '';
+ const running=job.status==='building';
+ const title=disconnected?'Connection interrupted':job.status==='ready'?'Ready to review':job.status==='failed'?'Build stopped':job.events.at(-1)||'Starting the builder';
+ return `<section class="build-activity ${running&&!disconnected?'working':''}" aria-label="Build status">
+  <span class="builder-pet" aria-hidden="true"><span></span><span></span></span>
+  <div><strong role="status">${esc(title)}</strong><div class="muted"><span id="build-clock"></span>${running?` · ${disconnected?'Status unavailable. Reconnect to this build; do not start another.':'Checking for updates every two seconds.'}`:''}</div>
+  ${running?'<small class="muted">Generation and repairs can take several minutes. Checks must pass before sharing.</small>':''}</div></section>`;
+}
+function updateBuildClock(){
+ const clock=document.querySelector('#build-clock');if(!clock||!job)return;
+ const seconds=Math.max(0,Math.floor((Date.now()-Date.parse(job.createdAt))/1000));
+ clock.textContent=job.status==='building'?`${Math.floor(seconds/60)}m ${String(seconds%60).padStart(2,'0')}s elapsed${lastContact?' · Last contact '+Math.floor((Date.now()-lastContact)/1000)+'s ago':''}`:job.status==='ready'?'All seven checks passed':'No verified tool was produced';
+}
+setInterval(updateBuildClock,1000);
 function buildView(){
- if(builder!=='ready')return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Building runs on this machine so the code can be checked before anyone sees it.</p><p>Start the local builder with <span class="kbd">npm start</span> in the Common Ground repo, then come back.</p><div class="actions"><button data-act="recheck">Check again</button></div>`;
- return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Describe it. An agent builds it against Sensor time-series v1, the standard your portfolio shares, so it runs at any company that has mapped its data. Seven checks on real ocean and solar data decide whether it ships.</p>
-  <p class="muted">Current builder: ${esc(builderLabel)}${builderLabel.includes('Offline')?' — uses a hand-authored template, not generated code.':''}</p><label for="brief">What should it do?</label><textarea id="brief" rows="5">${esc(brief)}</textarea>
-  <p class="muted">Or start from the meeting where someone asked for it: <button class="linkish" data-act="audio">use a recording…</button> It’s transcribed with ElevenLabs Scribe into a brief you can edit before anything is built.</p>
-  <div class="actions"><button class="primary" data-act="build" ${busy?'disabled':''}>${busy?'Building…':'Build and check'}</button></div>
-  ${signedIn?'<p class="muted">Before anything is built, Common Ground looks for a checked tool in your portfolio that already does this.</p>':''}
-  ${job?`<ul class="log">${job.events.map((e:string)=>`<li>${ic('check')}${esc(e)}</li>`).join('')}${job.status==='building'?'<li class="muted">Building and checking…</li>':''}${job.error?`<li class="bad">${esc(job.error)}</li>`:''}</ul>`:''}`;
+ if(builder!=='ready'&&!job)return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Building runs on this machine so the code can be checked before anyone sees it.</p><p>Start the local builder with <span class="kbd">npm run builder:start</span> in the Common Ground repo, then check again. It will keep running when the terminal closes.</p><div class="actions"><button data-act="recheck">Check again</button></div>`;
+ return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1>${buildActivity()}
+  <p class="lede">An agent builds against your portfolio’s shared standard. Seven independent checks decide whether the tool is ready to share.</p>
+  <p class="muted">Current builder: ${esc(builderLabel)}${builderLabel.includes('Offline')?' — uses a hand-authored template, not generated code.':''}</p><label for="brief">What should it do?</label><textarea id="brief" rows="5" ${job?.status==='building'?'disabled':''}>${esc(brief)}</textarea>
+  <p class="muted">Or start from the meeting where someone asked for it: <button class="linkish" data-act="audio">use a recording…</button>. It’s transcribed with ElevenLabs Scribe into a brief you can edit before anything is built.</p>
+  <div class="actions">${job?.status==='building'?`<button class="primary" data-act="resume" ${busy?'disabled':''}>${busy?'Building and checking…':'Reconnect to this build'}</button>`:`<button class="primary" data-act="build" ${busy?'disabled':''}>${busy?'Checking…':job?.status==='failed'?'Retry build':'Build and check'}</button>`}</div>
+  <p class="muted">Before anything is built, Common Ground looks for a checked tool in your portfolio that already does this.</p>
+  ${job?`<details class="build-log"><summary>Build history · ${job.events.length} updates</summary><ol>${job.events.map((e:string)=>`<li>${esc(e)}</li>`).join('')}</ol>${job.error?`<p class="bad">${esc(job.error)}</p>`:''}</details>`:''}`;
+}
+async function watchBuild(){
+ let failures=0;
+ while(job.status==='building'){
+  await new Promise(r=>setTimeout(r,2000));
+  try{job=await local('/jobs/'+job.id);lastContact=Date.now();disconnected=false;failures=0;}
+  catch(e){disconnected=true;render();if(++failures>=3)throw e;continue;}
+  render();
+ }
+ if(job.status==='failed')throw new Error(job.error||'The build failed.');
+ built=await local('/artifacts/'+job.artifactId);lineage=await local(`/artifacts/${job.artifactId}/lineage`).catch(()=>null);report=null;share=null;view='built';
+ if(signedIn&&companyId){builtView();void loadPeople();}
+}
+async function reconnectBuild(){
+ await local('/demo-session','POST',{userId:'fabio'});
+ job=await local('/jobs/'+savedBuild!.id);brief=job.prompt;lastContact=Date.now();disconnected=false;render();await watchBuild();
 }
 // look before you build: a checked tool on the same standard may already exist in the portfolio
 function alreadyView(){
@@ -133,7 +169,7 @@ function builtView(){
   ${a.blueprint?`<h2>Blueprint</h2><p>${esc(a.blueprint.summary)}</p><p class="muted">Reads ${a.blueprint.inputs.map(esc).join(', ')} from ${esc(a.blueprint.standard)}. Returns ${a.blueprint.outputs.length} report fields.${a.blueprint.notes?.length?' '+a.blueprint.notes.map(esc).join(' '):''}</p>`:''}
   <h2>Checks</h2><ul class="log">${a.checks.map((c:any)=>`<li class="${c.passed?'':'bad'}">${ic('check')}${esc(c.name)}</li>`).join('')}</ul>
   ${lineage?.lineage?`<h2>Lineage</h2><p class="muted">${lineage.requirement?.id?`Requirement ${esc(String(lineage.requirement.id).slice(0,10))} in 8090 → `:''}${lineage.lineage.blueprintHash?`blueprint ${esc(lineage.lineage.blueprintHash.slice(0,7))} → `:''}code ${esc(lineage.lineage.sourceHash.slice(0,7))} → checks ${esc(lineage.lineage.checksHash.slice(0,7))} → binding ${esc(lineage.lineage.bindingHash.slice(0,7))}. Work order ${esc(String(lineage.lineage.workOrder).slice(0,8))}, sealed ${ago(lineage.lineage.sealedAt)}.</p>`:''}
-  <div class="actions"><button data-act="runsrc">Run on the ocean sample</button><button data-act="openlocal">Open in editor</button></div>
+  <div class="actions"><button data-act="runsrc">Run on the ocean sample</button><button data-act="openlocal">Open in editor</button><button data-act="newbuild">Build another tool</button></div>
   ${r?`<p>${r.rows.toLocaleString()} readings, ${r.missingTimestamps.length} missing timestamps, ${r.duplicateRows} duplicate rows and ${r.missingValues} missing values.</p>`:''}
   <h2>Share it</h2>
   ${!signedIn?'<p>Sign in to Common Ground to share this with your team or your portfolio.</p><div class="actions"><button class="primary" data-act="signin">Sign in</button></div>'
@@ -161,7 +197,7 @@ async function loadPeople(){
 }
 function render(){
  const body=view==='solar'?solarView():view==='shared'?sharedView():view==='build'?buildView():view==='built'?builtView():view==='already'?alreadyView():start();
- root.innerHTML=`<main>${notice?`<p class="notice ${noticeKind}" role="status">${esc(notice)}</p>`:''}${body}</main>`;
+ root.innerHTML=`<main>${notice?`<p class="notice ${noticeKind}" role="status">${esc(notice)}</p>`:''}${body}</main>`;updateBuildClock();
 }
 
 // ── events ──
@@ -186,7 +222,9 @@ root.addEventListener('click',e=>{
   if(act==='refreshcompanies'){await load();view='start';}
   if(act==='start'){await load();view='start';}
   if(act==='openfolder')await bridge('openFolder');
-  if(act==='buildview'||act==='recheck'){view='build';job=null;await local('/health').then((h:any)=>{builder='ready';builderLabel=h.integrations?.builder||'';}).catch(()=>{builder='off';});}
+  if(act==='buildview'||act==='recheck'){view='build';job=null;await local('/health').then((h:any)=>{builder='ready';builderLabel=h.integrations?.builder||'';}).catch(()=>{builder='off';});if(builder==='ready'&&savedBuild&&savedBuild.companyId===companyId&&savedBuild.userId===(me?.id||'')&&savedBuild.server===server)await reconnectBuild();}
+  if(act==='resume'){await reconnectBuild();return;}
+  if(act==='newbuild'){await bridge('buildSession',{build:null});savedBuild=undefined;vscode?.setState({});job=null;built=null;share=null;view='build';return;}
   if(act==='download'){const r=await bridge('openHosted',{toolId:active.tool.id,companyId});if(r.cancelled)say('Cancelled. Nothing was saved.');else say('Saved and opened in a new window.');}
   if(act==='takeit'){active=already;view='shared';const r=await bridge('openHosted',{toolId:already.tool.id,companyId});say(r.cancelled?'Cancelled. Nothing was saved.':'Saved and opened in a new window, bound to your company’s mapping.');return;}
   if(act==='build'&&signedIn){
@@ -201,12 +239,12 @@ root.addEventListener('click',e=>{
   if(act==='build'||act==='buildanyway'){
    if(signedIn&&!companyId)throw new Error('Select your working company on Start first.');
    // the local builder keeps its own demo identity; the hosted account decides who can receive the result
-   await local('/demo-session','POST',{userId:'fabio'}).catch(()=>{});
-   job=await local('/build','POST',{prompt:brief});render();
-   while(job.status==='building'){await new Promise(r=>setTimeout(r,700));job=await local('/jobs/'+job.id);render();}
-   if(job.status==='failed')throw new Error(job.error||'The build failed.');
-   built=await local('/artifacts/'+job.artifactId);lineage=await local(`/artifacts/${job.artifactId}/lineage`).catch(()=>null);report=null;share=null;view='built';
-   if(signedIn&&companyId){builtView();void loadPeople();}
+   await local('/demo-session','POST',{userId:'fabio'});
+   // Reattach to a running local job if the first POST response or the webview was lost.
+   const state=await local('/state');
+   job=state.jobs.find((j:any)=>j.status==='building')||await local('/build','POST',{prompt:brief});
+   brief=job.prompt;view='build';disconnected=false;lastContact=Date.now();await rememberBuild();render();
+   await watchBuild();
   }
   if(act==='audio'){
    const input=document.createElement('input');input.type='file';input.accept='audio/*';

@@ -31,7 +31,7 @@ npm ci
 cp .env.example .env
 npm run check
 npm run doctor
-npm start
+npm run builder:start
 ```
 
 Keep the factory at http://127.0.0.1:4317 running, then use Build inside the extension. Port 4317's browser page only

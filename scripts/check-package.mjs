@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {Worker} from 'node:worker_threads';
 const dir=mkdtempSync(join(tmpdir(),'common-ground-vsix-check-'));
 try{
- execFileSync('unzip',['-q',resolve('common-ground-0.1.3.vsix'),'-d',dir]);
+ execFileSync('unzip',['-q',resolve('common-ground-0.1.4.vsix'),'-d',dir]);
  const source=readFileSync('fixtures/inspector.js','utf8');
  const bindingText=JSON.stringify({company:'Package verification',time:'measured_on',value:'ac_power__423',timeBasis:'local-unspecified',cadenceSeconds:60,skipUnitsRow:false});
  const expectedHash=createHash('sha256').update(source).digest('hex');

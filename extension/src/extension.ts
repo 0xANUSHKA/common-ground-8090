@@ -27,8 +27,8 @@ export function activate(context:vscode.ExtensionContext){
   const token=await context.secrets.get('session');
   const port=vscode.workspace.getConfiguration('commonGround').get<number>('port',4317);
   let response:Response;
-  try{response=await fetch(`http://127.0.0.1:${port}/api${path}`,{method,headers:{'Content-Type':'application/json','X-Common-Ground':'1',...(token?{Authorization:`Bearer ${token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(85000)});}
-  catch{throw new Error('The local builder isn’t running. Start it with npm start in the Common Ground repo.');}
+  try{response=await fetch(`http://127.0.0.1:${port}/api${path}`,{method,headers:{'Content-Type':'application/json','X-Common-Ground':'1',...(token?{Authorization:`Bearer ${token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(path==='/health'||path.startsWith('/jobs/')?5000:85000)});}
+  catch(e){if(e instanceof Error&&(e.name==='TimeoutError'||e.name==='AbortError'))throw new Error('The builder did not answer in time. Your build may still be running; check its status before starting another.');throw new Error('Cannot reach the local builder. Run npm run builder:start in the Common Ground repo, then check this build again.');}
   const data=await response.json() as any;if(!response.ok)throw new Error(data.error||`Request failed (${response.status})`);
   if(path==='/demo-session'){await context.secrets.store('session',data.token);return {user:data.user};}return data;
  }
@@ -96,6 +96,14 @@ export function activate(context:vscode.ExtensionContext){
    else if(m.action==='hosted')data=await hosted(m.path,m.method,m.body);
    else if(m.action==='account')data={signedIn:!!(await context.secrets.get('hostedToken')),server:server()};
    else if(m.action==='workspace')data=await workspace(m.companyId);
+   else if(m.action==='buildSession'){
+    if(m.build===null)await context.workspaceState.update('lastBuild',undefined);
+    else if(m.build!==undefined){
+     const b=m.build;if(!b||!['id','companyId','userId','server'].every(k=>typeof b[k]==='string'&&b[k].length<500)||!/^[a-z0-9-]+$/.test(b.id)||b.server!==server())throw new Error('Invalid build reference');
+     await context.workspaceState.update('lastBuild',{id:b.id,companyId:b.companyId,userId:b.userId,server:b.server});
+    }
+    data=context.workspaceState.get('lastBuild',null);
+   }
    else if(m.action==='signIn'){await signIn();data={ok:true};}
    else if(m.action==='signOut'){await context.secrets.delete('hostedToken');data={ok:true};}
    else if(m.action==='recents')data=recents();
@@ -144,7 +152,7 @@ export function activate(context:vscode.ExtensionContext){
    if(choice!=='Clear local history')return;
    signInState='';signInServer='';offerToken='';offerIds=null;
    await Promise.all([
-    context.globalState.update('recents',[]),context.globalState.update('receipts',[]),
+    context.globalState.update('recents',[]),context.globalState.update('receipts',[]),context.workspaceState.update('lastBuild',undefined),
     context.secrets.delete('hostedToken'),context.secrets.delete('hostedServer'),context.secrets.delete('session')
    ]);
    for(const key of context.globalState.keys().filter(k=>k.startsWith('company:')))await context.globalState.update(key,undefined);

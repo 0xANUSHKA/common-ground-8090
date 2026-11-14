@@ -69,3 +69,11 @@ input.short{width:100px}
 .ok{color:var(--vscode-testing-iconPassed,#73c991)}.warn{color:var(--vscode-editorWarning-foreground,#cca700)}
 
 .solar-report{width:100%;max-width:760px;border-collapse:collapse;margin:24px 0}.solar-report th,.solar-report td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--vscode-widget-border,#444)}.solar-report th{font-weight:500}.solar-report td{font-size:22px;font-variant-numeric:tabular-nums}.solar-verdict{font-size:20px;margin:24px 0}.source-hash{display:block;overflow-wrap:anywhere;color:var(--vscode-textLink-foreground)}.rows li>.linkish{margin:0 0 12px 32px}
+
+/* A quiet companion reports actual server activity; it never invents percentages. */
+.build-activity{display:flex;align-items:center;gap:16px;margin:20px 0 24px;padding:18px 0;border-block:1px solid var(--vscode-widget-border,#444)}
+.build-activity strong{display:block;font-weight:500;max-width:650px}.build-activity small{display:block;margin-top:6px}
+.builder-pet{width:38px;height:34px;flex:none;border:1px solid currentColor;border-radius:11px 11px 8px 8px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--vscode-textLink-foreground,#8fc5cf);transform-origin:bottom center}
+.builder-pet span{height:7px;width:4px;background:currentColor;border-radius:4px}.working .builder-pet{animation:builder-breathe 2s ease-in-out infinite}.build-log{margin-top:24px}.build-log summary{cursor:pointer;color:var(--vscode-descriptionForeground,#aaa)}.build-log li{padding:5px 0}
+@keyframes builder-breathe{50%{transform:translateY(-3px) rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){.working .builder-pet{animation:none}}

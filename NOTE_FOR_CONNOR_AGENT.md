@@ -1,3 +1,15 @@
+# Builder recovery update — extension 0.1.4
+
+Anushka’s local builder stopped during Claude’s second repair attempt. Her disk also hit ENOSPC while rebuilding the extension; npm’s disposable cache was cleared, freeing about 4 GB. The specific cause of the earlier process exit is unconfirmed. No passing artifact existed for that interrupted job.
+
+- Pull main and run `npm run package:site` before your next site deployment so its extension download is 0.1.4. No hosted API or credential change is required for this update.
+- On the source laptop, use `npm run builder:start`. It starts a detached loopback-only process and logs to `.local/builder.log`, surviving terminal/chat closure. It does not restart after a computer reboot; rerun the command then. Running it twice reuses a healthy existing builder.
+- Anushka’s Cursor already has 0.1.4 installed. Other editors can install the new VSIX and reload. Receiving/running a downloaded tool still does not require a local builder.
+- The build view now shows actual phase, elapsed time, last successful contact, an animated companion and expandable history. It retains the job ID across view reloads, scoped to the signed-in user/company/server. It retries interrupted polling, then offers Reconnect to this build instead of submitting duplicate jobs. A server restart explicitly fails the interrupted build; retry requires the user’s click.
+- Tests exercise disconnection/reconnection, reload recovery, account/company isolation and a lost initial POST response. Generation is still real Claude Code and can take several minutes, especially with repairs. Rehearse with a verified prebuilt artifact available; do not promise a fixed generation time.
+
+---
+
 # Current next action: create the fictional portfolio, then save briefs
 
 User reports your HydraDB production credentials are configured and working. Do not restore old companies to make the brief save succeed: **after a purge, no companies is the expected state**. Anushka creates **Meridian Frontier Fund**, then **Pelagic Robotics** in it. Connor uses that fund's **company invitation** to create **Helioforge Energy**. Only then map each sample and save the company briefs.

@@ -41,7 +41,7 @@ Source, binding and data files are not modified. This supports the known solar s
 npm ci
 cp .env.example .env
 npm run check
-npm start            # http://127.0.0.1:4317, loopback only
+npm run builder:start            # http://127.0.0.1:4317, loopback only
 ```
 
 Choose the build agent in `.env`:
