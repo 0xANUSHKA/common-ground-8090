@@ -3,7 +3,8 @@
 // removing a company or revoking a tool takes effect immediately; files already downloaded stay with their owners.
 import { randomBytes } from 'node:crypto';
 import { cmd, pipeline, getJSON, setJSON, getMany, kvReady } from './_kv.js';
-import { authReady, sessionUser, startSession, endSession, googleStart, googleFinish, safeNext } from './_auth.js';
+import { createHash } from 'node:crypto';
+import { authReady, sessionUser, startSession, endSession, googleStart, googleFinish, safeNext, extensionToken } from './_auth.js';
 
 const DAY = 86400000;
 const now = () => new Date().toISOString();
@@ -27,7 +28,7 @@ const K = {
   fundcos: (f) => `fundcos:${f}`, inv: (c) => `inv:${c}`, oinv: (o) => `oinv:${o}`,
   tool: (id) => `tool:${id}`, utools: (u) => `utools:${u}`, otools: (o) => `otools:${o}`,
   grant: (id) => `grant:${id}`, tgrants: (t) => `tgrants:${t}`, ogrants: (o) => `ogrants:${o}`, ugrants: (u) => `ugrants:${u}`,
-  audit: (o) => `audit:${o}`, reuse: (o) => `reuse:${o}`,
+  audit: (o) => `audit:${o}`, reuse: (o) => `reuse:${o}`, pkg: (t) => `pkg:${t}`,
 };
 const pub = (u, withEmail) => u && ({ id: u.id, name: u.name, handle: u.handle || '', picture: u.picture || '', ...(withEmail ? { email: u.email } : {}) });
 async function members(orgId) { const h = await cmd('HGETALL', K.mem(orgId)); const out = {}; for (let i = 0; i < (h || []).length; i += 2) out[h[i]] = JSON.parse(h[i + 1]); return out; }
@@ -86,6 +87,13 @@ on('GET', 'auth/callback', async (req, res) => {
   await pipeline([['SET', K.user(id), JSON.stringify(user)], ['SET', K.email(g.email), id], ['SET', K.sub(g.sub), id]]);
   startSession(res, req, id);
   res.statusCode = 302; res.setHeader('Location', safeNext(g.next)); res.end(); return null;
+}, { open: true });
+// the editor extension signs in through the browser: Google (if needed), then back to the editor with a token
+on('GET', 'auth/extension', async (req, res) => {
+  const state = String(req.query.state || '').replace(/[^\w-]/g, '').slice(0, 64), scheme = ['vscode', 'vscode-insiders', 'cursor', 'windsurf'].includes(req.query.scheme) ? req.query.scheme : 'vscode';
+  const uid = sessionUser(req);
+  if (!uid || !(await getJSON(K.user(uid)))) { res.statusCode = 302; res.setHeader('Location', `/signin/?next=${encodeURIComponent(`/api/auth/extension?state=${state}&scheme=${scheme}`)}`); res.end(); return null; }
+  res.statusCode = 302; res.setHeader('Location', `${scheme}://common-ground-demo.common-ground/auth?token=${encodeURIComponent(extensionToken(uid))}&state=${state}`); res.end(); return null;
 }, { open: true });
 on('POST', 'auth/signout', async (req, res) => { endSession(res, req); return { ok: true }; }, { open: true });
 
@@ -279,7 +287,17 @@ on('POST', 'tools', async (req, res, me) => {
   const org = await getJSON(K.org(String(b.orgId || ''))); if (!org || org.kind !== 'company' || !(await membership(org.id, me.id))) throw fail(403, 'Pick your company.');
   const orgId = org.id;
   const tool = { id: rid(10), name, description: clean(b.description, 280), owner: me.id, orgId, createdAt: now(), hash: randomBytes(8).toString('hex'), checks: 7, hours: Math.min(400, Math.max(1, Math.round(+b.hours) || 8)), uses: [] };
-  await pipeline([['SET', K.tool(tool.id), JSON.stringify(tool)], ['SADD', K.utools(me.id), tool.id], ...(orgId ? [['SADD', K.otools(orgId), tool.id]] : [])]);
+  let pkg = null;
+  if (b.files) { // published from the editor: the exact files that passed the checks, verified by hash
+    const files = b.files, names = Object.keys(files || {});
+    if (!names.length || names.length > 12 || names.some((f) => !PKG_FILES.test(f) || typeof files[f] !== 'string')) throw fail(400, 'Unexpected files in the package.');
+    if (names.reduce((n, f) => n + files[f].length, 0) > 600000) throw fail(413, 'Package is too large.');
+    const main = files['inspector.js']; if (!main || createHash('sha256').update(main).digest('hex') !== b.hash) throw fail(400, 'Package hash doesn’t match its code.');
+    if (Array.isArray(b.checks) && b.checks.length && !b.checks.every((c) => c.passed)) throw fail(400, 'Only tools that pass every check can be shared.');
+    tool.hash = b.hash; tool.checks = Array.isArray(b.checks) ? b.checks.filter((c) => c.passed).length || 7 : 7; tool.fromEditor = true;
+    pkg = { name, hash: b.hash, files };
+  }
+  await pipeline([['SET', K.tool(tool.id), JSON.stringify(tool)], ...(pkg ? [['SET', K.pkg(tool.id), JSON.stringify(pkg)]] : []), ['SADD', K.utools(me.id), tool.id], ...(orgId ? [['SADD', K.otools(orgId), tool.id]] : [])]);
   await log(orgId, me.name, 'Added a tool', name); return { tool };
 });
 on('GET', 'tools/mine', async (req, res, me) => {
@@ -287,11 +305,24 @@ on('GET', 'tools/mine', async (req, res, me) => {
   const grants = []; for (const t of tools) grants.push(...(await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean));
   return { tools, grants };
 });
+const PKG_FILES = /^[A-Za-z0-9_.-]{1,80}\.(js|json|md|csv|txt)$/;
+// can this person open the tool's files: its author, their company, or someone a live share reaches
+async function canOpenTool(t, uid) {
+  if (t.owner === uid || (await membership(t.orgId, uid))) return true;
+  const gs = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean), cache = { [t.id]: t };
+  for (const g of gs) if (await grantReaches(g, uid, cache)) return true;
+  return false;
+}
+on('GET', 'tools/:id/package', async (req, res, me, p) => {
+  const t = await getJSON(K.tool(p.id)); if (!t || !(await canOpenTool(t, me.id))) throw fail(404, 'This tool isn’t shared with you.');
+  const pkg = await getJSON(K.pkg(t.id)); if (!pkg) throw fail(404, 'This tool was registered by hand and has no files to download.');
+  return pkg;
+});
 const canManageTool = async (t, uid) => t.owner === uid || (t.orgId && isAdmin(await membership(t.orgId, uid)));
 on('DELETE', 'tools/:id', async (req, res, me, p) => {
   const t = await getJSON(K.tool(p.id)); if (!t || !(await canManageTool(t, me.id))) throw fail(404, 'Not found.');
   const gids = await cmd('SMEMBERS', K.tgrants(t.id)), gs = (await getMany(gids.map(K.grant))).filter(Boolean);
-  const cmds = [['DEL', K.tool(t.id), K.tgrants(t.id)], ['SREM', K.utools(t.owner), t.id], ...(t.orgId ? [['SREM', K.otools(t.orgId), t.id]] : [])];
+  const cmds = [['DEL', K.tool(t.id), K.tgrants(t.id), K.pkg(t.id)], ['SREM', K.utools(t.owner), t.id], ...(t.orgId ? [['SREM', K.otools(t.orgId), t.id]] : [])];
   for (const g of gs) { cmds.push(['DEL', K.grant(g.id)]); if (g.target.type === 'org') cmds.push(['SREM', K.ogrants(g.target.orgId), g.id]); else cmds.push(['SREM', K.ugrants(g.target.userId), g.id]); }
   await pipeline(cmds); await log(t.orgId, me.name, 'Removed a tool', t.name); return { ok: true };
 });

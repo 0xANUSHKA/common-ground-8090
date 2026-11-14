@@ -1,72 +1,162 @@
 import './style.css';
+// The Start view inside VS Code / Cursor. It looks like the editor it lives in (VS Code's own theme variables).
+// Hosted Common Ground: your account, what's shared with you, sharing your tools. Local builder (optional, `npm start`):
+// build a tool and run its seven checks on this machine before it can be shared.
 declare const acquireVsCodeApi:undefined|(()=>{postMessage:(m:any)=>void});
 const vscode=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
-let token=sessionStorage.getItem('cg-token')||'',state:any,view='start',active:any,result:any,adoption:any,matches:any[]=[],busy=false,notice='',job:any,localProjects:any[]=[];
-let briefDraft='Build a CSV telemetry completeness inspector. Detect missing timestamps and duplicates, distinguish missing values from zero, and preserve local time without guessing a timezone.';
 const root=document.querySelector<HTMLDivElement>('#app')!;
 const pending=new Map<string,{resolve:(v:any)=>void;reject:(e:Error)=>void}>();
-window.addEventListener('message',e=>{if(e.data?.action==='showSettings'&&state){view='settings';render();}const p=pending.get(e.data?.id);if(p){pending.delete(e.data.id);e.data.error?p.reject(new Error(e.data.error)):p.resolve(e.data.data);}});
-function bridge(action:string,payload:any={}):Promise<any>{return new Promise((resolve,reject)=>{const id=crypto.randomUUID();pending.set(id,{resolve,reject});vscode!.postMessage({id,action,...payload});setTimeout(()=>{if(pending.delete(id))reject(new Error('Editor request timed out'));},90000);});}
-async function api(path:string,method='GET',body?:any){
- if(vscode)return bridge('request',{path,method,body});
- const r=await fetch('/api'+path,{method,headers:{'Content-Type':'application/json','X-Common-Ground':'1',...(token?{Authorization:`Bearer ${token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
- const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');return data;
-}
+function bridge(action:string,payload:any={}):Promise<any>{return new Promise((resolve,reject)=>{if(!vscode)return reject(new Error('Open Common Ground inside VS Code or Cursor.'));const id=crypto.randomUUID();pending.set(id,{resolve,reject});vscode.postMessage({id,action,...payload});setTimeout(()=>{if(pending.delete(id))reject(new Error('The editor didn’t answer in time.'));},90000);});}
+const hosted=(path:string,method='GET',body?:any)=>bridge('hosted',{path,method,body});
+const local=(path:string,method='GET',body?:any)=>bridge('request',{path,method,body});
+
+// ── state ──
+let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:any[]=[];
+let builder:'unknown'|'ready'|'off'='unknown';
+let view:'start'|'shared'|'tool'|'build'|'built'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
+let busy=false,notice='',noticeKind:'ok'|'bad'='ok';
+let brief='Build a CSV telemetry completeness inspector. Detect missing timestamps and duplicates, distinguish missing values from zero, and preserve local time without guessing a timezone.';
+
 const esc=(s:unknown)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
-const short=(s:string)=>s.slice(0,10);
-const avatar=(name:string)=>`<span class="avatar ${name==='Maya'?'maya':''}" aria-hidden="true"><i></i><b></b></span>`;
-function button(label:string,action:string,cls='secondary'){return `<button class="${cls}" data-action="${action}" ${busy?'disabled':''}>${label}</button>`;}
-async function run(fn:()=>Promise<void>){if(busy)return;busy=true;notice='';render();try{await fn();}catch(e){notice=e instanceof Error?e.message:'Something went wrong';}finally{busy=false;render();}}
-async function refresh(){state=await api('/state');if(vscode)localProjects=await bridge('recents');}
-async function login(id:string){const s=await api('/demo-session','POST',{userId:id});if(!vscode){token=s.token;sessionStorage.setItem('cg-token',token);}await refresh();view='start';active=null;result=null;adoption=null;}
-function recent(a:any,owned=false){const same=a.company===state.user.company;return `<div class="recent-row"><button class="repo" data-open="${esc(a.id)}"><span class="identity" tabindex="0" aria-label="${esc(a.creator?.name||state.user.name)}, ${esc(a.companyName||a.company)}">${owned?'<span class="folder">⌑</span>':same?avatar(a.creator.name):'<span class="company-mark">S</span>'}<span class="identity-card">${avatar(a.creator?.name||state.user.name)}<strong>${esc(a.creator?.name||state.user.name)}</strong><small>${esc(a.companyName||a.company)} · reviewed version</small></span></span><span class="repo-name">${esc(a.name)}<small>${owned?'Your tool · '+(a.provenance==='eve-generated'?'agent built':'reference template'):esc(a.fit.reason)}</small></span><span class="row-meta">${owned?short(a.hash):'Shared with you'}<span class="arrow">↗</span></span></button></div>`;}
-function start(){return `<div class="eyebrow">YOUR WORKSPACE, A LITTLE MORE CONNECTED</div><h1>Start</h1><p class="intro">Good work doesn’t have to start from scratch.</p><div class="start-actions">${button('<span>＋</span> Build a tool','buildview','text-button')}${vscode?button('Open folder…','openfolder','text-button'):''}</div><section class="recents"><div class="section-heading"><h2>Recent</h2><span>${state.offers.length?`${state.offers.length} useful introduction${state.offers.length>1?'s':''}`:''}</span></div>${localProjects.map((p:any,i:number)=>`<button class="local-row" data-local="${i}"><span class="folder">⌑</span><span>${esc(p.name)}</span><small>Local workspace</small></button>`).join('')}${state.owned.map((a:any)=>recent(a,true)).join('')}${state.adoptions.map((a:any)=>`<button class="local-row" data-open="${esc(a.artifactId)}"><span class="folder">⌑</span><span>telemetry-inspector <small>Adapted for ${esc(a.binding.dataset)}</small></span><small>Saved to your workspace</small></button>`).join('')}${state.offers.map((a:any)=>recent(a)).join('')}${!state.owned.length&&!state.offers.length&&!state.adoptions.length&&!localProjects.length?'<div class="empty"><span>⌑</span><p>A quiet place to begin.</p><small>Tools appear here only when they are relevant and approved for you.</small></div>':''}</section><div class="quiet-note"><span class="dot"></span>${state.preference.mode==='off'?'Receiving is off. Your local work stays yours.':'Only reviewed tools. Only approved people. Always your choice.'}</div>`;}
-function build(){return `<button class="back" data-action="start">← Start</button><div class="eyebrow">ONE TOOL. MORE POSSIBILITIES.</div><h1>Make something useful.</h1><p class="intro">A small, portable telemetry inspector. Built, checked, ready to share.</p><label class="field-label" for="brief">What should it do?</label><textarea id="brief" rows="5">${esc(briefDraft)}</textarea><div class="form-bottom"><span>${esc(state.integrations.builder)}</span><div>${button('＋ Audio brief','audio','text-button')}${button(busy?'Working…':'Build & verify →','build','primary')}</div></div><p class="caption">${state.integrations.builder.includes('Offline')?'Offline mode uses an explicitly labeled reference template. Connect a model to generate code from your brief.':'Live code is independently tested in a bounded runtime before it can be shared.'}</p>${job?`<div class="build-log" role="status">${job.events.map((e:string)=>`<p><span>✓</span>${esc(e)}</p>`).join('')}${job.status==='building'?'<p class="working">Building and checking…</p>':''}${job.error?`<p class="error">${esc(job.error)}</p>`:''}</div>`:''}`;}
-function report(){if(!result)return '';const r=result.report;return `<section class="report"><div class="section-heading"><h2>${result.challenge?'Fault challenge':'Dataset check'}</h2><span>${esc(result.binding.dataset==='solar'?'NREL PVDAQ · public solar data':'NOAA · Saildrone 1045')}</span></div><div class="metrics"><div><strong>${r.rows.toLocaleString()}</strong><span>observations</span></div><div class="${r.missingTimestamps.length?'warn':''}"><strong>${r.missingTimestamps.length}</strong><span>missing timestamps</span></div><div class="${r.duplicateRows?'warn':''}"><strong>${r.duplicateRows}</strong><span>duplicate rows</span></div><div><strong>${r.missingValues}</strong><span>missing values</span></div></div><div class="time-grid" aria-label="Minute-by-minute completeness map">${Array.from({length:1440},(_,i)=>`<i class="${result.challenge&&[600,601,602].includes(i)?'gap':result.challenge&&i===900?'duplicate':''}" title="${String(Math.floor(i/60)).padStart(2,'0')}:${String(i%60).padStart(2,'0')}"></i>`).join('')}</div><div class="grid-caption"><span>00:00</span><span>${result.challenge?'3 deliberately removed minutes · 1 duplicated minute':'One day · one cell per minute'}</span><span>23:59</span></div><p class="caption">${esc(result.label)}. ${result.binding.timeBasis==='local-unspecified'?'Local time preserved; timezone unresolved.':'UTC timestamps.'} Physical validity is not assessed.</p>${r.missingTimestamps.length?`<code class="missing-times">${r.missingTimestamps.map(esc).join(' · ')}</code>`:''}<div class="hash-line">Same core <code>${esc(short(result.coreHash))}</code><span>✓ verified</span></div></section>`;}
-function detail(){const own=active.owner===state.user.id;return `<button class="back" data-action="start">← Start</button><div class="eyebrow">${own?'BUILT HERE. USEFUL ELSEWHERE.':'A USEFUL INTRODUCTION'}</div><h1 class="project-title">telemetry-inspector<span class="version">v0.1</span></h1><p class="intro">${own?'Your tool passed its checks. Someone else could use it, too.':`${esc(active.creator.name)} built this for marine data. Your solar workflow needs the same completeness checks.`}</p><div class="provenance"><span class="status-pill">✓ ${active.checks.length} checks passed</span><code>${esc(short(active.hash))}</code><span>${active.provenance==='eve-generated'?'Agent generated':'Reference template · offline'}</span></div><div class="detail-actions">${own?button('Run source dataset','run','primary'):button(adoption?'Recheck solar data':'Adapt for my workspace','adopt','primary')}${!own&&adoption?button('Run fault challenge','challenge'):''}${(own||adoption)&&vscode?button('Open project in editor ↗','download'):''}${button('Why this fits','evidence','text-button')}</div>${adoption?`<div class="adapt-trace">${adoption.trace?.map((t:string)=>`<p>${esc(t)}</p>`).join('')||''}<p class="success">✓ Core unchanged. Recipient binding verified.</p></div>`:''}${report()}${own?`<section class="share"><div class="section-heading"><h2>Worth sharing?</h2><span>Private until you approve</span></div><p>Share this exact, tested version with people who can use it.</p>${matches.length?matches.map(m=>`<label class="match">${avatar(m.name)}<span><strong>${esc(m.name)}</strong><small>${esc(m.company)} · ${m.company===state.user.company?'your company':'approved portfolio company'}</small></span><input name="recipient" type="checkbox" value="${esc(m.id)}" checked aria-label="Share with ${esc(m.name)}"></label>`).join(''):'<p class="caption">No eligible recipients with a matching workflow.</p>'}${matches.length?button('Approve & share selected →','publish','primary'):''}${active.reviewedHash?button('Revoke future access','revoke','text-button'):''}<p class="caption">Named recipients only. No onward sharing. Review applies to this code hash.</p></section>`:''}<details><summary>Code & verification</summary><ul class="checks">${active.checks.map((c:any)=>`<li>${c.passed?'✓':'×'} ${esc(c.name)}</li>`).join('')}</ul><pre>${esc(active.source)}</pre></details><p class="disclosure">Demonstration identities and company participation. Real public NOAA / NREL data; no private customer data.</p>`;}
-function settings(){return `<button class="back" data-action="start">← Start</button><div class="eyebrow">YOUR ATTENTION IS YOURS</div><h1>Sharing preferences</h1><p class="intro">Choose what can find its way into your workspace.</p><div class="settings-options">${[['off','Receive nothing','Keep this workspace entirely your own.'],['company','My company only','Reviewed tools from approved colleagues.'],['portfolio','Approved portfolio companies','Useful work from the companies your organization allows.']].map(([id,title,desc])=>`<label class="option ${state.preference.mode===id?'selected':''}"><input type="radio" name="mode" value="${id}" ${state.preference.mode===id?'checked':''}><span><strong>${title}</strong><small>${desc}</small></span></label>`).join('')}</div><div class="setting-ceiling"><span>⌑</span><div><strong>Your organization sets the ceiling.</strong><p>Named recipients. Approved publishers. Reviewed versions.<br>Your preferences can narrow access, never expand it.</p></div></div><label class="mute"><input type="checkbox" id="mute-fabio" ${state.preference.muted.includes('fabio')?'checked':''}>Mute introductions from Fabio</label>${button('Save preferences','save','primary')}<p class="caption">Turning receiving off hides unopened offers and blocks new fetches. It never deletes local projects.</p><details><summary>Connected services</summary>${Object.entries(state.integrations).map(([k,v])=>`<p class="integration"><span>${esc(k)}</span><span>${esc(v)}</span></p>`).join('')}</details>`;}
-function render(){
- if(!state){root.innerHTML=`<main class="login"><div class="brand-symbol">⌘</div><h1>Common Ground</h1><p class="intro">Build once. Find its next purpose.</p><label for="identity">Local demo identity</label><select id="identity"><option value="fabio">Fabio · Saildrone · publisher</option><option value="maya">Maya · Palmetto · recipient</option><option value="theo">Theo · Saildrone · recipient</option><option value="elli">Elli · not eligible</option></select>${button('Enter workspace →','login','primary')}<p class="caption">A local rehearsal with illustrative identities. Not company SSO.</p>${notice?`<div class="notice" role="alert">${esc(notice)}</div>`:''}</main>`;return;}
- root.innerHTML=`<header><div class="brand"><span>⌘</span>common ground<span class="header-divider">/</span><span class="header-page">${view==='settings'?'Preferences':'Start'}</span></div><div class="header-right"><button class="user-switch" data-action="switch" title="Switch local demo identity">${avatar(state.user.name)}<span>${esc(state.user.name)}<small>${esc(state.company.name)}</small></span></button><button class="icon-button" data-action="settings" aria-label="Sharing preferences">⚙</button></div></header><main>${notice?`<div class="notice" role="status">${esc(notice)}</div>`:''}${view==='start'?start():view==='build'?build():view==='settings'?settings():detail()}</main><footer><span><i class="dot"></i>Common Ground <span class="subtle">/ v0</span></span><span>${busy?'Working…':'Local demo · permission checked'}</span></footer>`;
+const ago=(iso:string)=>{const m=Math.round((Date.now()-Date.parse(iso))/60000);if(m<1)return 'just now';if(m<60)return `${m}m ago`;const h=Math.round(m/60);if(h<24)return `${h}h ago`;return `${Math.round(h/24)}d ago`;};
+const initials=(n:string)=>(String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('')||'?').toUpperCase();
+const hue=(s:string)=>[...String(s)].reduce((h,c)=>(h*31+c.charCodeAt(0))%360,7);
+const person=(u:any)=>u?.picture?`<img class="av" src="${esc(u.picture)}" alt="">`:`<span class="av" style="--h:${hue(u?.id||u?.name||'')}">${esc(initials(u?.name))}</span>`;
+const logo=(o:any)=>o?.iconUrl?`<img class="logo" src="${esc(o.iconUrl)}" alt="">`:`<span class="logo">${esc(initials(o?.name))}</span>`;
+const ICON={file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',package:'<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/>',user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',back:'<path d="m15 18-6-6 6-6"/>',check:'<path d="M20 6 9 17l-5-5"/>'};
+const ic=(k:keyof typeof ICON)=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+const companies=()=>orgs.filter(o=>o.kind==='company');
+
+async function load(){
+ const a=await bridge('account');signedIn=a.signedIn;server=a.server;
+ if(signedIn){try{const r=await hosted('me');me=r.user;orgs=r.orgs;shared=(await hosted('shared')).shared;}catch(e){signedIn=false;notice=(e as Error).message;noticeKind='bad';}}
+ recents=await bridge('recents');
+ builder='unknown';local('/health').then(()=>{builder='ready';render();}).catch(()=>{builder='off';render();});
 }
-async function open(id:string){active=await api('/artifacts/'+id);result=null;adoption=state.adoptions.find((a:any)=>a.artifactId===id);matches=active.owner===state.user.id?await api(`/artifacts/${id}/matches`):[];view='detail';}
-root.addEventListener('input',e=>{if((e.target as HTMLElement).id==='brief')briefDraft=(e.target as HTMLTextAreaElement).value;});
-root.addEventListener('click',async(e)=>{
- const identityIcon=(e.target as HTMLElement).closest<HTMLElement>('.identity');if(identityIcon){identityIcon.classList.toggle('show-identity');return;}
- const el=(e.target as HTMLElement).closest<HTMLElement>('[data-action],[data-open],[data-local]');if(!el)return;
- const action=el.dataset.action;
- const brief=(document.querySelector('#brief') as HTMLTextAreaElement)?.value;
- const recipients=Array.from(document.querySelectorAll<HTMLInputElement>('input[name=recipient]:checked')).map(x=>x.value);
- const mode=(document.querySelector('input[name=mode]:checked') as HTMLInputElement)?.value;
- const mute=(document.querySelector('#mute-fabio') as HTMLInputElement)?.checked;
- const identity=(document.querySelector('#identity') as HTMLSelectElement)?.value;
- await run(async()=>{
-  if(el.dataset.open){await open(el.dataset.open);return;}
+async function run(fn:()=>Promise<void>){if(busy)return;busy=true;notice='';render();try{await fn();}catch(e){notice=e instanceof Error?e.message:'Something went wrong';noticeKind='bad';}finally{busy=false;render();}}
+const say=(m:string)=>{notice=m;noticeKind='ok';};
+
+// ── views ──
+function start(){
+ if(!signedIn)return `<h1>Common Ground</h1><p class="lede">Tools other engineers in your company and portfolio have built, checked and shared with you, right where you work.</p>
+  <div class="actions"><button class="primary" data-act="signin">Sign in to Common Ground</button></div>
+  <p class="muted">Your fund or company sends you a link to join. Setting one up? <a href="${esc(server)}/join/">Set up your fund</a>.</p>
+  ${recentList()}`;
+ const co=companies()[0];
+ return `<h1>Start</h1><p class="lede">${shared.length?`${shared.length} ${shared.length===1?'tool has':'tools have'} been shared with you.`:'Nothing has been shared with you yet. When someone in your company or portfolio shares a tool with you, it shows up here.'}</p>
+  <div class="cols"><div>
+   <h2>Start</h2><ul class="links">
+    <li><button data-act="buildview">${ic('plus')}Build a tool…</button></li>
+    <li><button data-act="openfolder">${ic('folder')}Open folder…</button></li>
+   </ul>
+   <h2>Shared with you</h2>${shared.length?`<ul class="rows">${shared.map((s:any)=>`<li><button class="row" data-shared="${esc(s.tool.id)}">${s.grant.scope==='portfolio'?logo(s.from):person(s.owner)}<span><b>${esc(s.tool.name)}</b><small>${esc(s.owner.name)}${s.from?` · ${esc(s.from.name)}`:''}</small></span><time>${ago(s.grant.at)}</time></button></li>`).join('')}</ul>`:'<p class="muted">Nothing yet.</p>'}
+   ${recentList()}
+  </div><div>
+   <h2>You</h2><p class="who">${person(me)}<span><b>${esc(me.name)}</b><small>${esc(co?co.name:'Not in a company yet')}${co?.fundId?' · in a fund portfolio':''}</small></span></p>
+   <ul class="links"><li><a href="${esc(server)}/dashboard/">${ic('user')}Open your dashboard</a></li><li><button data-act="signout">Sign out</button></li></ul>
+   <h2>Builder</h2><p class="muted">${builder==='ready'?'The local builder is running. Tools you build are checked on this machine before anyone else can see them.':builder==='off'?'Building needs the local builder: run <span class="kbd">npm start</span> in the Common Ground repo. Receiving tools works without it.':'Looking for the local builder…'}</p>
+  </div></div>`;
+}
+function recentList(){return recents.length?`<h2>Recent</h2><ul class="links">${recents.slice(0,6).map((r:any,i:number)=>`<li><button data-local="${i}">${ic('folder')}${esc(r.name)}</button></li>`).join('')}</ul>`:'';}
+function sharedView(){
+ const s=active;
+ return `<button class="back" data-act="start">${ic('back')}Start</button><h1>${esc(s.tool.name)}</h1>
+  <p class="lede">${esc(s.tool.description||'A tool shared with you.')}</p>
+  <p class="who">${s.grant.scope==='portfolio'?logo(s.from):person(s.owner)}<span><b>${esc(s.owner.name)}</b><small>${esc(s.from?.name||'')} · shared ${ago(s.grant.at)}${s.grant.scope==='portfolio'?' · from across your portfolio':' · from your team'}</small></span></p>
+  <p>This is the exact version that passed all ${s.tool.checks} checks${s.tool.hours?`. It took about ${s.tool.hours} hours to build`:''}. Opening it saves a copy into a new folder; nothing runs until you choose to run it.</p>
+  <div class="actions"><button class="primary" data-act="download">Open in editor</button></div>
+  <p class="muted">If the share is revoked later, you keep the copy you saved.</p>`;
+}
+function buildView(){
+ if(builder!=='ready')return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Building runs on this machine so the code can be checked before anyone sees it.</p><p>Start the local builder with <span class="kbd">npm start</span> in the Common Ground repo, then come back.</p><div class="actions"><button data-act="recheck">Check again</button></div>`;
+ return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Build a tool</h1><p class="lede">Describe it. An agent builds it, then seven checks run against real ocean and solar data.</p>
+  <label for="brief">What should it do?</label><textarea id="brief" rows="5">${esc(brief)}</textarea>
+  <div class="actions"><button class="primary" data-act="build" ${busy?'disabled':''}>${busy?'Building…':'Build and check'}</button></div>
+  ${job?`<ul class="log">${job.events.map((e:string)=>`<li>${ic('check')}${esc(e)}</li>`).join('')}${job.status==='building'?'<li class="muted">Building and checking…</li>':''}${job.error?`<li class="bad">${esc(job.error)}</li>`:''}</ul>`:''}`;
+}
+function builtView(){
+ const a=built,passed=a.checks.filter((c:any)=>c.passed).length;
+ const cos=companies();if(!share)share={orgId:cos[0]?.id||'',people:null,pick:new Set<string>(),team:true,name:a.name,description:'Finds missing, duplicate and off-grid readings in a sensor time series before they reach a model.',hours:16};
+ const r=report?.report;
+ return `<button class="back" data-act="start">${ic('back')}Start</button><h1>${esc(a.name)}</h1>
+  <p class="lede">${passed===a.checks.length?`Passed all ${passed} checks.`:`${passed} of ${a.checks.length} checks passed; it can’t be shared until they all pass.`} ${a.provenance==='eve-generated'?'Built by the agent from your brief.':'Built from the offline reference template.'}</p>
+  <ul class="log">${a.checks.map((c:any)=>`<li class="${c.passed?'':'bad'}">${ic('check')}${esc(c.name)}</li>`).join('')}</ul>
+  <div class="actions"><button data-act="runsrc">Run on the ocean sample</button><button data-act="openlocal">Open in editor</button></div>
+  ${r?`<p>${r.rows.toLocaleString()} readings, ${r.missingTimestamps.length} missing timestamps, ${r.duplicateRows} duplicate rows and ${r.missingValues} missing values.</p>`:''}
+  <h2>Share it</h2>
+  ${!signedIn?'<p>Sign in to Common Ground to share this with your team or your portfolio.</p><div class="actions"><button class="primary" data-act="signin">Sign in</button></div>'
+   :!cos.length?'<p>You’re not in a company yet. Open the invite link your company sent you.</p>'
+   :passed!==a.checks.length?'<p class="muted">Fix the failing checks first.</p>'
+   :`${cos.length>1?`<label for="co">Company</label><select id="co">${cos.map((c:any)=>`<option value="${esc(c.id)}" ${c.id===share.orgId?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`:''}
+    <label for="desc">What it does</label><input id="desc" value="${esc(share.description)}">
+    <label for="hours">Hours it took to build</label><input id="hours" type="number" min="1" max="400" value="${share.hours}" class="short">
+    <label>Who gets it</label>${peoplePicker()}
+    <div class="actions"><button class="primary" data-act="share" ${busy?'disabled':''}>Share this version</button></div>
+    <p class="muted">Only this checked version is shared, and only with the people you pick. You can revoke it from your dashboard.</p>`}`;
+}
+function peoplePicker(){
+ if(!share.people)return '<p class="muted">Loading people…</p>';
+ const co=orgs.find(o=>o.id===share.orgId);
+ return `<ul class="picks"><li><label><input type="checkbox" data-team ${share.team?'checked':''}> Everyone at ${esc(co?.name||'your company')}</label></li>${share.people.map((p:any)=>`<li><label><input type="checkbox" data-person="${esc(p.key)}" ${share.pick.has(p.key)?'checked':''}> ${person(p.user)}<span>${esc(p.user.name)}<small>${esc(p.company)}</small></span></label></li>`).join('')}</ul>`;
+}
+async function loadPeople(){
+ const v=await hosted(`orgs/${share.orgId}`);
+ share.people=[...v.members.filter((m:any)=>m.user.id!==me.id&&m.receiver).map((m:any)=>({key:m.user.id,user:m.user,company:'Your team',body:{userId:m.user.id}})),
+  ...(v.peerPeople||[]).map((p:any)=>({key:`${p.user.id}:${p.companyId}`,user:p.user,company:(v.peers||[]).find((c:any)=>c.id===p.companyId)?.name||'Portfolio',body:{userId:p.user.id,companyId:p.companyId}}))];
+ render();
+}
+function render(){
+ const body=view==='shared'?sharedView():view==='build'?buildView():view==='built'?builtView():start();
+ root.innerHTML=`<main>${notice?`<p class="notice ${noticeKind}" role="status">${esc(notice)}</p>`:''}${body}</main>`;
+}
+
+// ── events ──
+root.addEventListener('input',e=>{const t=e.target as HTMLInputElement;if(t.id==='brief')brief=t.value;if(t.id==='desc')share.description=t.value;if(t.id==='hours')share.hours=Number(t.value)||1;});
+root.addEventListener('change',e=>{const t=e.target as HTMLInputElement;
+ if(t.id==='co'){share.orgId=t.value;share.people=null;share.pick.clear();render();void loadPeople();}
+ if(t.dataset.team!==undefined)share.team=t.checked;
+ if(t.dataset.person){t.checked?share.pick.add(t.dataset.person):share.pick.delete(t.dataset.person);}
+});
+root.addEventListener('click',e=>{
+ const el=(e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-shared],[data-local]');if(!el)return;
+ const act=el.dataset.act;
+ void run(async()=>{
+  if(el.dataset.shared){active=shared.find((s:any)=>s.tool.id===el.dataset.shared);view='shared';return;}
   if(el.dataset.local){await bridge('openRecent',{index:Number(el.dataset.local)});return;}
-  if(action==='login')await login(identity);
-  if(action==='switch'){state=null;token='';sessionStorage.removeItem('cg-token');}
-  if(action==='settings')view='settings';
-  if(action==='start'){await refresh();view='start';}
-  if(action==='buildview'){view='build';job=null;}
-  if(action==='save'){await api('/preferences','PUT',{mode,muted:mute?['fabio']:[]});await refresh();notice='Preferences saved.';}
-  if(action==='build'){
-   job=await api('/build','POST',{prompt:brief});render();
-   while(job.status==='building'){await new Promise(r=>setTimeout(r,700));job=await api('/jobs/'+job.id);render();}
-   if(job.status==='failed')throw new Error(job.error);await refresh();await open(job.artifactId);
+  if(act==='signin'){await bridge('signIn');say('Finish signing in in your browser. You’ll come straight back here.');}
+  if(act==='signout'){await bridge('signOut');await load();view='start';}
+  if(act==='start'){await load();view='start';}
+  if(act==='openfolder')await bridge('openFolder');
+  if(act==='buildview'||act==='recheck'){view='build';job=null;await local('/health').then(()=>{builder='ready';}).catch(()=>{builder='off';});}
+  if(act==='download'){const r=await bridge('openHosted',{toolId:active.tool.id});if(r.cancelled)say('Cancelled. Nothing was saved.');else say('Saved and opened in a new window.');}
+  if(act==='build'){
+   // the local builder keeps its own demo identity; the hosted account decides who can receive the result
+   await local('/demo-session','POST',{userId:'fabio'}).catch(()=>{});
+   job=await local('/build','POST',{prompt:brief});render();
+   while(job.status==='building'){await new Promise(r=>setTimeout(r,700));job=await local('/jobs/'+job.id);render();}
+   if(job.status==='failed')throw new Error(job.error||'The build failed.');
+   built=await local('/artifacts/'+job.artifactId);report=null;share=null;view='built';
+   if(signedIn&&companies().length){builtView();void loadPeople();}
   }
-  if(action==='run')result=await api(`/artifacts/${active.id}/run`,'POST',{challenge:false});
-  if(action==='adopt'){adoption=await api(`/artifacts/${active.id}/adopt`,'POST',{});result={report:adoption.report,binding:adoption.binding,coreHash:adoption.hash,label:'Unmodified public dataset',challenge:false};await refresh();}
-  if(action==='challenge')result=await api(`/artifacts/${active.id}/run`,'POST',{challenge:true});
-  if(action==='publish'){if(!recipients.length)throw new Error('Choose at least one recipient');await api(`/artifacts/${active.id}/publish`,'POST',{hash:active.hash,scope:matches.some(m=>recipients.includes(m.id)&&m.company!==state.user.company)?'portfolio':'company',recipients});active=await api('/artifacts/'+active.id);notice='Shared. The reviewed version is now available to the selected recipients.';}
-  if(action==='revoke'){await api(`/artifacts/${active.id}/revoke`,'POST',{});notice='Future access revoked. Already downloaded files remain with their owners.';}
-  if(action==='evidence'){const data=await api(`/artifacts/${active.id}/evidence`);notice=`${data.provider}: ${data.text}`;}
-  if(action==='download'){const saved=await bridge('openArtifact',{artifactId:active.id});notice=saved.cancelled?'Download cancelled.':'Project saved. Opened through the editor’s normal workspace flow.';}
-  if(action==='openfolder')await bridge('openFolder');
-  if(action==='audio'){
-   const input=document.createElement('input');input.type='file';input.accept='audio/*';
-   input.onchange=()=>void run(async()=>{const f=input.files?.[0];if(!f)return;if(f.size>5_000_000)throw new Error('Choose an audio brief under 5 MB');const data=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=reject;reader.readAsDataURL(f);});const r=await api('/audio-brief','POST',{base64:data,mime:f.type});render();briefDraft=r.text;notice='Audio brief transcribed. Review it before building.';});input.click();
+  if(act==='runsrc')report=await local(`/artifacts/${built.id}/run`,'POST',{challenge:false});
+  if(act==='openlocal'){const r=await bridge('openArtifact',{artifactId:built.id});if(!r.cancelled)say('Saved and opened in a new window.');}
+  if(act==='share'){
+   const picks=(share.people||[]).filter((p:any)=>share.pick.has(p.key));
+   if(!share.team&&!picks.length)throw new Error('Pick your team or at least one person.');
+   const {tool}=await bridge('publishHosted',{artifactId:built.id,orgId:share.orgId,name:built.name,description:share.description,hours:share.hours});
+   if(share.team)await hosted(`tools/${tool.id}/grants`,'POST',{orgId:share.orgId});
+   for(const p of picks)await hosted(`tools/${tool.id}/grants`,'POST',p.body);
+   say(`Shared ${built.name} with ${[share.team?'your team':'',...picks.map((p:any)=>p.user.name)].filter(Boolean).join(', ')}.`);
   }
  });
 });
+window.addEventListener('message',e=>{
+ if(e.data?.action==='signedIn'){void run(async()=>{await load();if(view==='built'&&signedIn&&companies().length){share=null;builtView();void loadPeople();}});return;}
+ if(e.data?.action==='showSettings'){window.open?.(`${server}/dashboard/`);return;}
+ const p=pending.get(e.data?.id);if(p){pending.delete(e.data.id);e.data.error?p.reject(new Error(e.data.error)):p.resolve(e.data.data);}
+});
+// a quiet refresh while the view is open, so new shares arrive without a reload
+setInterval(()=>{if(!busy&&signedIn&&view==='start'&&document.visibilityState==='visible')hosted('shared').then(x=>{if(JSON.stringify(x.shared.map((s:any)=>s.grant.id))!==JSON.stringify(shared.map((s:any)=>s.grant.id))){shared=x.shared;render();}}).catch(()=>{});},8000);
 render();
-if(token||vscode)refresh().then(render).catch(()=>{state=null;render();});
+if(vscode)load().then(render).catch(e=>{notice=e.message;noticeKind='bad';render();});
+else{root.innerHTML='<main><h1>Common Ground</h1><p class="lede">Open this view inside VS Code or Cursor: install the extension and run “Common Ground: Open Start”.</p></main>';}

@@ -23,7 +23,9 @@ export function setCookie(res, req, name, value, maxAgeSec) {
   const prev = res.getHeader('Set-Cookie') || [];
   res.setHeader('Set-Cookie', [...[].concat(prev), `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}${secure(req) ? '; Secure' : ''}`]);
 }
-export const sessionUser = (req) => unseal(cookies(req).cg_session)?.uid || null;
+// the browser uses the cookie; the editor extension sends the same kind of sealed token as a Bearer header
+export const sessionUser = (req) => { const h = req.headers.authorization || ''; const t = h.startsWith('Bearer ') ? unseal(h.slice(7)) : null; return (t?.aud === 'ext' ? t.uid : null) || unseal(cookies(req).cg_session)?.uid || null; };
+export const extensionToken = (uid) => seal({ uid, aud: 'ext', exp: Date.now() + 90 * 86400000 });
 export const startSession = (res, req, uid) => setCookie(res, req, 'cg_session', seal({ uid, exp: Date.now() + 30 * 86400000 }), 30 * 86400);
 export const endSession = (res, req) => setCookie(res, req, 'cg_session', '', 0);
 

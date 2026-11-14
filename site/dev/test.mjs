@@ -62,6 +62,23 @@ ok('fund owner deletes fund', (await p('connor', 'DELETE', `orgs/${F}`)).ok);
 const sd2 = await p('nush', 'GET', `orgs/${SD}`); ok('company unaffiliated after fund delete', sd2.org.status === 'unaffiliated' && !sd2.org.fundId);
 ok('cross-site POST blocked', (await (await fetch(`${B}/api/orgs`, { method: 'POST', headers: { cookie: jar.nush, 'content-type': 'application/json', origin: 'https://evil.example' }, body: '{"kind":"circle","name":"x"}' })).status) === 403);
 ok('signed-out me is 401', (await fetch(`${B}/api/me`)).status === 401);
+
+// the editor extension: browser sign-in hands back a token; packages are published, downloaded and gated
+const ext = await fetch(`${B}/api/auth/extension?state=abc123&scheme=vscode`, { headers: { cookie: jar.maya }, redirect: 'manual' });
+const loc = ext.headers.get('location') || '', tok = new URL(loc).searchParams.get('token');
+ok('extension sign-in redirects to the editor with a token', loc.startsWith('vscode://common-ground-demo.common-ground/auth?') && !!tok && new URL(loc).searchParams.get('state') === 'abc123');
+const bear = (method, path, body) => fetch(`${B}/api/${path}`, { method, headers: { authorization: `Bearer ${tok}`, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }).then(async (r) => ({ status: r.status, ...(await r.json()) }));
+ok('bearer token works', (await bear('GET', 'me')).user?.id === 'local_maya');
+ok('signed-out extension sign-in goes through sign-in', (await fetch(`${B}/api/auth/extension?state=x`, { redirect: 'manual' })).headers.get('location').startsWith('/signin/?next='));
+const { createHash } = await import('node:crypto');
+const code = 'export function inspect(){return 1}', files = { 'inspector.js': code, 'README.md': '# hi' }, hash = createHash('sha256').update(code).digest('hex');
+ok('bad hash rejected', (await bear('POST', 'tools', { name: 'x', orgId: PM, hash: 'nope', files })).status === 400);
+ok('odd filenames rejected', (await bear('POST', 'tools', { name: 'x', orgId: PM, hash, files: { ...files, '../evil.sh': 'x' } })).status === 400);
+const pub = await bear('POST', 'tools', { name: 'gap-check', orgId: PM, hash, files, checks: [{ passed: true }] });
+ok('package published', pub.tool?.hash === hash);
+await bear('POST', `tools/${pub.tool.id}/grants`, { orgId: PM });
+const dl = await p('theo', 'GET', `tools/${pub.tool.id}/package`); ok('teammate downloads the exact files', dl.hash === hash && dl.files['inspector.js'] === code);
+ok('outsider cannot download', (await p('nush', 'GET', `tools/${pub.tool.id}/package`)).ERR === 404);
 const d = await fetch(`${B}/api/auth/demo`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }); jar.demo = d.headers.get("set-cookie").split(";")[0];
 const dme = await p("demo", "GET", "me"), dfund = await p("demo", "GET", `orgs/${dme.orgs.find((o) => o.kind === "fund").id}`);
 ok("demo fund is seeded", dfund.companies.length === 5 && dfund.portfolioTools.length === 5 && dfund.stats.reuses === 7, JSON.stringify(dfund.stats));
