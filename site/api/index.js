@@ -295,7 +295,7 @@ on('POST', 'tools', async (req, res, me) => {
     if (names.reduce((n, f) => n + files[f].length, 0) > 600000) throw fail(413, 'Package is too large.');
     const main = files['inspector.js']; if (!main || createHash('sha256').update(main).digest('hex') !== b.hash) throw fail(400, 'Package hash doesn’t match its code.');
     if (!Array.isArray(b.checks) || b.checks.length !== 7 || !b.checks.every((c) => c.passed)) throw fail(400, 'Only tools that pass all seven factory checks can be published.');
-    tool.hash = b.hash; tool.checks = 7; tool.fromEditor = true; tool.provenance = ['agent-generated', 'eve-generated', 'reference-template'].includes(b.provenance) ? b.provenance : 'reference-template';
+    tool.hash = b.hash; tool.checks = 7; tool.fromEditor = true; tool.provenance = ['agent-generated', 'eve-generated', 'reference-template'].includes(b.provenance) ? b.provenance : 'reference-template'; if (b.requirementId) tool.requirementId = clean(b.requirementId, 80);
     pkg = { name, hash: b.hash, files };
   }
   await pipeline([['SET', K.tool(tool.id), JSON.stringify(tool)], ...(pkg ? [['SET', K.pkg(tool.id), JSON.stringify(pkg)]] : []), ['SADD', K.utools(me.id), tool.id], ...(orgId ? [['SADD', K.otools(orgId), tool.id]] : [])]);

@@ -90,7 +90,7 @@ function builtView(){
  const cos=companies();if(!share)share={orgId:cos[0]?.id||'',people:null,pick:new Set<string>(),team:true,name:a.name,description:'Finds missing, duplicate and off-grid readings in a sensor time series before they reach a model.',hours:16};
  const r=report?.report;
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>${esc(a.name)}</h1>
-  <p class="lede">${passed===a.checks.length?`Passed all ${passed} checks.`:`${passed} of ${a.checks.length} checks passed; it can’t be shared until they all pass.`} ${a.provenance==='eve-generated'||a.provenance==='agent-generated'?'Written by the coding agent from your brief.':'Built from the offline reference template.'}</p>
+  <p class="lede">${passed===a.checks.length?`Passed all ${passed} checks.`:`${passed} of ${a.checks.length} checks passed; it can’t be shared until they all pass.`} ${a.provenance==='eve-generated'||a.provenance==='agent-generated'?'Written by the coding agent from your brief.':'Built from the offline reference template.'}${a.requirementId?` Filed in 8090’s Software Factory as requirement ${esc(String(a.requirementId).slice(0,12))}; the tool carries that link wherever it goes.`:''}</p>
   <ul class="log">${a.checks.map((c:any)=>`<li class="${c.passed?'':'bad'}">${ic('check')}${esc(c.name)}</li>`).join('')}</ul>
   <div class="actions"><button data-act="runsrc">Run on the ocean sample</button><button data-act="openlocal">Open in editor</button></div>
   ${r?`<p>${r.rows.toLocaleString()} readings, ${r.missingTimestamps.length} missing timestamps, ${r.duplicateRows} duplicate rows and ${r.missingValues} missing values.</p>`:''}

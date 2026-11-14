@@ -17,7 +17,7 @@ export async function acceptCandidate(s:Store,jobId:string,token:string,source:s
  const checks=await verifySource(source);
  if(!checks.every(x=>x.passed)){job.events.push('Candidate failed independent checks; repair required.');s.put('job',job.id,job);return {accepted:false,checks};}
  const owner=s.get<User>('user',job.owner)!;
- const a:Artifact={id:randomUUID(),name:'telemetry-inspector',owner:owner.id,company:owner.company,source,hash:hash(source),sourceBinding:marine,bindingHash:hash(marine),checks,checksHash:hash(checks),maintainer:owner.id,class:'data-quality',capabilities:['time-series','csv','completeness'],provenance:job.provider==='eve'?'eve-generated':job.provider==='claude'?'agent-generated':'reference-template',createdAt:new Date().toISOString()};
+ const a:Artifact={id:randomUUID(),name:'telemetry-inspector',owner:owner.id,company:owner.company,source,hash:hash(source),sourceBinding:marine,bindingHash:hash(marine),checks,checksHash:hash(checks),maintainer:owner.id,class:'data-quality',capabilities:['time-series','csv','completeness'],provenance:job.provider==='eve'?'eve-generated':job.provider==='claude'?'agent-generated':'reference-template',...(job.requirementId?{requirementId:job.requirementId}:{}),createdAt:new Date().toISOString()};
  s.put('artifact',a.id,a);job.status='ready';job.artifactId=a.id;job.events.push('7 independent checks passed. Immutable candidate ready for your review.');s.put('job',job.id,job);
  return {accepted:true,checks,artifactId:a.id};
  }finally{candidateLocks.delete(jobId);}
@@ -28,7 +28,7 @@ export async function startBuild(s:Store,u:User,prompt:string) {
  s.put('job',job.id,job);
  // One bounded asynchronous job. Status survives restarts; interrupted jobs fail explicitly on startup.
  void (async()=>{try{
-  if(process.env.SOFTWARE_FACTORY_API_KEY){const requirement=await recordRequirement(job.id,prompt,contract);job.events.push('8090 requirement recorded: '+(requirement?.id||requirement?.document_id||'created'));s.put('job',job.id,job);}
+  if(process.env.SOFTWARE_FACTORY_API_KEY){const requirement=await recordRequirement(job.id,prompt,contract);const rid=String(requirement?.id||requirement?.document_id||'');if(rid)job.requirementId=rid;job.events.push('8090 requirement recorded: '+(rid||'created'));s.put('job',job.id,job);}
   if(job.provider==='claude'){
    // live: Claude Code writes the tool; the same seven checks decide; failures go back for repair (3 attempts)
    let feedback='';
