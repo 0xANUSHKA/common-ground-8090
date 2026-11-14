@@ -4,10 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Common Ground</title>
-<meta name="description" content="Common Ground is a software factory for venture portfolios. Agents build tools against the fund’s shared ontology, so a tool checked at one company runs at the next.">
+<meta name="description" content="Common Ground is a software factory for venture portfolios. Every tool an agent builds is checked, sealed, and suggested to whoever else in the portfolio should have it.">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="preload" as="image" href="./img/night.webp" type="image/webp" fetchpriority="high">
 <link rel="icon" href="./logo.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&display=swap">
 <link rel="stylesheet" href="./base.css">
 <link rel="stylesheet" href="./film/section.css">
 <link rel="stylesheet" href="./site.css">
@@ -22,15 +24,16 @@
 </header>
 
 <main>
+  <!-- image: Europe at night, from the ISS -->
   <section class="hero has-bg bg-night" id="top">
     <div class="hero-copy">
       <h1>One software factory for the whole portfolio.</h1>
-      <p class="lede">Agents at your companies build tools against the fund’s shared ontology. The factory checks each one, seals it, and suggests who else in the portfolio should have it.</p>
+      <p class="lede">Agents at your companies build tools every day. The factory checks each one, seals the exact version, and reads the fund’s ontology to find who else should have it.</p>
       <div class="hero-act">
         <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
         <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
       </div>
-      <p class="more"><a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a><span>The extension also runs in Cursor.</span></p>
+      <p class="more"><a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a><span>Also runs in Cursor.</span></p>
     </div>
     <div class="hero-film">
 <section class="film" id="film" data-tour-root data-driver="manual" data-captions="off" aria-label="Common Ground, a short film">
@@ -255,89 +258,103 @@
     </div>
   </section>
 
-  <section class="sec" id="factory">
+  <!-- image: Nile delta at night, behind the factory line -->
+  <section class="sec has-bg bg-nile" id="factory" data-lazy-bg>
     <div class="wrap">
       <h2>Building software is cheap now. <span>Getting it to the right people isn’t.</span></h2>
-      <p class="sub">So the factory doesn’t stop when the code passes. Every tool runs the same line, and the line ends by deciding who else should have it.</p>
+      <p class="sub">So the line doesn’t stop when the code passes. It ends by deciding who else should have it.</p>
+      <div class="phases" aria-hidden="true"><span>Build</span><span class="is-dist">Distribute</span></div>
       <ol class="line">
-        <li><span class="ln-n">1</span><h3>Requirement</h3><p>“Find missing timestamps and duplicates in a sensor CSV. Never guess a timezone.” Filed in 8090’s Software Factory before any code.</p></li>
-        <li><span class="ln-n">2</span><h3>Blueprint</h3><p>The agent plans against the standard first: it reads time and value, returns the completeness report, and must pass seven named checks.</p></li>
-        <li><span class="ln-n">3</span><h3>Built</h3><p>One function, written to the blueprint. It never sees Saildrone’s column names.</p></li>
-        <li><span class="ln-n">4</span><h3>Seven checks</h3><p>In a sandbox the agent can’t touch, on real NOAA ocean and NREL solar data. Wrong units row: 1,439 rows. <span class="is-bad">Fails.</span> Repaired: <span class="is-ok">7 of 7.</span></p></li>
-        <li><span class="ln-n">5</span><h3>Sealed</h3><p>The code that passed is fixed by its hash, c54c31b, and linked back to its requirement and blueprint.</p></li>
-        <li><span class="ln-n">6</span><h3>Suggested</h3><p>The factory reads the fund’s ontology. Palmetto maps its solar readings to the same standard, and Maya adapted a tool like this last month. It suggests Maya.</p></li>
-        <li><span class="ln-n">7</span><h3>Rebound</h3><p>At Palmetto the mapping swaps in: measured_on for time, ac_power__423 for value. Same hash.</p></li>
-        <li><span class="ln-n">8</span><h3>Counted</h3><p>The fund sees one reuse and about 16 hours not rebuilt. A copy that drifts from the sealed version is flagged.</p></li>
+        <li><span class="ln-n">1</span><h3>Requirement</h3><p>“Find missing timestamps and duplicates. Never guess a timezone.” Filed in 8090’s Software Factory before any code.</p></li>
+        <li><span class="ln-n">2</span><h3>Blueprint</h3><p>Planned against the fund’s standard: read time and value, return a completeness report, pass seven named checks.</p></li>
+        <li><span class="ln-n">3</span><h3>Built</h3><p>One function, written to the blueprint. It never sees a company’s column names.</p></li>
+        <li><span class="ln-n">4</span><h3>Seven checks</h3><p>In a sandbox the agent can’t touch, on real NOAA and NREL data. First run <span class="is-bad">6 of 7</span>. Repaired, <span class="is-ok">7 of 7</span>.</p></li>
+        <li><span class="ln-n">5</span><h3>Sealed</h3><p>The passing code is fixed by its hash, c54c31b, with its requirement and blueprint attached.</p></li>
+        <li class="is-peak"><span class="ln-n">6</span><h3>Suggested</h3><p>The factory reads the ontology. Palmetto maps its solar data to the same standard, and Maya adapted a tool like this last month. It suggests Maya.</p></li>
+        <li><span class="ln-n">7</span><h3>Rebound</h3><p>Palmetto’s mapping swaps in: measured_on for time, ac_power__423 for value. Same hash.</p></li>
+        <li><span class="ln-n">8</span><h3>Counted</h3><p>Each reuse is counted in hours not rebuilt. A copy that drifts from the seal is flagged.</p></li>
       </ol>
     </div>
   </section>
 
-  <section class="sec has-bg bg-streams" id="reuse">
+  <!-- images: a Saildrone vessel and a solar array, edge to edge -->
+  <section class="sec reuse has-bg bg-streams" id="reuse" data-lazy-bg>
     <div class="wrap">
       <h2>Built once at Saildrone. <span>Running at Palmetto.</span></h2>
-      <ol class="trace">
-        <li class="tr-step">
-          <p class="tr-where"><img class="fav" src="./film/favicons/saildrone.png" alt=""><b>Saildrone</b>ocean data</p>
-          <h3>Fabio’s agent builds telemetry-inspector.</h3>
-          <p>It finds missing, duplicate and off-grid readings before they reach a model, and passes all seven checks on real NOAA ocean and NREL solar data.</p>
-        </li>
-        <li class="tr-step">
-          <p class="tr-where"><img class="fav" src="./film/favicons/palmetto.png" alt=""><b>Palmetto</b>solar data</p>
-          <h3>Maya is offered it, and rebinds it.</h3>
-          <p>Palmetto’s mapping to the standard replaces Saildrone’s, so the checked code runs on solar data unchanged. Here public NREL solar data stands in for Palmetto’s.</p>
-        </li>
-        <li class="tr-step is-sum">
-          <p class="tr-where">Not rebuilt</p>
-          <h3>16 hours not spent rebuilding it at Palmetto.</h3>
-          <p>Reused three times in the demo fund so far, 48 hours in all.</p>
-        </li>
-      </ol>
+    </div>
+    <div class="diptych">
+      <figure><img src="./img/saildrone-arctic.webp" alt="An orange Saildrone vessel at sea" width="2000" height="1500" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/saildrone.png" alt=""><b>Saildrone</b>ocean data</figcaption></figure>
+      <figure><img src="./img/solar-desert.webp" alt="Solar panels in the desert" width="2000" height="1235" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/palmetto.png" alt=""><b>Palmetto</b>solar data</figcaption></figure>
+    </div>
+    <div class="wrap">
+      <dl class="tally">
+        <div><dt>hours not rebuilt at Palmetto</dt><dd>16</dd></div>
+        <div><dt>hours across the demo fund, three reuses</dt><dd>48</dd></div>
+      </dl>
+      <p class="tally-note">Public NREL solar data stands in for Palmetto’s own.</p>
     </div>
   </section>
 
-  <section class="sec has-bg bg-veins" id="standard">
-    <div class="wrap std">
-      <div class="std-copy">
-        <h2>The ontology is the factory’s context.</h2>
-        <p class="sub">The fund holds one shared standard and each company maps its data to it once. Tools are written against these fields, not against any one company’s columns. That is what makes them portable.</p>
-        <dl class="std-cos">
-          <div><dt class="is-ok">Mapped</dt><dd><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span><span><img class="fav" src="./film/favicons/mast.png" alt="">Mast Reforestation</span></dd></div>
-          <div><dt class="is-wait">Invited</dt><dd><span><img class="fav" src="./film/favicons/groq.svg" alt="">Groq</span><span><img class="fav" src="./film/favicons/netskope.webp" alt="">Netskope</span></dd></div>
+  <!-- images: leaf venation behind; each mapped company's own work in a strip -->
+  <section class="sec has-bg bg-veins" id="standard" data-lazy-bg>
+    <div class="wrap">
+      <div class="std">
+        <div class="std-copy">
+          <h2>The ontology is the factory’s context.</h2>
+          <p class="sub">The fund holds one standard. Each company maps its data to it once. Tools are written against the standard, never a company’s columns, so they travel.</p>
+        </div>
+        <figure class="std-map">
+          <figcaption><img class="logo" src="./logo.svg" alt=""><b>Sensor time-series v1</b><span>held by the fund</span></figcaption>
+          <table class="map">
+            <thead><tr><th scope="col">Field</th><th scope="col"><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span><small>NOAA mission 1045</small></th><th scope="col"><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span><small>NREL PVDAQ sample</small></th></tr></thead>
+            <tbody>
+              <tr><th scope="row">time</th><td>time</td><td>measured_on</td></tr>
+              <tr><th scope="row">value</th><td>WIND_<wbr>SPEED_<wbr>MEAN</td><td>ac_power_<wbr>_423</td></tr>
+              <tr><th scope="row">unit</th><td>m s-1, in row two</td><td>kept separately</td></tr>
+              <tr><th scope="row">time basis</th><td>UTC</td><td>local</td></tr>
+              <tr><th scope="row">cadence</th><td>1 minute</td><td>1 minute</td></tr>
+            </tbody>
+          </table>
+          <p class="std-note">The public samples’ own column names. Carry Saildrone’s units-row setting to Palmetto and one reading vanishes; the binding check refuses it.</p>
+        </figure>
+      </div>
+      <ul class="mapped" aria-label="Mapped to the standard">
+        <li><figure><img src="./img/saildrone-dock.webp" alt="A Saildrone vessel at a dock" width="2000" height="1123" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone<small>mapped</small></figcaption></figure></li>
+        <li><figure><img src="./img/solar-aerial.webp" alt="A solar farm from above" width="2000" height="1125" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto<small>mapped</small></figcaption></figure></li>
+        <li><figure><img src="./img/seedlings.webp" alt="Pine seedlings for reforestation" width="2000" height="1334" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/mast.png" alt="">Mast Reforestation<small>mapped</small></figcaption></figure></li>
+      </ul>
+      <p class="mapped-more"><b>Invited</b> Groq, Netskope</p>
+      <div class="prims">
+        <h3>What the ontology gives a fund</h3>
+        <dl>
+          <div><dt>A standard</dt><dd>The fields every tool is written against, versioned.</dd></div>
+          <div><dt>A mapping per company</dt><dd>Its own columns, bound to the standard once.</dd></div>
+          <div><dt>Three permissions per person</dt><dd>Can share. Can share across the portfolio. Receives.</dd></div>
+          <div><dt>Grants</dt><dd>Named people, one exact version, an expiry date.</dd></div>
+          <div><dt>Reuse</dt><dd>The measure. Every rebind is counted; drifted copies are flagged.</dd></div>
         </dl>
       </div>
-      <figure class="std-map">
-        <figcaption><img class="logo" src="./logo.svg" alt=""><b>Sensor time-series v1</b><span>held by the fund</span></figcaption>
-        <table class="map">
-          <thead><tr><th scope="col">Field</th><th scope="col"><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span><small>NOAA mission 1045</small></th><th scope="col"><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span><small>NREL PVDAQ sample</small></th></tr></thead>
-          <tbody>
-            <tr><th scope="row">time</th><td>time</td><td>measured_on</td></tr>
-            <tr><th scope="row">value</th><td>WIND_<wbr>SPEED_<wbr>MEAN</td><td>ac_power_<wbr>_423</td></tr>
-            <tr><th scope="row">unit</th><td>m s-1, in row two</td><td>kept separately</td></tr>
-            <tr><th scope="row">time basis</th><td>UTC</td><td>local</td></tr>
-            <tr><th scope="row">cadence</th><td>1 minute</td><td>1 minute</td></tr>
-          </tbody>
-        </table>
-        <p class="std-note">Column names are the real public samples’ own. Copy Saildrone’s units-row setting to Palmetto and one solar reading disappears. The binding check refuses it.</p>
-      </figure>
     </div>
   </section>
 
-  <section class="sec has-bg bg-outflow" id="spread">
+  <!-- image: Mackenzie River outflow -->
+  <section class="sec has-bg bg-outflow" id="spread" data-lazy-bg>
     <div class="wrap">
       <h2>One link puts the factory in every editor.</h2>
       <ol class="spread">
-        <li><span class="sp-n">1</span><h3>The fund</h3><p>Sets the standard and sends one link to its portfolio companies.</p></li>
-        <li><span class="sp-n">2</span><h3>Each company</h3><p>Maps its data once and sends its own link to its engineers.</p></li>
-        <li><span class="sp-n">3</span><h3>Their engineers</h3><p>Install the extension. Every tool their agents finish goes down the line and is offered to the people who could use it.</p></li>
+        <li><span class="sp-n">1</span><h3>The fund</h3><p>Sets the standard and sends one link to its companies.</p></li>
+        <li><span class="sp-n">2</span><h3>Each company</h3><p>Maps its data once and sends a link to its engineers.</p></li>
+        <li><span class="sp-n">3</span><h3>Their engineers</h3><p>Install the extension. Every tool their agents finish goes down the line.</p></li>
       </ol>
-      <p class="more spread-more">Every tool off the line, every reuse and every hour saved shows up in the fund’s console. <a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
+      <p class="more spread-more">The fund sees every tool, reuse and hour saved in one console. <a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
     </div>
   </section>
 
-  <section class="sec" id="security">
+  <!-- image: the 1901 Eastern Telegraph cable map, inverted to sit on the dark page -->
+  <section class="sec has-bg bg-telegraph" id="security" data-lazy-bg>
     <div class="wrap">
       <h2>Delivery is checked too.</h2>
-      <p class="sub">The factory only delivers to a name. Pick a person to run the same check the server runs.</p>
+      <p class="sub">Tools go to named people only. Pick one and run the check the server runs.</p>
       <div class="gate" data-gate>
         <div class="gate-left">
           <p class="gate-tool"><span class="cg-lg" data-lilguy="fabio-sd"></span><span><b>telemetry-inspector</b><small>c54c31b · Fabio · <img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</small></span><em>7 of 7 checks</em></p>
@@ -361,9 +378,10 @@
     </div>
   </section>
 
-  <section class="sec end has-bg bg-deep">
+  <!-- image: Webb’s First Deep Field -->
+  <section class="sec end has-bg bg-deep" data-lazy-bg>
     <div class="wrap">
-      <h2>Build it at one company. Run it at the next.</h2>
+      <h2>Build it at one company. <span>Run it at the next.</span></h2>
       <div class="hero-act">
         <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
         <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
@@ -375,9 +393,11 @@
 
 <footer class="foot">
   <div class="wrap">
-    <span>EVOLVE 2026 · MIT · <a href="https://github.com/0xANUSHKA/common-ground-8090">Source</a></span>
-    <span>Favicons belong to their companies. Public Social Capital investment references; people and sharing are illustrative. Sample data: NOAA PMEL (CC0), NREL PVDAQ (CC BY 4.0).</span>
-    <span>Images: Europe at night, ISS crew, NASA · Braided streams, Katmai National Park · Mackenzie River outflow, Landsat 8, NASA/USGS · Walnut leaf venation, <a href="https://commons.wikimedia.org/wiki/File:Macro_image_-_Walnut_Leaf_-_Venation_Structure.jpg">Cristian V.</a>, CC BY 4.0 · Webb’s First Deep Field, NASA, ESA, CSA, STScI · Farmland, Minnesota, NASA Earth Observatory.</span>
+    <p class="foot-brand"><img class="logo" src="./logo.svg" alt=""><b>Common Ground</b><span>Built at 8090 EVOLVE 2026 · MIT · <a href="https://github.com/0xANUSHKA/common-ground-8090">Source</a></span></p>
+    <div class="foot-credits">
+      <p>Favicons belong to their companies. Companies are public Social Capital investment references; people and sharing are illustrative. Sample data: NOAA PMEL (CC0), NREL PVDAQ (CC BY 4.0).</p>
+      <p>Images: Europe at night, ISS crew, NASA · Nile delta at night, ISS crew, NASA · Saildrone vessels in the Arctic and at the S-MODE dock, NOAA · Solar array in the desert, public domain · Solar farm at Krishnapuram Tatipudi Water Works, Wikimedia Commons, CC BY-SA 4.0 · Pine seedlings, USDA Forest Service · Farmland, Minnesota, NASA Earth Observatory · Braided streams, Katmai National Park · Walnut leaf venation, <a href="https://commons.wikimedia.org/wiki/File:Macro_image_-_Walnut_Leaf_-_Venation_Structure.jpg">Cristian V.</a>, CC BY 4.0 · Mackenzie River outflow, Landsat 8, NASA/USGS · Eastern Telegraph Company cable map, 1901, public domain · Webb’s First Deep Field, NASA, ESA, CSA, STScI.</p>
+    </div>
   </div>
 </footer>
 

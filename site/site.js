@@ -7,6 +7,13 @@ import { paint } from './film/lilguy.js';
 import { gate } from './gate.js';
 
 paint(document.querySelector('main'));
+
+// below-the-fold backgrounds load only as they come near the viewport (site.css hides them until .is-near)
+const lazy = document.querySelectorAll('[data-lazy-bg]');
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-near'); io.unobserve(e.target); } }), { rootMargin: '600px 0px' });
+  lazy.forEach((el) => io.observe(el));
+} else lazy.forEach((el) => el.classList.add('is-near'));
 gate(document.querySelector('[data-gate]'));
 
 const root = document.getElementById('film');

@@ -47,7 +47,7 @@ button{font:inherit}
 .cg-lg{display:inline-block;flex:none;width:18px;height:18px}
 .cg-lg svg.lg{display:block;width:100%;height:100%;stroke:none;overflow:visible}
 
-.eyebrow{margin:0 0 14px;font:500 12px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.eyebrow{margin:0 0 14px;font:500 12.5px/1 var(--font);letter-spacing:.02em;color:var(--faint)}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* signed-in / signed-out corner of the top bar (nav.js) */
