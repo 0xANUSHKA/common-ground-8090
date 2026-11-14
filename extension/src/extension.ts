@@ -29,7 +29,7 @@ export function activate(context:vscode.ExtensionContext){
  }
  async function hosted(path:string,method='GET',body?:unknown){
   // The hosted routes the view needs, and nothing else.
-  if(!/^(me|shared|tools|tools\/[a-z0-9]+\/(grants|package|uses)|grants\/[a-z0-9]+|orgs\/[a-z0-9]+)$/.test(path))throw new Error('Unsupported route');
+  if(!/^(me|shared|suggest|tools|tools\/[a-z0-9]+\/(grants|package|uses)|grants\/[a-z0-9]+|orgs\/[a-z0-9]+)$/.test(path))throw new Error('Unsupported route');
   if(!['GET','POST','DELETE'].includes(method))throw new Error('Unsupported method');
   const token=await context.secrets.get('hostedToken');if(!token)throw Object.assign(new Error('Sign in to Common Ground first.'),{status:401});
   const response=await fetch(`${server()}/api/${path}`,{method,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:method==='GET'?undefined:JSON.stringify(body??{}),signal:AbortSignal.timeout(30000)});

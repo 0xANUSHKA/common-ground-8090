@@ -101,19 +101,21 @@ function builtView(){
    :`${cos.length>1?`<label for="co">Company</label><select id="co">${cos.map((c:any)=>`<option value="${esc(c.id)}" ${c.id===share.orgId?'selected':''}>${esc(c.name)}</option>`).join('')}</select>`:''}
     <label for="desc">What it does</label><input id="desc" value="${esc(share.description)}">
     <label for="hours">Hours it took to build</label><input id="hours" type="number" min="1" max="400" value="${share.hours}" class="short">
-    <label>Who gets it</label>${peoplePicker()}
-    <div class="actions"><button class="primary" data-act="share" ${busy?'disabled':''}>Share this version</button></div>
+    <h2>Who should get it</h2><p class="muted">The factory read your portfolio’s ontology: who maps their data to ${esc(share.standard||'the standard')}, who is allowed to receive, and who has reused something like this before.</p>${peoplePicker()}
+    <div class="actions"><button class="primary" data-act="share" ${busy?'disabled':''}>Share this version${share.pick.size?` with ${share.pick.size}`:''}</button><button data-act="resuggest">Suggest again</button></div>
     <p class="muted">Only this checked version is shared, and only with the people you pick. You can revoke it from your dashboard.</p>`}`;
 }
 function peoplePicker(){
- if(!share.people)return '<p class="muted">Loading people…</p>';
- const co=orgs.find(o=>o.id===share.orgId);
- return `<ul class="picks"><li><label><input type="checkbox" data-team ${share.team?'checked':''}> Everyone at ${esc(co?.name||'your company')}</label></li>${share.people.map((p:any)=>`<li><label><input type="checkbox" data-person="${esc(p.key)}" ${share.pick.has(p.key)?'checked':''}> ${person(p.user)}<span>${esc(p.user.name)}<small>${esc(p.company)}</small></span></label></li>`).join('')}</ul>`;
+ if(!share.people)return '<p class="muted">Reading the portfolio’s ontology…</p>';
+ if(!share.people.length)return `<p class="muted">${esc(share.note||'Nobody else can receive this yet. Invite your team, or map your data to join the portfolio.')}</p>`;
+ return `<ul class="picks">${share.people.map((p:any)=>`<li><label><input type="checkbox" data-person="${esc(p.key)}" ${share.pick.has(p.key)?'checked':''}> ${p.user?person(p.user):logo(p.company)}<span>${esc(p.user?.name||p.label)}${p.portfolio?` <small style="display:inline">· ${esc(p.company.name)}</small>`:''}<small>${p.reasons.map(esc).join(' ')}</small></span></label></li>`).join('')}</ul>${share.note?`<p class="muted">${esc(share.note)}</p>`:''}`;
 }
+// the end of the factory cycle: suggest who else should get this, from the fund's ontology
 async function loadPeople(){
- const v=await hosted(`orgs/${share.orgId}`);
- share.people=[...v.members.filter((m:any)=>m.user.id!==me.id&&m.receiver).map((m:any)=>({key:m.user.id,user:m.user,company:'Your team',body:{userId:m.user.id}})),
-  ...(v.peerPeople||[]).map((p:any)=>({key:`${p.user.id}:${p.companyId}`,user:p.user,company:(v.peers||[]).find((c:any)=>c.id===p.companyId)?.name||'Portfolio',body:{userId:p.user.id,companyId:p.companyId}}))];
+ const r=await hosted('suggest','POST',{orgId:share.orgId,name:share.name,text:share.description});
+ share.standard=r.standard;share.note=r.note;
+ share.people=r.suggestions.map((x:any,i:number)=>({key:x.user?`${x.user.id}:${x.target.companyId||''}`:`team:${x.target.orgId}`,user:x.user,label:x.label,company:x.company,portfolio:!!x.portfolio,reasons:x.reasons,body:x.target}));
+ share.pick=new Set(share.people.slice(0,3).map((p:any)=>p.key));share.team=false;
  render();
 }
 function render(){
@@ -126,7 +128,7 @@ root.addEventListener('input',e=>{const t=e.target as HTMLInputElement;if(t.id==
 root.addEventListener('change',e=>{const t=e.target as HTMLInputElement;
  if(t.id==='co'){share.orgId=t.value;share.people=null;share.pick.clear();render();void loadPeople();}
  if(t.dataset.team!==undefined)share.team=t.checked;
- if(t.dataset.person){t.checked?share.pick.add(t.dataset.person):share.pick.delete(t.dataset.person);}
+ if(t.dataset.person){t.checked?share.pick.add(t.dataset.person):share.pick.delete(t.dataset.person);render();}
 });
 root.addEventListener('click',e=>{
  const el=(e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-shared],[data-local]');if(!el)return;
@@ -167,15 +169,15 @@ root.addEventListener('click',e=>{
     const t=await local('/audio-brief','POST',{base64,mime});brief=t.text;say('Transcribed with ElevenLabs Scribe. Edit the brief, then build.');});
    input.click();
   }
+  if(act==='resuggest'){share.people=null;render();await loadPeople();return;}
   if(act==='runsrc')report=await local(`/artifacts/${built.id}/run`,'POST',{challenge:false});
   if(act==='openlocal'){const r=await bridge('openArtifact',{artifactId:built.id});if(!r.cancelled)say('Saved and opened in a new window.');}
   if(act==='share'){
    const picks=(share.people||[]).filter((p:any)=>share.pick.has(p.key));
-   if(!share.team&&!picks.length)throw new Error('Pick your team or at least one person.');
-   const {tool}=await bridge('publishHosted',{artifactId:built.id,orgId:share.orgId,name:built.name,description:share.description,hours:share.hours});
-   if(share.team)await hosted(`tools/${tool.id}/grants`,'POST',{orgId:share.orgId});
+   if(!picks.length)throw new Error('Pick at least one.');
+   const tool=share.toolId?{id:share.toolId}:(await bridge('publishHosted',{artifactId:built.id,orgId:share.orgId,name:built.name,description:share.description,hours:share.hours})).tool;share.toolId=tool.id;
    for(const p of picks)await hosted(`tools/${tool.id}/grants`,'POST',p.body);
-   say(`Shared ${built.name} with ${[share.team?'your team':'',...picks.map((p:any)=>p.user.name)].filter(Boolean).join(', ')}.`);
+   say(`Shared ${built.name} with ${picks.map((p:any)=>p.user?.name||p.label).join(', ')}. Each of them gets it bound to their own company’s mapping.`);share.people=share.people.filter((p:any)=>!share.pick.has(p.key));share.pick=new Set();
   }
  });
 });

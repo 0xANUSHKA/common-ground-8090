@@ -385,6 +385,54 @@ on('GET', 'shared', async (req, res, me) => {
   return { shared: out };
 });
 
+// the factory's last step: who should get this, other than its maker. Candidates come from the fund's ontology:
+// people at companies mapped to the same standard whose policies let them receive, plus the maker's own team;
+// ranked by fit (their mapping is verified), by what they've reused before, and by how close those tools are to this one.
+const words = (t) => new Set(String(t || '').toLowerCase().match(/[a-z]{4,}/g) || []);
+on('POST', 'suggest', async (req, res, me) => {
+  const b = req.body || {};
+  const org = await getJSON(K.org(String(b.orgId || ''))), mine = org && await membership(org.id, me.id);
+  if (!org || org.kind !== 'company' || !mine) throw fail(404, 'Pick your company.');
+  const tool = b.toolId ? await getJSON(K.tool(String(b.toolId))) : null;
+  if (tool && tool.orgId !== org.id) throw fail(404, 'Not found.');
+  const about = words(`${b.name || tool?.name || ''} ${b.text || tool?.description || ''}`);
+  const already = new Set((tool?.uses || []).map((x) => x.uid)); if (tool) for (const g of (await getMany((await cmd('SMEMBERS', K.tgrants(tool.id))).map(K.grant))).filter((g) => g && !g.revoked)) already.add(g.target.userId || `org:${g.target.orgId}`);
+  const out = [];
+  // what each person has reused before (the fund's reuse history is the factory's memory)
+  const fund = org.fundId && await getJSON(K.org(org.fundId));
+  const history = fund ? (await cmd('LRANGE', K.reuse(fund.id), 0, 199)).map((x) => JSON.parse(x)) : (await cmd('LRANGE', K.reuse(org.id), 0, 199)).map((x) => JSON.parse(x));
+  const reusedBy = (name) => history.filter((e) => e.by === name);
+  const affinity = (name) => { let best = null, score = 0; for (const e of reusedBy(name)) { const o = [...words(e.tool)].filter((w) => about.has(w)).length + (e.from?.id === org.id ? 1 : 0); if (o >= score) { score = o; best = e; } } return { score, best }; };
+  // the maker's own team
+  const ms = await members(org.id), teamUsers = (await getMany(Object.keys(ms).map(K.user))).filter(Boolean);
+  if (!already.has(`org:${org.id}`) && teamUsers.length > 1) out.push({ kind: 'team', target: { orgId: org.id }, label: `Everyone at ${org.name}`, company: { id: org.id, name: org.name, iconUrl: org.iconUrl }, score: 2, reasons: [`${teamUsers.length - 1} ${teamUsers.length === 2 ? 'teammate' : 'teammates'} can receive it today.`] });
+  for (const u of teamUsers) {
+    if (u.id === me.id || already.has(u.id) || already.has(`org:${org.id}`) || !ms[u.id].receiver) continue;
+    const a = affinity(u.name);
+    out.push({ kind: 'person', target: { userId: u.id }, user: pub(u), company: { id: org.id, name: org.name, iconUrl: org.iconUrl }, score: 1 + a.score, reasons: [`Your team at ${org.name}.`, ...(a.best ? [`Reused ${a.best.tool} ${Math.max(1, Math.round((Date.now() - Date.parse(a.best.at)) / DAY))}d ago.`] : [])] });
+  }
+  // across the portfolio, through the ontology
+  if (fund && org.status === 'joined' && mine.exporter) {
+    const fs = { ...DEFAULTS.fund, ...fund.settings };
+    const peers = (await getMany((await cmd('SMEMBERS', K.fundcos(fund.id))).map(K.org))).filter((c) => c && c.id !== org.id);
+    for (const c of peers) {
+      const cs = { ...DEFAULTS.company, ...c.settings }, os = { ...DEFAULTS.company, ...org.settings };
+      const open = fs.enabled && fs.crossCompany && c.status === 'joined' && cs.participating && os.participating && cs.receive === 'portfolio' && (!cs.peers || cs.peers.includes(org.id));
+      if (!open) continue;
+      const m = c.mapping?.binding, mapLine = m ? `${c.name} maps ${m.timeColumn} → time and ${m.signalColumn} → value in ${STANDARD.name}.` : `${c.name} is mapped to ${STANDARD.name}.`;
+      const cms = await members(c.id), cu = (await getMany(Object.keys(cms).map(K.user))).filter(Boolean);
+      for (const u of cu) {
+        if (already.has(u.id) || !cms[u.id].receiver) continue;
+        const a = affinity(u.name);
+        out.push({ kind: 'person', target: { userId: u.id, companyId: c.id }, user: pub(u), company: { id: c.id, name: c.name, iconUrl: c.iconUrl }, portfolio: true, score: 3 + a.score * 2 + (cms[u.id].role !== 'member' ? 0.5 : 0), reasons: [mapLine, ...(a.best ? [`Already ${a.best.kind === 'adapt' ? 'adapted' : 'reused'} ${a.best.tool} from ${a.best.from?.name || 'the portfolio'}.`] : [])] });
+      }
+    }
+  }
+  out.sort((x, y) => y.score - x.score);
+  const blocked = !org.fundId ? 'Join a fund to suggest people across a portfolio.' : org.status !== 'joined' ? `Map ${org.name}'s data to ${STANDARD.name} to share across the portfolio.` : !mine.exporter ? 'Ask an admin to let you share across the portfolio.' : '';
+  return { standard: STANDARD.name, suggestions: out.slice(0, 6), note: blocked };
+});
+
 // someone downloaded or adapted a tool they can see: counts toward reuse, for the tool's company, theirs and the fund
 on('POST', 'tools/:id/uses', async (req, res, me, p) => {
   const t = await getJSON(K.tool(p.id)); if (!t) throw fail(404, 'Not found.');
@@ -430,10 +478,10 @@ on('POST', 'auth/demo', async (req, res) => {
     for (const [pname, gh, role] of people) { const u = { id: `u${sx}${gh}`, email: `${gh}@example.com`, name: pname, handle: gh, picture: '', createdAt: at(25), demo: true }; ppl[gh] = u; cmds.push(['SET', K.user(u.id), JSON.stringify(u)]); mem(c, u.id, role); if (role === 'owner') c.owner = u.id; }
     cmds.push(['SADD', K.fundcos(fund.id), c.id]);
   }
-  mem(co.saildrone, me.id, 'admin'); // so the demo can show a company's side too
+  mem(co.saildrone, me.id, 'admin'); ppl.you = me; // so the demo can show a company's side too, and one tool of your own
   const TOOLS = [
     ['telemetry-inspector', 'saildrone', 'fabio-sd', 'Finds missing, duplicate and off-grid readings in any sensor time series before they reach a model.', 16, [['palmetto', 'maya-pm', 'adapt', 6], ['mast', 'rhea-ml', 'download', 3], ['saildrone', 'theo-sd', 'download', 9]]],
-    ['glider-feed-qc', 'saildrone', 'theo-sd', 'Checks every vehicle’s minute-by-minute position feed for gaps, repeats and late fixes.', 24, [['saildrone', 'ines-sd', 'download', 12]]],
+    ['glider-feed-qc', 'saildrone', 'you', 'Checks every vehicle’s minute-by-minute position feed for gaps, repeats and late fixes.', 24, [['saildrone', 'ines-sd', 'download', 12]]],
     ['pv-gap-finder', 'palmetto', 'maya-pm', 'Flags dropped inverter intervals and fills short gaps without inventing peaks.', 12, [['saildrone', 'fabio-sd', 'adapt', 4], ['mast', 'jon-ms', 'download', 2]]],
     ['inverter-gap-report', 'palmetto', 'leo-pm', 'A morning report of missing inverter readings overnight, by site.', 6, []],
     ['canopy-sensor-qa', 'mast', 'rhea-ml', 'Checks soil-moisture loggers for drift and stuck values across a planting.', 10, [['palmetto', 'elli-pm', 'download', 1]]],

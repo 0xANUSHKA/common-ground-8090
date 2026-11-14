@@ -222,7 +222,7 @@ function toolPage(id) {
     + header(esc(t.name), '', `${manage ? `<button type="button" class="b is-ghost is-danger" data-act="rm-tool" data-id="${t.id}" data-name="${esc(t.name)}">Remove</button>` : ''}${mine ? `<button type="button" class="b is-primary" data-act="share" data-id="${t.id}">Share</button>` : ''}`)
     + (t.description ? `<p class="ph-desc">${esc(t.description)}</p>` : '')
     + lede(uses ? `Reused ${em(plural(uses, 'time'))} at ${em(plural(new Set(t.uses.map((u) => u.companyId)).size, 'company', 'companies'))}, about ${em(plural(uses * (t.hours || 0), 'hour'))} not spent rebuilding it.` : 'Not reused yet. Reuse shows up here as people download or adapt it.')
-    + `<div class="grid2"><div class="stack">${card('Who reused it', reuseList(evs, 20, true), '', uses ? plural(uses, 'reuse') : '')}`
+    + `<div class="grid2"><div class="stack">${mine && t.checks === 7 && V.org.kind === 'company' ? card('Who should get it next', suggestList(t), '', 'Suggested by the factory') : ''}${card('Who reused it', reuseList(evs, 20, true), '', uses ? plural(uses, 'reuse') : '')}`
     + (grants.length || manage ? card('Shared with', grants.length ? `<ul class="list">${grants.map((g) => { const p = g.target.type === 'user' ? people[g.target.userId] : null, o = g.target.type === 'org' ? (g.target.orgId === V.org.id ? V.org : null) : peer(g.target.companyId);
       return `<li>${p ? av(p) : fav(o, 'is-sm')}<span class="grow"><b>${p ? esc(p.name) : `Everyone at ${esc(o?.name || 'the company')}`}</b><small>${g.scope === 'portfolio' ? `Portfolio · ${esc(o?.name || '')}` : 'Team'}${live(g) ? ` · ${left(g.expiresAt)}` : ''}</small></span>${g.revoked ? '<span class="pill is-bad">Revoked</span>' : live(g) ? (manage || g.issuer === ME.id ? `<button type="button" class="b is-ghost" data-act="revoke" data-id="${g.id}">Revoke</button>` : '') : '<span class="pill">Expired</span>'}</li>`; }).join('')}</ul>` : empty('Not shared yet', mine ? 'Share it with your team, or with named people at other portfolio companies.' : ''), '', grants.length ? 'Revoking stops future access' : '') : '')
     + `</div><div class="stack">${card('Details', dl([author && ['Author', `${av(author)}${esc(author.name)}`], company && ['Company', `${fav(company, 'is-sm')}${esc(company.name)}`], ['Added', ago(t.createdAt)], ['Built by', t.provenance === 'agent-generated' || t.provenance === 'eve-generated' ? 'Coding agent, from a brief' : t.provenance === 'reference-template' ? 'Reference build' : t.checks === 7 ? 'The factory' : 'Registered by hand'], ...(t.requirementId ? [['Requirement', `8090 · ${esc(String(t.requirementId).slice(0, 12))}`]] : []), ['Time to build', plural(t.hours || 0, 'hour')], ['Version', t.hash ? esc(String(t.hash).slice(0, 7)) : 'Not sealed']]))}`
@@ -268,7 +268,22 @@ function render() {
   document.body.classList.remove('is-loading');
   lazy(r);
 }
+// the factory's last step: who else should get this tool, read from the portfolio's ontology (POST /api/suggest)
+function suggestList(t) {
+  const s = CACHE[`sug:${t.id}`];
+  if (!s) return `<p class="note" style="padding:12px 0">Reading the portfolio’s ontology…</p>`;
+  if (!s.suggestions.length) return `<p class="note" style="padding:12px 0">${esc(s.note || 'Everyone who could use it already has it.')}</p>`;
+  return `<ul class="list">${s.suggestions.map((x, i) => `<li>${x.user ? av(x.user) : fav(x.company, 'is-sm')}<span class="grow"><b>${esc(x.user?.name || x.label)}${x.portfolio ? `<span style="color:var(--c-faint);font-weight:400"> · ${esc(x.company.name)}</span>` : ''}</b><small style="white-space:normal">${x.reasons.map(esc).join(' ')}</small></span><button type="button" class="b" data-act="share-to" data-i="${i}" data-tool="${t.id}">Share</button></li>`).join('')}</ul>${s.note ? `<p class="note" style="margin-top:10px">${esc(s.note)}</p>` : ''}`;
+}
 async function lazy(r) { // company detail pages for a fund: load each company's people
+  if (V.org.kind === 'company' && r.page === 'tools' && r.sub) {
+    const t = V.tools.find((x) => x.id === r.sub);
+    if (t && t.owner === ME.id && t.checks === 7 && !CACHE[`sug:${t.id}`]) {
+      CACHE[`sug:${t.id}`] = await api('suggest', { method: 'POST', body: { orgId: V.org.id, toolId: t.id } }).catch(() => ({ suggestions: [], note: 'Couldn’t read suggestions.' }));
+      if (R().sub === r.sub) render();
+    }
+    return;
+  }
   if (!isFund() || !['people', 'portfolio'].includes(r.page)) return;
   const ids = r.page === 'people' ? (V.companies || []).map((c) => c.id) : r.sub ? [r.sub] : [];
   const need = ids.filter((id) => !CACHE[`co:${id}`]); if (!need.length) return;
@@ -361,6 +376,7 @@ document.addEventListener('click', async (e) => {
   if (a === 'drop-co') return confirmDo(`Remove ${esc(t.dataset.name)} from the portfolio?`, 'Cross-company shares to and from it stop now. The company keeps its own workspace and team.', 'Remove', () => api(`orgs/${V.org.id}/companies/${t.dataset.cid}`, { method: 'DELETE' }), `${t.dataset.name} removed`);
   if (a === 'save-org') { const v = (k) => $(`[data-field="${k}"]`).value; return doing(() => api(`orgs/${V.org.id}`, { method: 'PATCH', body: { name: v('name'), site: v('site') } }), 'Saved'); }
   if (a === 'rm-tool') return confirmDo(`Remove ${esc(t.dataset.name)}?`, 'Every share of it stops. Files people already downloaded stay with them.', 'Remove tool', async () => { await api(`tools/${t.dataset.id}`, { method: 'DELETE' }); history.replaceState(null, '', href(V.org.id, 'tools')); }, 'Tool removed');
+  if (a === 'share-to') { const s = CACHE[`sug:${t.dataset.tool}`], x = s?.suggestions[+t.dataset.i]; if (!x) return; delete CACHE[`sug:${t.dataset.tool}`]; return doing(() => api(`tools/${t.dataset.tool}/grants`, { method: 'POST', body: x.target }), `Shared with ${x.user?.name || x.label}. They get it bound to their own company’s mapping.`); }
   if (a === 'revoke') return doing(() => api(`grants/${t.dataset.id}`, { method: 'DELETE' }), 'Revoked. They can’t open it again.');
   if (a === 'share') return shareDialog(V.tools.find((x) => x.id === t.dataset.id));
   if (a === 'add-tool') return addToolDialog();

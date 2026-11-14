@@ -27,6 +27,8 @@ ok('portfolio share after mapping', !!post.grant, post.error);
 const names = async (n) => (await p(n, 'GET', 'shared')).shared.map((s) => `${s.tool.name}/${s.grant.scope}`);
 ok('theo receives team share', (await names('theo')).includes('telemetry-inspector/team'));
 ok('maya receives portfolio share', (await names('maya')).includes('telemetry-inspector/portfolio'));
+const sug = await p('nush', 'POST', 'suggest', { orgId: SD, name: 'telemetry gap check', text: 'missing readings' });
+ok('factory suggests recipients through the ontology', Array.isArray(sug.suggestions) && sug.suggestions.every((x) => x.user?.id !== 'local_nush') && sug.suggestions.some((x) => x.kind === 'team'), JSON.stringify(sug.suggestions.map((x) => x.label || x.user?.name)));
 const mdl = await p('maya', 'GET', `tools/${T}/package`), sdl = await p('nush', 'GET', `tools/${T}/package`);
 ok('recipient gets their own company binding, same checked code', JSON.parse(mdl.files['binding.json']).company === 'Palmetto' && mdl.files['inspector.js'] === sdl.files['inspector.js'] && mdl.hash === sdl.hash, mdl.reboundTo);
 await p('maya', 'PATCH', `orgs/${PM}`, { settings: { receive: 'company' } });
