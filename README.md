@@ -80,3 +80,25 @@ This is a **single-machine demo**, with a loopback-only server and selectable, i
 `npm run check` typechecks, runs API/policy/execution tests and builds the view/extension. `npm run agent:build` separately compiles the Eve worker. Tests exercise real data and denial paths, not animated success states. Runtime code has a memory cap and execution deadline. The independent verifier lives outside generated artifacts.
 
 Local state is `.local/common-ground.sqlite`; it persists grants, artifacts, adoption and preferences across server restarts. Restarting the server invalidates in-memory login tokens, so select your demo identity again. Unfinished jobs become visibly failed instead of silently pretending to finish.
+
+## Tools, libraries and licenses
+
+Built during EVOLVE with AI coding tools (Claude Code; Eve agents), which the rules allow.
+
+| What | Used for | License |
+|---|---|---|
+| Fastify, @fastify/static | Local builder server | MIT |
+| QuickJS (quickjs-emscripten) | Sandbox that runs the seven checks | MIT |
+| Eve (eve) | Build agent framework | Apache-2.0 |
+| Vercel AI SDK (ai), @vercel/connect | Model calls through the Vercel AI Gateway | Apache-2.0 |
+| HydraDB SDK (@hydradb/sdk) | Company context collections for fit evidence | See package |
+| ElevenLabs Scribe (API) | Audio brief transcription | ElevenLabs terms |
+| csv-parse, zod, dotenv | Parsing, validation, config | MIT, MIT, BSD-2-Clause |
+| esbuild, tsx, TypeScript, Vite, @vscode/vsce | Build and packaging | MIT, MIT, Apache-2.0, MIT, MIT |
+| Vercel (hosting, functions), Upstash Redis | The hosted site and API (`site/`) | Services |
+| Google Identity (OAuth 2.0) | Sign-in | Service |
+| Geist (Vercel) | Typeface | SIL Open Font License 1.1 |
+| Lucide icons | Console and site icons | ISC (`site/dashboard/LUCIDE-LICENSE`) |
+| Wikimedia Commons images | Site backgrounds: NASA ISS and Landsat 8, NPS Katmai, NASA Earth Observatory, NASA/ESA/CSA/STScI Webb (public domain); walnut leaf venation by Cristian V. (CC BY 4.0) | As listed |
+| Company favicons | Portfolio company marks (illustrative) | Belong to their companies |
+| NOAA PMEL Saildrone data, NREL PVDAQ data | The checks' sample datasets | CC0, CC BY 4.0 (`fixtures/DATA_LICENSES.md`) |
