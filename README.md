@@ -144,3 +144,5 @@ Latest implementation and deployment handoff: [NOTE_FOR_CONNOR_AGENT.md](NOTE_FO
 ## Current two-person demo
 
 Use [the fictional portfolio scenario](docs/DEMO-SCENARIO.md) and [the five-minute runbook](docs/DEMO-VIDEO.md). Anushka creates Meridian Frontier Fund and Pelagic Robotics; Connor creates Helioforge Energy using the fund company invitation. Save workflow briefs only after those company records exist.
+
+Prepared multi-project demo: [four working examples and rehearsal guide](docs/FOUR-PROJECT-DEMO.md). Extension 0.1.5 adds editable weather, revenue, battery and inference examples alongside the original live inspector factory.

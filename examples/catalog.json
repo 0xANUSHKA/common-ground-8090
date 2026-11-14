@@ -1,0 +1,1498 @@
+[
+  {
+    "id": "weather",
+    "title": "Weather window planner",
+    "category": "Weather & field operations",
+    "description": "Find contiguous work windows that satisfy wind, rain and duration limits.",
+    "story": "An ocean survey engineer shares a weather planner with their field team. A solar maintenance team reuses it with different operating limits.",
+    "contract": "decision-report/v1",
+    "dataNotice": "Prepared example \u00b7 synthetic inputs \u00b7 computed results",
+    "control": {
+      "label": "Maximum wind (m/s)",
+      "path": [
+        "maxWindMps"
+      ],
+      "min": 0,
+      "max": 30,
+      "step": 1
+    },
+    "scenarios": [
+      {
+        "name": "Baseline",
+        "input": {
+          "maxWindMps": 8,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": [
+            {
+              "time": "2026-11-14T00:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T01:00:00Z",
+              "windMps": 5,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T02:00:00Z",
+              "windMps": 12,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T03:00:00Z",
+              "windMps": 7,
+              "rainMm": 0.2
+            },
+            {
+              "time": "2026-11-14T04:00:00Z",
+              "windMps": 6,
+              "rainMm": 0.4
+            },
+            {
+              "time": "2026-11-14T05:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T06:00:00Z",
+              "windMps": 10,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T07:00:00Z",
+              "windMps": 3,
+              "rainMm": 0
+            }
+          ]
+        }
+      },
+      {
+        "name": "Stricter maintenance limits",
+        "input": {
+          "maxWindMps": 4,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": [
+            {
+              "time": "2026-11-14T00:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T01:00:00Z",
+              "windMps": 5,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T02:00:00Z",
+              "windMps": 12,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T03:00:00Z",
+              "windMps": 7,
+              "rainMm": 0.2
+            },
+            {
+              "time": "2026-11-14T04:00:00Z",
+              "windMps": 6,
+              "rainMm": 0.4
+            },
+            {
+              "time": "2026-11-14T05:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T06:00:00Z",
+              "windMps": 10,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T07:00:00Z",
+              "windMps": 3,
+              "rainMm": 0
+            }
+          ]
+        }
+      }
+    ],
+    "checks": [
+      {
+        "name": "Finds two qualifying contiguous windows",
+        "input": {
+          "maxWindMps": 8,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": [
+            {
+              "time": "2026-11-14T00:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T01:00:00Z",
+              "windMps": 5,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T02:00:00Z",
+              "windMps": 12,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T03:00:00Z",
+              "windMps": 7,
+              "rainMm": 0.2
+            },
+            {
+              "time": "2026-11-14T04:00:00Z",
+              "windMps": 6,
+              "rainMm": 0.4
+            },
+            {
+              "time": "2026-11-14T05:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T06:00:00Z",
+              "windMps": 10,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T07:00:00Z",
+              "windMps": 3,
+              "rainMm": 0
+            }
+          ]
+        },
+        "metric": "Candidate windows",
+        "value": 2
+      },
+      {
+        "name": "Empty schedule produces no window",
+        "input": {
+          "maxWindMps": 8,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": []
+        },
+        "metric": "Candidate windows",
+        "value": 0
+      },
+      {
+        "name": "Includes threshold boundary",
+        "input": {
+          "maxWindMps": 5,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": [
+            {
+              "time": "2026-11-14T00:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T01:00:00Z",
+              "windMps": 5,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T02:00:00Z",
+              "windMps": 12,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T03:00:00Z",
+              "windMps": 7,
+              "rainMm": 0.2
+            },
+            {
+              "time": "2026-11-14T04:00:00Z",
+              "windMps": 6,
+              "rainMm": 0.4
+            },
+            {
+              "time": "2026-11-14T05:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T06:00:00Z",
+              "windMps": 10,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T07:00:00Z",
+              "windMps": 3,
+              "rainMm": 0
+            }
+          ]
+        },
+        "metric": "Usable hours",
+        "value": 2
+      },
+      {
+        "name": "A missing hour breaks a window",
+        "input": {
+          "maxWindMps": 8,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": [
+            {
+              "time": "2026-11-14T00:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T04:00:00Z",
+              "windMps": 6,
+              "rainMm": 0.4
+            }
+          ]
+        },
+        "metric": "Candidate windows",
+        "value": 0
+      },
+      {
+        "name": "Rejects unordered timestamps",
+        "input": {
+          "maxWindMps": 8,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": [
+            {
+              "time": "2026-11-14T07:00:00Z",
+              "windMps": 3,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T06:00:00Z",
+              "windMps": 10,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T05:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T04:00:00Z",
+              "windMps": 6,
+              "rainMm": 0.4
+            },
+            {
+              "time": "2026-11-14T03:00:00Z",
+              "windMps": 7,
+              "rainMm": 0.2
+            },
+            {
+              "time": "2026-11-14T02:00:00Z",
+              "windMps": 12,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T01:00:00Z",
+              "windMps": 5,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T00:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            }
+          ]
+        },
+        "error": true
+      },
+      {
+        "name": "Rejects negative wind",
+        "input": {
+          "maxWindMps": 8,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": [
+            {
+              "time": "2026-11-14T00:00:00Z",
+              "windMps": -1,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T01:00:00Z",
+              "windMps": 5,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T02:00:00Z",
+              "windMps": 12,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T03:00:00Z",
+              "windMps": 7,
+              "rainMm": 0.2
+            },
+            {
+              "time": "2026-11-14T04:00:00Z",
+              "windMps": 6,
+              "rainMm": 0.4
+            },
+            {
+              "time": "2026-11-14T05:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T06:00:00Z",
+              "windMps": 10,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T07:00:00Z",
+              "windMps": 3,
+              "rainMm": 0
+            }
+          ]
+        },
+        "error": true
+      },
+      {
+        "name": "Stricter limits remove windows",
+        "input": {
+          "maxWindMps": 4,
+          "maxRainMm": 1,
+          "minimumHours": 2,
+          "hours": [
+            {
+              "time": "2026-11-14T00:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T01:00:00Z",
+              "windMps": 5,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T02:00:00Z",
+              "windMps": 12,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T03:00:00Z",
+              "windMps": 7,
+              "rainMm": 0.2
+            },
+            {
+              "time": "2026-11-14T04:00:00Z",
+              "windMps": 6,
+              "rainMm": 0.4
+            },
+            {
+              "time": "2026-11-14T05:00:00Z",
+              "windMps": 4,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T06:00:00Z",
+              "windMps": 10,
+              "rainMm": 0
+            },
+            {
+              "time": "2026-11-14T07:00:00Z",
+              "windMps": 3,
+              "rainMm": 0
+            }
+          ]
+        },
+        "metric": "Candidate windows",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "id": "revenue",
+    "title": "Revenue reconciler",
+    "category": "SaaS & finance operations",
+    "description": "Reconcile invoice and payment records, excluding duplicates and flagging exceptions.",
+    "story": "A SaaS engineer builds a close-of-month helper for finance. Other teammates reuse the same reconciliation rules; a portfolio company can supply its own records.",
+    "contract": "decision-report/v1",
+    "dataNotice": "Prepared example \u00b7 synthetic inputs \u00b7 computed results",
+    "control": {
+      "label": "Second invoice payment (USD)",
+      "path": [
+        "payments",
+        1,
+        "amountCents"
+      ],
+      "min": 0,
+      "max": 100000,
+      "step": 100,
+      "scale": 100,
+      "also": [
+        "payments",
+        2,
+        "amountCents"
+      ]
+    },
+    "scenarios": [
+      {
+        "name": "Baseline",
+        "input": {
+          "invoices": [
+            {
+              "id": "INV-101",
+              "customer": "Cedar",
+              "amountCents": 10000
+            },
+            {
+              "id": "INV-102",
+              "customer": "Maple",
+              "amountCents": 20000
+            },
+            {
+              "id": "INV-103",
+              "customer": "Juniper",
+              "amountCents": 30000
+            }
+          ],
+          "payments": [
+            {
+              "id": "PAY-1",
+              "invoiceId": "INV-101",
+              "amountCents": 10000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-3",
+              "invoiceId": "INV-999",
+              "amountCents": 700
+            }
+          ]
+        }
+      },
+      {
+        "name": "Second invoice paid in full",
+        "input": {
+          "invoices": [
+            {
+              "id": "INV-101",
+              "customer": "Cedar",
+              "amountCents": 10000
+            },
+            {
+              "id": "INV-102",
+              "customer": "Maple",
+              "amountCents": 20000
+            },
+            {
+              "id": "INV-103",
+              "customer": "Juniper",
+              "amountCents": 30000
+            }
+          ],
+          "payments": [
+            {
+              "id": "PAY-1",
+              "invoiceId": "INV-101",
+              "amountCents": 10000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 20000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 20000
+            },
+            {
+              "id": "PAY-3",
+              "invoiceId": "INV-999",
+              "amountCents": 700
+            }
+          ]
+        }
+      }
+    ],
+    "checks": [
+      {
+        "name": "Deduplicates before calculating outstanding",
+        "input": {
+          "invoices": [
+            {
+              "id": "INV-101",
+              "customer": "Cedar",
+              "amountCents": 10000
+            },
+            {
+              "id": "INV-102",
+              "customer": "Maple",
+              "amountCents": 20000
+            },
+            {
+              "id": "INV-103",
+              "customer": "Juniper",
+              "amountCents": 30000
+            }
+          ],
+          "payments": [
+            {
+              "id": "PAY-1",
+              "invoiceId": "INV-101",
+              "amountCents": 10000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-3",
+              "invoiceId": "INV-999",
+              "amountCents": 700
+            }
+          ]
+        },
+        "metric": "Outstanding USD",
+        "value": 450
+      },
+      {
+        "name": "Identifies unmatched payment",
+        "input": {
+          "invoices": [
+            {
+              "id": "INV-101",
+              "customer": "Cedar",
+              "amountCents": 10000
+            },
+            {
+              "id": "INV-102",
+              "customer": "Maple",
+              "amountCents": 20000
+            },
+            {
+              "id": "INV-103",
+              "customer": "Juniper",
+              "amountCents": 30000
+            }
+          ],
+          "payments": [
+            {
+              "id": "PAY-1",
+              "invoiceId": "INV-101",
+              "amountCents": 10000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-3",
+              "invoiceId": "INV-999",
+              "amountCents": 700
+            }
+          ]
+        },
+        "metric": "Unmatched USD",
+        "value": 7
+      },
+      {
+        "name": "Empty ledger reconciles to zero",
+        "input": {
+          "invoices": [],
+          "payments": []
+        },
+        "metric": "Outstanding USD",
+        "value": 0
+      },
+      {
+        "name": "Flags excess payment",
+        "input": {
+          "invoices": [
+            {
+              "id": "INV-101",
+              "customer": "Cedar",
+              "amountCents": 10000
+            },
+            {
+              "id": "INV-102",
+              "customer": "Maple",
+              "amountCents": 20000
+            },
+            {
+              "id": "INV-103",
+              "customer": "Juniper",
+              "amountCents": 30000
+            }
+          ],
+          "payments": [
+            {
+              "id": "PAY-1",
+              "invoiceId": "INV-101",
+              "amountCents": 12000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-3",
+              "invoiceId": "INV-999",
+              "amountCents": 700
+            }
+          ]
+        },
+        "metric": "Overpaid USD",
+        "value": 20
+      },
+      {
+        "name": "Rejects negative payments",
+        "input": {
+          "invoices": [
+            {
+              "id": "INV-101",
+              "customer": "Cedar",
+              "amountCents": 10000
+            },
+            {
+              "id": "INV-102",
+              "customer": "Maple",
+              "amountCents": 20000
+            },
+            {
+              "id": "INV-103",
+              "customer": "Juniper",
+              "amountCents": 30000
+            }
+          ],
+          "payments": [
+            {
+              "id": "PAY-1",
+              "invoiceId": "INV-101",
+              "amountCents": -1
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-3",
+              "invoiceId": "INV-999",
+              "amountCents": 700
+            }
+          ]
+        },
+        "error": true
+      },
+      {
+        "name": "Rejects conflicting duplicate IDs",
+        "input": {
+          "invoices": [
+            {
+              "id": "INV-101",
+              "customer": "Cedar",
+              "amountCents": 10000
+            },
+            {
+              "id": "INV-102",
+              "customer": "Maple",
+              "amountCents": 20000
+            },
+            {
+              "id": "INV-103",
+              "customer": "Juniper",
+              "amountCents": 30000
+            }
+          ],
+          "payments": [
+            {
+              "id": "PAY-1",
+              "invoiceId": "INV-101",
+              "amountCents": 10000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 6000
+            },
+            {
+              "id": "PAY-3",
+              "invoiceId": "INV-999",
+              "amountCents": 700
+            }
+          ]
+        },
+        "error": true
+      },
+      {
+        "name": "Rejects duplicate invoice IDs",
+        "input": {
+          "invoices": [
+            {
+              "id": "INV-101",
+              "customer": "Cedar",
+              "amountCents": 10000
+            },
+            {
+              "id": "INV-101",
+              "customer": "Maple",
+              "amountCents": 20000
+            },
+            {
+              "id": "INV-103",
+              "customer": "Juniper",
+              "amountCents": 30000
+            }
+          ],
+          "payments": [
+            {
+              "id": "PAY-1",
+              "invoiceId": "INV-101",
+              "amountCents": 10000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-2",
+              "invoiceId": "INV-102",
+              "amountCents": 5000
+            },
+            {
+              "id": "PAY-3",
+              "invoiceId": "INV-999",
+              "amountCents": 700
+            }
+          ]
+        },
+        "error": true
+      }
+    ]
+  },
+  {
+    "id": "battery",
+    "title": "Battery test reviewer",
+    "category": "Hard tech & manufacturing",
+    "description": "Compare cell balance, temperature and capacity against a supplied bench-test specification.",
+    "story": "A battery test engineer shares review logic with a manufacturing teammate. Robotics and energy-storage teams can reuse it with their own test specifications.",
+    "contract": "decision-report/v1",
+    "dataNotice": "Prepared example \u00b7 synthetic inputs \u00b7 computed results",
+    "control": {
+      "label": "Minimum tested capacity (Ah)",
+      "path": [
+        "spec",
+        "minCapacityAh"
+      ],
+      "min": 0,
+      "max": 100,
+      "step": 1
+    },
+    "scenarios": [
+      {
+        "name": "Baseline",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 40,
+            "minCapacityAh": 48
+          },
+          "packs": [
+            {
+              "id": "PACK-A",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 38,
+              "capacityAh": 50
+            },
+            {
+              "id": "PACK-B",
+              "cellMv": [
+                3300,
+                3380,
+                3340
+              ],
+              "peakTempC": 42,
+              "capacityAh": 49
+            },
+            {
+              "id": "PACK-C",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 56,
+              "capacityAh": 44
+            }
+          ]
+        }
+      },
+      {
+        "name": "Tighter capacity requirement",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 40,
+            "minCapacityAh": 51
+          },
+          "packs": [
+            {
+              "id": "PACK-A",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 38,
+              "capacityAh": 50
+            },
+            {
+              "id": "PACK-B",
+              "cellMv": [
+                3300,
+                3380,
+                3340
+              ],
+              "peakTempC": 42,
+              "capacityAh": 49
+            },
+            {
+              "id": "PACK-C",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 56,
+              "capacityAh": 44
+            }
+          ]
+        }
+      }
+    ],
+    "checks": [
+      {
+        "name": "Flags imbalance and thermal/capacity failures",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 40,
+            "minCapacityAh": 48
+          },
+          "packs": [
+            {
+              "id": "PACK-A",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 38,
+              "capacityAh": 50
+            },
+            {
+              "id": "PACK-B",
+              "cellMv": [
+                3300,
+                3380,
+                3340
+              ],
+              "peakTempC": 42,
+              "capacityAh": 49
+            },
+            {
+              "id": "PACK-C",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 56,
+              "capacityAh": 44
+            }
+          ]
+        },
+        "metric": "Require review",
+        "value": 2
+      },
+      {
+        "name": "Relaxed spread limit changes only that decision",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 100,
+            "minCapacityAh": 48
+          },
+          "packs": [
+            {
+              "id": "PACK-A",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 38,
+              "capacityAh": 50
+            },
+            {
+              "id": "PACK-B",
+              "cellMv": [
+                3300,
+                3380,
+                3340
+              ],
+              "peakTempC": 42,
+              "capacityAh": 49
+            },
+            {
+              "id": "PACK-C",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 56,
+              "capacityAh": 44
+            }
+          ]
+        },
+        "metric": "Require review",
+        "value": 1
+      },
+      {
+        "name": "Tighter capacity flags all three packs",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 40,
+            "minCapacityAh": 51
+          },
+          "packs": [
+            {
+              "id": "PACK-A",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 38,
+              "capacityAh": 50
+            },
+            {
+              "id": "PACK-B",
+              "cellMv": [
+                3300,
+                3380,
+                3340
+              ],
+              "peakTempC": 42,
+              "capacityAh": 49
+            },
+            {
+              "id": "PACK-C",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 56,
+              "capacityAh": 44
+            }
+          ]
+        },
+        "metric": "Require review",
+        "value": 3
+      },
+      {
+        "name": "Exact specification boundary is accepted",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 40,
+            "minCapacityAh": 48
+          },
+          "packs": [
+            {
+              "id": "EDGE",
+              "cellMv": [
+                3300,
+                3340
+              ],
+              "peakTempC": 50,
+              "capacityAh": 48
+            }
+          ]
+        },
+        "metric": "Within supplied spec",
+        "value": 1
+      },
+      {
+        "name": "Empty test batch is explicit",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 40,
+            "minCapacityAh": 48
+          },
+          "packs": []
+        },
+        "metric": "Packs tested",
+        "value": 0
+      },
+      {
+        "name": "Rejects duplicate pack IDs",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 40,
+            "minCapacityAh": 48
+          },
+          "packs": [
+            {
+              "id": "PACK-A",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 38,
+              "capacityAh": 50
+            },
+            {
+              "id": "PACK-A",
+              "cellMv": [
+                3300,
+                3380,
+                3340
+              ],
+              "peakTempC": 42,
+              "capacityAh": 49
+            },
+            {
+              "id": "PACK-C",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 56,
+              "capacityAh": 44
+            }
+          ]
+        },
+        "error": true
+      },
+      {
+        "name": "Rejects negative cell voltage",
+        "input": {
+          "spec": {
+            "maxTempC": 50,
+            "maxSpreadMv": 40,
+            "minCapacityAh": 48
+          },
+          "packs": [
+            {
+              "id": "PACK-A",
+              "cellMv": [
+                -1,
+                3310,
+                3305
+              ],
+              "peakTempC": 38,
+              "capacityAh": 50
+            },
+            {
+              "id": "PACK-B",
+              "cellMv": [
+                3300,
+                3380,
+                3340
+              ],
+              "peakTempC": 42,
+              "capacityAh": 49
+            },
+            {
+              "id": "PACK-C",
+              "cellMv": [
+                3300,
+                3310,
+                3305
+              ],
+              "peakTempC": 56,
+              "capacityAh": 44
+            }
+          ]
+        },
+        "error": true
+      }
+    ]
+  },
+  {
+    "id": "inference",
+    "title": "Inference capacity planner",
+    "category": "AI infrastructure & SaaS",
+    "description": "Size and rank compute configurations against throughput, latency and budget constraints.",
+    "story": "An infrastructure engineer shares a capacity model with an AI product team. Another portfolio company reuses the model with its own demand and benchmark assumptions.",
+    "contract": "decision-report/v1",
+    "dataNotice": "Prepared example \u00b7 synthetic inputs \u00b7 computed results",
+    "control": {
+      "label": "Daily token demand",
+      "path": [
+        "dailyTokens"
+      ],
+      "min": 0,
+      "max": 100000000,
+      "step": 1000000
+    },
+    "scenarios": [
+      {
+        "name": "Baseline",
+        "input": {
+          "dailyTokens": 10000000,
+          "maxP95Ms": 350,
+          "dailyBudgetUSD": 150,
+          "utilization": 0.6,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": 1.5,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        }
+      },
+      {
+        "name": "Lower traffic workload",
+        "input": {
+          "dailyTokens": 1000000,
+          "maxP95Ms": 350,
+          "dailyBudgetUSD": 150,
+          "utilization": 0.6,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": 1.5,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        }
+      }
+    ],
+    "checks": [
+      {
+        "name": "Chooses lowest-cost eligible configuration",
+        "input": {
+          "dailyTokens": 10000000,
+          "maxP95Ms": 350,
+          "dailyBudgetUSD": 150,
+          "utilization": 0.6,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": 1.5,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        },
+        "metric": "Selected daily USD",
+        "value": 96
+      },
+      {
+        "name": "Lower traffic changes optimal allocation",
+        "input": {
+          "dailyTokens": 1000000,
+          "maxP95Ms": 350,
+          "dailyBudgetUSD": 150,
+          "utilization": 0.6,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": 1.5,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        },
+        "metric": "Selected daily USD",
+        "value": 60
+      },
+      {
+        "name": "Insufficient budget yields no option",
+        "input": {
+          "dailyTokens": 10000000,
+          "maxP95Ms": 350,
+          "dailyBudgetUSD": 50,
+          "utilization": 0.6,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": 1.5,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        },
+        "metric": "Eligible configurations",
+        "value": 0
+      },
+      {
+        "name": "Zero demand requires no units",
+        "input": {
+          "dailyTokens": 0,
+          "maxP95Ms": 350,
+          "dailyBudgetUSD": 150,
+          "utilization": 0.6,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": 1.5,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        },
+        "metric": "Selected units",
+        "value": 0
+      },
+      {
+        "name": "Strict latency excludes all options",
+        "input": {
+          "dailyTokens": 10000000,
+          "maxP95Ms": 100,
+          "dailyBudgetUSD": 150,
+          "utilization": 0.6,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": 1.5,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        },
+        "metric": "Eligible configurations",
+        "value": 0
+      },
+      {
+        "name": "Rejects impossible utilization",
+        "input": {
+          "dailyTokens": 10000000,
+          "maxP95Ms": 350,
+          "dailyBudgetUSD": 150,
+          "utilization": 0,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": 1.5,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        },
+        "error": true
+      },
+      {
+        "name": "Rejects negative hardware price",
+        "input": {
+          "dailyTokens": 10000000,
+          "maxP95Ms": 350,
+          "dailyBudgetUSD": 150,
+          "utilization": 0.6,
+          "hardware": [
+            {
+              "name": "Edge configuration",
+              "tokensPerSecond": 64,
+              "p95Ms": 800,
+              "hourlyUSD": -1,
+              "powerW": 250
+            },
+            {
+              "name": "Accelerator configuration",
+              "tokensPerSecond": 256,
+              "p95Ms": 120,
+              "hourlyUSD": 4,
+              "powerW": 300
+            },
+            {
+              "name": "General GPU configuration",
+              "tokensPerSecond": 128,
+              "p95Ms": 300,
+              "hourlyUSD": 2.5,
+              "powerW": 400
+            }
+          ]
+        },
+        "error": true
+      }
+    ]
+  }
+]

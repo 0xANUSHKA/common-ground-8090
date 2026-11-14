@@ -11,3 +11,9 @@ After saving a shared project, return to Start. Under **Opened from Common Groun
 The report compares the original public NREL solar sample with a copy containing three removed timestamps and one duplicate. Faults are deliberately injected; these are not claimed to be faults in the original public data. The supported recipient mapping is `measured_on` → time and `ac_power__423` → value, local unspecified time, 60-second cadence, no units row. Physical validity is not assessed.
 
 Downloaded code never executes automatically. Workspace trust and an explicit Run action are required. A source changed since download is rejected. The extension tracks its own receipts and recents; it does not overwrite VS Code's native history.
+
+## Prepared portfolio projects (v0.1.5)
+
+Start includes four prepared, executable projects with synthetic inputs: weather windows, revenue reconciliation, battery test review, and inference capacity planning. Preview a project, change an assumption and run it. **Add four examples to my company…** executes their independent checks and lets you select team or portfolio recipients using existing permissions. These examples are not claimed as live-generated builds.
+
+For a downloaded example use **Opened from Common Ground → Open project → Run project**. The worker executes the downloaded source, verifies its hash, restricts memory/time and exposes no host APIs. The original solar replay remains available for telemetry-inspector packages.

@@ -2,11 +2,12 @@ import * as vscode from 'vscode';
 import { newOffers } from './offers.js';
 import { chooseCompany } from './company-context.js';
 import { runDownloaded } from './run-downloaded.js';
+import { projectWorker } from './project-execution.js';
 import { randomBytes,createHash } from 'node:crypto';
 import { mkdir,writeFile,readFile } from 'node:fs/promises';
 import { join,basename } from 'node:path';
 type Recent={name:string;uri:string};
-type Receipt={name:string;uri:string;hash:string;toolId?:string;at:string;companyId?:string;userId?:string;server?:string};
+type Receipt={name:string;uri:string;hash:string;toolId?:string;at:string;companyId?:string;userId?:string;server?:string;project?:boolean};
 // Two backends. The local builder (127.0.0.1, `npm start`) builds and checks tools in a sandbox on this machine.
 // Common Ground (the hosted service, commonGround.server) holds your account, your company and fund, who may receive
 // what, and the exact files of each shared tool. Signing in goes through the browser and back via a vscode:// link.
@@ -65,8 +66,41 @@ export function activate(context:vscode.ExtensionContext){
   for(const n of names)await writeFile(join(folder,n),pkg.files[n],{flag:'wx'});
   const uri=vscode.Uri.file(folder);await context.globalState.update('recents',[{name:safe,uri:uri.toString()},...recents()].slice(0,10));
   // a receipt of the sealed version, so the factory can tell later whether this copy has drifted
-  await context.globalState.update('receipts',[{name:safe,uri:uri.toString(),hash:String(pkg.hash),toolId,at:new Date().toISOString(),...scope},...receipts()].slice(0,20));
+  await context.globalState.update('receipts',[{name:safe,uri:uri.toString(),hash:String(pkg.hash),toolId,at:new Date().toISOString(),project:!!pkg.files['common-ground.json'],...scope},...receipts()].slice(0,20));
   await vscode.commands.executeCommand('vscode.openFolder',uri,{forceNewWindow:true});return {ok:true};
+ }
+ async function projectCatalog(){return JSON.parse(await readFile(join(context.extensionPath,'dist','projects.json'),'utf8')) as any[];}
+ const manifest=(p:any)=>({id:p.id,title:p.title,category:p.category,description:p.description,story:p.story,contract:p.contract,dataNotice:p.dataNotice,control:p.control,scenarios:p.scenarios});
+ async function downloadedProject(index:number){
+  const r=receipts()[index];if(!r?.project)throw new Error('Choose a downloaded example project.');
+  const folder=vscode.Uri.parse(r.uri).fsPath;
+  const [source,text]=await Promise.all([readFile(join(folder,'inspector.js'),'utf8'),readFile(join(folder,'common-ground.json'),'utf8')]);
+  if(text.length>100000||source.length>24000)throw new Error('Project exceeds the size limit.');
+  if(createHash('sha256').update(source).digest('hex')!==r.hash)throw new Error('Downloaded code changed. Download the approved version again.');
+  const p=JSON.parse(text);if(p.contract!=='decision-report/v1'||!Array.isArray(p.scenarios)||!p.scenarios.length||p.scenarios.length>10)throw new Error('Unsupported example contract.');
+  return {r,p,source};
+ }
+ async function seedProjects(){
+  if(!vscode.workspace.isTrusted)throw new Error('Trust the workspace before checking example code.');
+  const w=await workspace();if(!w.companyId)throw new Error('Select your working company first.');
+  const co=await hosted(`orgs/${w.companyId}`);
+  const choices=[{label:`My team at ${co.org.name}`,description:'Same-company sharing',body:{orgId:w.companyId},picked:true},...(co.peerPeople||[]).filter((x:any)=>x.user.id!==w.user.id).map((x:any)=>({label:x.user.name,description:(co.peers||[]).find((p:any)=>p.id===x.companyId)?.name||'Portfolio company',body:{userId:x.user.id,companyId:x.companyId},picked:false}))];
+  const selected=await vscode.window.showQuickPick(choices,{canPickMany:true,title:'Add four prepared examples — choose who receives them',placeHolder:'Existing sharing policies apply. These are curated demo shares, not automatic recommendations.'});
+  if(!selected)return {cancelled:true};
+  const results=[],warnings=[];
+  for(const p of await projectCatalog()){
+   const checked=await projectWorker(join(context.extensionPath,'dist','project-worker.cjs'),{verify:true,project:p});
+   if(checked.checks.length!==7||checked.checks.some((c:any)=>!c.passed))throw new Error(p.title+' failed its acceptance checks. Nothing will be shared for this project.');
+   const hash=createHash('sha256').update(p.source).digest('hex');
+   const existing=co.tools.find((t:any)=>t.owner===w.user.id&&t.name===p.id+'-example'&&t.hash===hash);
+   const tool=existing||(await hosted('tools','POST',{orgId:w.companyId,name:p.id+'-example',description:p.description+' Prepared example with synthetic inputs.',hash,checks:checked.checks,provenance:'reference-template',hours:0,files:{'inspector.js':p.source,'common-ground.json':JSON.stringify(manifest(p),null,2),'checks.json':JSON.stringify(checked.checks,null,2),'README.md':`# ${p.title}\n\n${p.description}\n\n${p.story}\n\nPrepared reference example with synthetic inputs, not a live agent-generated build or real customer deployment. Run it in Common Ground 0.1.5 or later. Uses decision-report/v1 JSON inputs, not the sensor CSV mapping. Seven project-specific cases were executed locally before publication; the hosted service validates the source hash and records this attestation. No build-time savings are measured.\n`}})).tool;
+   for(const target of selected){
+    const prior=(co.grants||[]).some((g:any)=>g.toolId===tool.id&&!g.revoked&&Date.parse(g.expiresAt)>Date.now()&&(target.body.orgId?g.target.orgId===target.body.orgId:g.target.userId===target.body.userId&&g.target.companyId===target.body.companyId));
+    if(!prior)try{await hosted(`tools/${tool.id}/grants`,'POST',target.body);}catch(e){warnings.push(`${p.title} → ${target.label}: ${e instanceof Error?e.message:'share rejected'}`);}
+   }
+   results.push({id:tool.id,title:p.title});
+  }
+  return {results,warnings,recipients:selected.map(x=>x.label)};
  }
  async function signIn(){
   const endpoint=new URL(server());
@@ -93,6 +127,16 @@ export function activate(context:vscode.ExtensionContext){
   webview.onDidReceiveMessage(async m=>{try{
    let data:unknown;
    if(m.action==='request')data=await api(m.path,m.method,m.body);
+   else if(m.action==='projectCatalog')data=(await projectCatalog()).map(manifest);
+   else if(m.action==='seedProjects')data=await seedProjects();
+   else if(m.action==='openProject')data=(await downloadedProject(Number(m.index))).p;
+   else if(m.action==='runProject'){
+    if(!vscode.workspace.isTrusted)throw new Error('Trust your workspace before running project code.');
+    let source,hash;
+    if(m.index!==undefined){const d=await downloadedProject(Number(m.index));source=d.source;hash=d.r.hash;}
+    else{const p=(await projectCatalog()).find(p=>p.id===m.projectId);if(!p)throw new Error('Unknown example project.');source=p.source;hash=createHash('sha256').update(source).digest('hex');}
+    data=await projectWorker(join(context.extensionPath,'dist','project-worker.cjs'),{source,expectedHash:hash,input:m.input});
+   }
    else if(m.action==='hosted')data=await hosted(m.path,m.method,m.body);
    else if(m.action==='account')data={signedIn:!!(await context.secrets.get('hostedToken')),server:server()};
    else if(m.action==='workspace')data=await workspace(m.companyId);

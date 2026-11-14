@@ -97,5 +97,14 @@ try{
  await call('recipient','PATCH',`orgs/${to}/members/local_recipient`,{receiver:false});
  check('selected context still enforces live receiving permissions',(await call('recipient','GET',`shared?companyId=${to}`)).shared.length===0&&(await call('recipient','GET',`tools/${tool.id}/package?companyId=${to}`)).status===404);
  check('disabling one membership does not break another authorized context',(await call('recipient','GET',`shared?companyId=${to2}`)).shared.length===1);
+ const decisionSource='function run(input){return input}';
+ const decision=(await call('author','POST','tools',{orgId:from,name:'decision-example',hours:0,provenance:'reference-template',hash:createHash('sha256').update(decisionSource).digest('hex'),files:{'inspector.js':decisionSource,'common-ground.json':JSON.stringify({contract:'decision-report/v1',scenarios:[{name:'Synthetic baseline',input:{}}]})},checks:Array.from({length:7},(_,i)=>({name:`Project-specific check ${i+1}`,passed:true}))})).tool;
+ check('prepared decisions retain their own contract and unmeasured build time',decision.contract==='decision-report/v1'&&decision.hours===0&&decision.checkResults[0].name==='Project-specific check 1');
+ await call('author','POST',`tools/${decision.id}/grants`,{orgId:from});
+ check('decision example supports teammate access',!!(await call('colleague','GET',`tools/${decision.id}/package?companyId=${from}`)).files);
+ await call('author','POST',`tools/${decision.id}/grants`,{userId:'local_recipient',companyId:to2});
+ const decisionPackage=await call('recipient','GET',`tools/${decision.id}/package?companyId=${to2}`);
+ check('cross-company decision project preserves code without inserting a false sensor mapping',decisionPackage.files['inspector.js']===decisionSource&&!decisionPackage.files['binding.json']);
+ check('another membership cannot access decision code without a grant',(await call('recipient','GET',`tools/${decision.id}/package?companyId=${unrelated}`)).status===404);
  console.log(`${checks} setup and sharing regression checks passed.`);
 }finally{await close();}

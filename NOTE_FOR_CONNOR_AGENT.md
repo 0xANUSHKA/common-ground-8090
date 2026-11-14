@@ -1,3 +1,13 @@
+# Four-project portfolio demo — extension 0.1.5
+
+Read **docs/FOUR-PROJECT-DEMO.md**. Four runnable prepared examples now ship in the editor: weather windows, revenue reconciliation, battery bench review and inference capacity planning. They have synthetic inputs, editable assumptions and 28 actual acceptance cases. They are explicitly reference examples, not claimed live generations. The original ocean-to-solar generated tool remains supported.
+
+**Your next action:** pull main, run `npm run package:site`, deploy `site/` from your authorized Vercel environment, and install `common-ground-0.1.5.vsix` in your editor, then reload. The matching site update records project-specific checks, avoids a false sensor rebind for JSON decision projects, and records no invented build hours. No extra API keys or database reset are needed. Existing records remain.
+
+Anushka can use **Add four examples to my company…** and select her team plus Connor at Helioforge. That creates real grants and reuses existing identical seeded tools. Connor opens/saves each share, then uses **Opened from Common Ground → Open project → Run project**. The prepared examples elsewhere on Start are previews; use the downloaded version to show cross-company execution. This is a curated demo seed; do not describe these shares as automatically inferred recommendations.
+
+---
+
 # Builder recovery update — extension 0.1.4
 
 Anushka’s local builder stopped during Claude’s second repair attempt. Her disk also hit ENOSPC while rebuilding the extension; npm’s disposable cache was cleared, freeing about 4 GB. The specific cause of the earlier process exit is unconfirmed. No passing artifact existed for that interrupted job.

@@ -15,12 +15,13 @@ let companyId='';
 let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:any[]=[],receipts:any[]=[],lineage:any=null;
 let builder:'unknown'|'ready'|'off'='unknown', builderLabel='';
 let refreshEpoch=0,refreshInFlight=false;
-let view:'start'|'shared'|'tool'|'build'|'built'|'already'|'solar'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
+let view:'start'|'shared'|'tool'|'build'|'built'|'already'|'solar'|'project'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
 let disconnected=false,lastContact=0;
 let savedBuild=vscode?.getState()?.build as {id:string;companyId:string;userId:string;server:string}|undefined;
 async function rememberBuild(){savedBuild={id:job.id,companyId,userId:me?.id||'',server};vscode?.setState({build:savedBuild});await bridge('buildSession',{build:savedBuild});}
 let busy=false,notice='',noticeKind:'ok'|'bad'='ok',already:any=null;
 let solarResult:any=null,solarReceipt:any=null;
+let projects:any[]=[],project:any=null,projectInput:any=null,projectResult:any=null,projectReceiptIndex:number|undefined,projectScenario=0;
 let brief='Build a CSV telemetry completeness inspector. Detect missing timestamps and duplicates, distinguish missing values from zero, and preserve local time without guessing a timezone.';
 
 const esc=(s:unknown)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
@@ -46,6 +47,7 @@ async function load(){
  me=null;orgs=[];shared=[];companyId='';
  if(signedIn){try{const r=await bridge('workspace');me=r.user;orgs=r.orgs;companyId=r.companyId;shared=await companyShares();}catch(e){notice=(e as Error).message;noticeKind='bad';if(!me)signedIn=false;}}
  savedBuild=await bridge('buildSession').catch(()=>savedBuild);
+ projects=await bridge('projectCatalog').catch(()=>[]);
  recents=await bridge('recents');receipts=await bridge('receipts').catch(()=>[]);
  builder='unknown';local('/health').then((h:any)=>{builder='ready';builderLabel=h.integrations?.builder||'';render();}).catch(()=>{builder='off';render();});
 }
@@ -73,14 +75,29 @@ function start(){
    ${companies().length?`<label for="working-company">Working company</label><select id="working-company" ${busy?'disabled':''}><option value="" disabled ${!companyId?'selected':''}>Choose your company…</option>${companies().map(c=>`<option value="${esc(c.id)}" ${c.id===companyId?'selected':''}>${esc(c.name)} · ${esc(c.role||'member')}</option>`).join('')}</select><p class="muted">Build and receive tools for this company.</p>`:''}
    <ul class="links"><li><button data-act="refreshcompanies">Refresh companies</button></li><li><a href="${esc(server)}/dashboard/${companyId?'#/'+esc(companyId)+'/setup':''}">${ic('user')}Open your dashboard</a></li><li><button data-act="signout">Sign out</button></li></ul>
    <h2>Builder</h2><p class="muted">${builder==='ready'?'The local builder is running. Tools you build are checked on this machine before anyone else can see them.':builder==='off'?'Building needs the local builder: run <span class="kbd">npm run builder:start</span> in the Common Ground repo. Receiving tools works without it.':'Looking for the local builder…'}</p>
-  </div></div>`;
+  </div></div>${examplesList()}`;
 }
 function receiptList(){
  const visible=receipts.filter(r=>companyId&&r.companyId===companyId&&r.userId===me?.id&&r.server===server);
  if(!visible.length)return '';
  const word=(r:any)=>r.state==='sealed'?`<span class="ok">Sealed ${esc(String(r.hash).slice(0,7))}</span>`:r.state==='drifted'?`<span class="warn">Drifted from ${esc(String(r.hash).slice(0,7))}</span>`:'<span class="muted">Folder missing</span>';
- return `<h2>Opened from Common Ground</h2><ul class="rows">${visible.slice(0,6).map((r:any)=>`<li><button class="row" data-receipt="${r.index}">${ic('package')}<span><b>${esc(r.name)}</b><small>${word(r)}</small></span><time>${ago(r.at)}</time></button><button class="linkish" data-run-receipt="${r.index}">Run on solar sample</button></li>`).join('')}</ul>${visible.some((r:any)=>r.state==='drifted')?'<p class="muted">A drifted copy has changed since it passed the factory’s checks. It still runs locally, but it isn’t the version that was shared.</p>':''}`;
+ return `<h2>Opened from Common Ground</h2><ul class="rows">${visible.slice(0,6).map((r:any)=>`<li><button class="row" data-receipt="${r.index}">${ic('package')}<span><b>${esc(r.name)}</b><small>${word(r)}</small></span><time>${ago(r.at)}</time></button><button class="linkish" ${r.project?`data-run-project-receipt="${r.index}"`:`data-run-receipt="${r.index}"`}>${r.project?'Open project':'Run on solar sample'}</button></li>`).join('')}</ul>${visible.some((r:any)=>r.state==='drifted')?'<p class="muted">A drifted copy has changed since it passed the factory’s checks. It still runs locally, but it isn’t the version that was shared.</p>':''}`;
 }
+function examplesList(){
+ if(!projects.length||!companyId)return '';
+ return `<section class="examples"><h2>Project examples</h2><p class="muted">Four working projects with synthetic inputs. Explore one here, or add them to your company and choose who receives them.</p><div class="example-list">${projects.map(p=>`<button class="example-row" data-project="${esc(p.id)}"><small>${esc(p.category)}</small><strong>${esc(p.title)}</strong><span>${esc(p.description)}</span></button>`).join('')}</div><div class="actions"><button data-act="seedprojects">Add four examples to my company…</button></div></section>`;
+}
+function inputValue(path:any){let v=projectInput;for(const k of path||[])v=v?.[k];return v;}
+function writeInput(path:any,value:number){if(!Array.isArray(path)||!path.length||path.some(k=>['__proto__','prototype','constructor'].includes(String(k))))throw new Error('Invalid input field');let v=projectInput;for(const k of path.slice(0,-1)){if(!v||typeof v!=='object')throw new Error('Invalid input field');v=v[k];}v[path.at(-1)]=value;}
+function projectView(){
+ const p=project,r=projectResult?.report,c=p.control;
+ return `<button class="back" data-act="start">${ic('back')}Start</button><p class="muted">${esc(p.category)} · ${projectReceiptIndex===undefined?'Prepared example':'Downloaded shared project'}</p><h1>${esc(p.title)}</h1><p class="lede">${esc(p.description)}</p><p>${esc(p.story)}</p>
+ <div class="project-controls"><div><label for="project-scenario">Scenario</label><select id="project-scenario" ${busy?'disabled':''}>${p.scenarios.map((x:any,i:number)=>`<option value="${i}" ${projectScenario===i?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>${c?`<div><label for="project-adjust">${esc(c.label)}</label><input id="project-adjust" type="number" min="${esc(c.min/(c.scale||1))}" max="${esc(c.max/(c.scale||1))}" step="${esc(c.step/(c.scale||1))}" value="${esc(inputValue(c.path)/(c.scale||1))}" ${busy?'disabled':''}></div>`:''}</div>
+ <div class="actions"><button class="primary" data-act="runproject" ${busy?'disabled':''}>${busy?'Running…':'Run project'}</button></div><p class="muted">${esc(p.dataNotice)}. Runs locally in an isolated sandbox.</p>
+ ${r?`<section class="project-result"><h2>${esc(r.summary)}</h2><dl class="project-metrics">${r.metrics.map((m:any)=>`<div><dt>${esc(m.label)}</dt><dd>${esc(typeof m.value==='number'?m.value.toLocaleString():m.value)}</dd></div>`).join('')}</dl><div class="table-scroll"><table class="project-table"><thead><tr>${r.columns.map((c:string)=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${r.rows.length?r.rows.map((row:any[])=>`<tr>${row.map(x=>`<td>${esc(x)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${r.columns.length}">No matching rows.</td></tr>`}</tbody></table></div><details><summary>Assumptions and evidence</summary>${r.notes.map((n:string)=>`<p class="muted">${esc(n)}</p>`).join('')}<p class="muted">Executed source SHA-256: <code class="source-hash">${esc(projectResult.hash)}</code></p></details></section>`:''}
+ <details class="project-input"><summary>Inspect or edit the synthetic input records</summary><textarea id="project-json" rows="12" ${busy?'disabled':''}>${esc(JSON.stringify(projectInput,null,2))}</textarea></details>`;
+}
+function openProject(p:any,index?:number){project=p;projectInput=JSON.parse(JSON.stringify(p.scenarios[0].input));projectScenario=0;projectReceiptIndex=index;projectResult=null;view='project';}
 function solarView(){
  const r=solarResult;
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>Your shared tool. Solar data.</h1>
@@ -106,7 +123,7 @@ function sharedView(){
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>${esc(s.tool.name)}</h1>
   <p class="lede">${esc(s.tool.description||'A tool shared with you.')}</p>
   <p class="who">${s.grant.scope==='portfolio'?logo(s.from):person(s.owner)}<span><b>${esc(s.owner.name)}</b><small>${esc(s.from?.name||'')} · shared ${ago(s.grant.at)}${s.grant.scope==='portfolio'?' · from across your portfolio':' · from your team'}</small></span></p>
-  <p>This is the exact version that passed all ${s.tool.checks} checks${s.tool.hours?`. It took about ${s.tool.hours} hours to build`:''}. Opening it saves a copy into a new folder; nothing runs until you choose to run it.</p>
+  <p>This is the exact version that passed all ${s.tool.checks} checks${s.tool.hours&&s.tool.provenance!=='reference-template'?`. It took about ${s.tool.hours} hours to build`:''}. Opening it saves a copy into a new folder; nothing runs until you choose to run it.</p>
   <div class="actions"><button class="primary" data-act="download">Open in editor</button></div>
   <p class="muted">If the share is revoked later, you keep the copy you saved.</p>`;
 }
@@ -196,22 +213,29 @@ async function loadPeople(){
  render();
 }
 function render(){
- const body=view==='solar'?solarView():view==='shared'?sharedView():view==='build'?buildView():view==='built'?builtView():view==='already'?alreadyView():start();
+ const body=view==='project'?projectView():view==='solar'?solarView():view==='shared'?sharedView():view==='build'?buildView():view==='built'?builtView():view==='already'?alreadyView():start();
  root.innerHTML=`<main>${notice?`<p class="notice ${noticeKind}" role="status">${esc(notice)}</p>`:''}${body}</main>`;updateBuildClock();
 }
 
 // ── events ──
 root.addEventListener('input',e=>{const t=e.target as HTMLInputElement;if(t.id==='brief')brief=t.value;if(t.id==='desc')share.description=t.value;if(t.id==='hours')share.hours=Number(t.value)||1;});
 root.addEventListener('change',e=>{const t=e.target as HTMLInputElement;
+ if(t.id==='project-scenario'){projectScenario=Number(t.value);projectInput=JSON.parse(JSON.stringify(project.scenarios[projectScenario].input));projectResult=null;render();}
+ if(t.id==='project-adjust'){try{const value=Number(t.value)*(project.control.scale||1);writeInput(project.control.path,value);if(project.control.also)writeInput(project.control.also,value);projectResult=null;render();}catch(e){notice=(e as Error).message;noticeKind='bad';render();}}
+ if(t.id==='project-json'){try{projectInput=JSON.parse(t.value);projectResult=null;notice='';}catch{notice='Input must be valid JSON.';noticeKind='bad';}render();}
  if(t.id==='working-company'){void run(async()=>{await bridge('workspace',{companyId:t.value});share=null;active=null;already=null;view='start';await load();});}
  if(t.id==='co'){void run(async()=>{await bridge('workspace',{companyId:t.value});companyId=t.value;share.orgId=t.value;share.toolId=null;share.people=null;share.pick.clear();await loadPeople();});}
  if(t.dataset.team!==undefined)share.team=t.checked;
  if(t.dataset.person){t.checked?share.pick.add(t.dataset.person):share.pick.delete(t.dataset.person);render();}
 });
 root.addEventListener('click',e=>{
- const el=(e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-shared],[data-local],[data-receipt],[data-run-receipt]');if(!el)return;
+ const el=(e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-shared],[data-local],[data-receipt],[data-run-receipt],[data-project],[data-run-project-receipt]');if(!el)return;
  const act=el.dataset.act;
  void run(async()=>{
+  if(el.dataset.project){const p=projects.find(p=>p.id===el.dataset.project);if(p)openProject(p);return;}
+  if(el.dataset.runProjectReceipt!==undefined){const index=Number(el.dataset.runProjectReceipt);openProject(await bridge('openProject',{index}),index);return;}
+  if(act==='runproject'){projectResult=await bridge('runProject',{projectId:project.id,...(projectReceiptIndex===undefined?{}:{index:projectReceiptIndex}),input:projectInput});return;}
+  if(act==='seedprojects'){const r=await bridge('seedProjects');if(r.cancelled)return;say(`${r.results.length} prepared projects added. Shared with ${r.recipients.join(', ')||'no one yet'}.${r.warnings.length?' Some shares were blocked: '+r.warnings.join('; '):''}`);await load();return;}
   if(el.dataset.runReceipt!==undefined){const r=receipts.find((r:any)=>r.index===Number(el.dataset.runReceipt));if(!r)throw new Error('Refresh Start and select your downloaded project.');await runSolarReceipt(r);return;}
   if(act==='rerunsolar'){await runSolarReceipt(solarReceipt);return;}
   if(el.dataset.shared){active=shared.find((s:any)=>s.tool.id===el.dataset.shared);view='shared';return;}

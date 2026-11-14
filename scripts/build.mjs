@@ -11,3 +11,8 @@ console.log('Built Start view and VS Code extension.');
 await build({entryPoints:['extension/src/solar-worker.ts'],bundle:true,platform:'node',format:'cjs',outfile:'extension/dist/solar-worker.cjs'});
 for(const name of ['pvdaq_system10_sample.csv','DATA_LICENSES.md'])await copyFile('fixtures/'+name,'extension/dist/'+name);
 await copyFile('node_modules/quickjs-emscripten-core/LICENSE','extension/dist/QUICKJS-LICENSE.txt');
+
+await build({entryPoints:['extension/src/project-worker.ts'],bundle:true,platform:'node',format:'cjs',outfile:'extension/dist/project-worker.cjs'});
+const projects=JSON.parse(await readFile('examples/catalog.json','utf8'));
+for(const p of projects)p.source=await readFile('examples/'+p.id+'.js','utf8');
+await writeFile('extension/dist/projects.json',JSON.stringify(projects));

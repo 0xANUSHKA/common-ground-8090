@@ -302,7 +302,7 @@ on('POST', 'tools', async (req, res, me) => {
   const b = req.body || {}, name = clean(b.name, 60).replace(/[^\w.\-]/g, '-'); if (!name) throw fail(400, 'Name the tool.');
   const org = await getJSON(K.org(String(b.orgId || ''))); if (!org || org.kind !== 'company' || !(await membership(org.id, me.id))) throw fail(403, 'Pick your company.');
   const orgId = org.id;
-  const tool = { id: rid(10), name, description: clean(b.description, 280), owner: me.id, orgId, createdAt: now(), hash: '', checks: 0, hours: Math.min(400, Math.max(1, Math.round(+b.hours) || 8)), uses: [] };
+  const tool = { id: rid(10), name, description: clean(b.description, 280), owner: me.id, orgId, createdAt: now(), hash: '', checks: 0, hours: b.hours === 0 ? 0 : Math.min(400, Math.max(1, Math.round(+b.hours) || 8)), uses: [] };
   let pkg = null;
   if (b.files) { // published from the editor: the exact files that passed the checks, verified by hash
     const files = b.files, names = Object.keys(files || {});
@@ -310,6 +310,12 @@ on('POST', 'tools', async (req, res, me) => {
     if (names.reduce((n, f) => n + files[f].length, 0) > 600000) throw fail(413, 'Package is too large.');
     const main = files['inspector.js']; if (!main || createHash('sha256').update(main).digest('hex') !== b.hash) throw fail(400, 'Package hash doesn’t match its code.');
     if (!Array.isArray(b.checks) || b.checks.length !== 7 || !b.checks.every((c) => c.passed)) throw fail(400, 'Only tools that pass all seven factory checks can be published.');
+    if(files['common-ground.json']){
+      let manifest;try{manifest=JSON.parse(files['common-ground.json']);}catch{throw fail(400,'Invalid project manifest.');}
+      if(manifest.contract!=='decision-report/v1'||!Array.isArray(manifest.scenarios)||!manifest.scenarios.length||manifest.scenarios.length>10)throw fail(400,'Unsupported project contract.');
+      tool.contract=manifest.contract;tool.example=true;tool.hours=0;
+    }
+    tool.checkResults=b.checks.map(c=>({name:clean(c.name||'Local acceptance check',160),passed:true}));
     tool.hash = b.hash; tool.checks = 7; tool.fromEditor = true; tool.provenance = ['agent-generated', 'eve-generated', 'reference-template'].includes(b.provenance) ? b.provenance : 'reference-template'; if (b.requirementId) tool.requirementId = clean(b.requirementId, 80);
     pkg = { name, hash: b.hash, files };
   }
@@ -343,7 +349,7 @@ on('GET', 'tools/:id/package', async (req, res, me, p) => {
   const t = await getJSON(K.tool(p.id)); if (!t || !(await canOpenTool(t, me.id, context?.id))) throw fail(404, 'This tool isn’t shared with you in this company.');
   const pkg = await getJSON(K.pkg(t.id)); if (!pkg) throw fail(404, 'This tool was registered by hand and has no files to download.');
   // bind it to the recipient's own mapping of the standard: the checked code stays byte-identical, only binding.json changes
-  if (context ? context.id !== t.orgId : !(await membership(t.orgId, me.id))) {
+  if (!pkg.files['common-ground.json'] && (context ? context.id !== t.orgId : !(await membership(t.orgId, me.id)))) {
     const grants = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean);
     let mine = context;
     if (!mine) for (const grant of grants) if (grant.target.companyId && await grantReaches(grant, me.id, { [t.id]: t })) { mine = await getJSON(K.org(grant.target.companyId)); break; }
