@@ -11,7 +11,7 @@ const hosted=(path:string,method='GET',body?:any)=>bridge('hosted',{path,method,
 const local=(path:string,method='GET',body?:any)=>bridge('request',{path,method,body});
 
 // ── state ──
-let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:any[]=[];
+let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:any[]=[],receipts:any[]=[],lineage:any=null;
 let builder:'unknown'|'ready'|'off'='unknown';
 let view:'start'|'shared'|'tool'|'build'|'built'|'already'='start',active:any=null,built:any=null,job:any=null,report:any=null,share:any=null;
 let busy=false,notice='',noticeKind:'ok'|'bad'='ok',already:any=null;
@@ -30,7 +30,7 @@ const companies=()=>orgs.filter(o=>o.kind==='company');
 async function load(){
  const a=await bridge('account');signedIn=a.signedIn;server=a.server;
  if(signedIn){try{const r=await hosted('me');me=r.user;orgs=r.orgs;shared=(await hosted('shared')).shared;}catch(e){signedIn=false;notice=(e as Error).message;noticeKind='bad';}}
- recents=await bridge('recents');
+ recents=await bridge('recents');receipts=await bridge('receipts').catch(()=>[]);
  builder='unknown';local('/health').then(()=>{builder='ready';render();}).catch(()=>{builder='off';render();});
 }
 async function run(fn:()=>Promise<void>){if(busy)return;busy=true;notice='';render();try{await fn();}catch(e){notice=e instanceof Error?e.message:'Something went wrong';noticeKind='bad';}finally{busy=false;render();}}
@@ -50,12 +50,18 @@ function start(){
     <li><button data-act="openfolder">${ic('folder')}Open folder…</button></li>
    </ul>
    <h2>Shared with you</h2>${shared.length?`<ul class="rows">${shared.map((s:any)=>`<li><button class="row" data-shared="${esc(s.tool.id)}">${s.grant.scope==='portfolio'?logo(s.from):person(s.owner)}<span><b>${esc(s.tool.name)}</b><small>${esc(s.owner.name)}${s.from?` · ${esc(s.from.name)}`:''}</small></span><time>${ago(s.grant.at)}</time></button></li>`).join('')}</ul>`:'<p class="muted">Nothing yet.</p>'}
+   ${receiptList()}
    ${recentList()}
   </div><div>
    <h2>You</h2><p class="who">${person(me)}<span><b>${esc(me.name)}</b><small>${esc(co?co.name:'Not in a company yet')}${co?.fundId?' · in a fund portfolio':''}</small></span></p>
    <ul class="links"><li><a href="${esc(server)}/dashboard/">${ic('user')}Open your dashboard</a></li><li><button data-act="signout">Sign out</button></li></ul>
    <h2>Builder</h2><p class="muted">${builder==='ready'?'The local builder is running. Tools you build are checked on this machine before anyone else can see them.':builder==='off'?'Building needs the local builder: run <span class="kbd">npm start</span> in the Common Ground repo. Receiving tools works without it.':'Looking for the local builder…'}</p>
   </div></div>`;
+}
+function receiptList(){
+ if(!receipts.length)return '';
+ const word=(r:any)=>r.state==='sealed'?`<span class="ok">Sealed ${esc(String(r.hash).slice(0,7))}</span>`:r.state==='drifted'?`<span class="warn">Drifted from ${esc(String(r.hash).slice(0,7))}</span>`:'<span class="muted">Folder missing</span>';
+ return `<h2>Opened from Common Ground</h2><ul class="rows">${receipts.slice(0,6).map((r:any)=>`<li><button class="row" data-receipt="${r.index}">${ic('package')}<span><b>${esc(r.name)}</b><small>${word(r)}</small></span><time>${ago(r.at)}</time></button></li>`).join('')}</ul>${receipts.some((r:any)=>r.state==='drifted')?'<p class="muted">A drifted copy has changed since it passed the factory’s checks. It still runs locally, but it isn’t the version that was shared.</p>':''}`;
 }
 function recentList(){return recents.length?`<h2>Recent</h2><ul class="links">${recents.slice(0,6).map((r:any,i:number)=>`<li><button data-local="${i}">${ic('folder')}${esc(r.name)}</button></li>`).join('')}</ul>`:'';}
 function sharedView(){
@@ -91,7 +97,9 @@ function builtView(){
  const r=report?.report;
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>${esc(a.name)}</h1>
   <p class="lede">${passed===a.checks.length?`Passed all ${passed} checks.`:`${passed} of ${a.checks.length} checks passed; it can’t be shared until they all pass.`} ${a.provenance==='eve-generated'||a.provenance==='agent-generated'?'Written by the coding agent from your brief.':'Built from the offline reference template.'}${a.requirementId?` Filed in 8090’s Software Factory as requirement ${esc(String(a.requirementId).slice(0,12))}; the tool carries that link wherever it goes.`:''}</p>
-  <ul class="log">${a.checks.map((c:any)=>`<li class="${c.passed?'':'bad'}">${ic('check')}${esc(c.name)}</li>`).join('')}</ul>
+  ${a.blueprint?`<h2>Blueprint</h2><p>${esc(a.blueprint.summary)}</p><p class="muted">Reads ${a.blueprint.inputs.map(esc).join(', ')} from ${esc(a.blueprint.standard)}. Returns ${a.blueprint.outputs.length} report fields.${a.blueprint.notes?.length?' '+a.blueprint.notes.map(esc).join(' '):''}</p>`:''}
+  <h2>Checks</h2><ul class="log">${a.checks.map((c:any)=>`<li class="${c.passed?'':'bad'}">${ic('check')}${esc(c.name)}</li>`).join('')}</ul>
+  ${lineage?.lineage?`<h2>Lineage</h2><p class="muted">${lineage.requirement?.id?`Requirement ${esc(String(lineage.requirement.id).slice(0,10))} in 8090 → `:''}${lineage.lineage.blueprintHash?`blueprint ${esc(lineage.lineage.blueprintHash.slice(0,7))} → `:''}code ${esc(lineage.lineage.sourceHash.slice(0,7))} → checks ${esc(lineage.lineage.checksHash.slice(0,7))} → binding ${esc(lineage.lineage.bindingHash.slice(0,7))}. Work order ${esc(String(lineage.lineage.workOrder).slice(0,8))}, sealed ${ago(lineage.lineage.sealedAt)}.</p>`:''}
   <div class="actions"><button data-act="runsrc">Run on the ocean sample</button><button data-act="openlocal">Open in editor</button></div>
   ${r?`<p>${r.rows.toLocaleString()} readings, ${r.missingTimestamps.length} missing timestamps, ${r.duplicateRows} duplicate rows and ${r.missingValues} missing values.</p>`:''}
   <h2>Share it</h2>
@@ -131,10 +139,11 @@ root.addEventListener('change',e=>{const t=e.target as HTMLInputElement;
  if(t.dataset.person){t.checked?share.pick.add(t.dataset.person):share.pick.delete(t.dataset.person);render();}
 });
 root.addEventListener('click',e=>{
- const el=(e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-shared],[data-local]');if(!el)return;
+ const el=(e.target as HTMLElement).closest<HTMLElement>('[data-act],[data-shared],[data-local],[data-receipt]');if(!el)return;
  const act=el.dataset.act;
  void run(async()=>{
   if(el.dataset.shared){active=shared.find((s:any)=>s.tool.id===el.dataset.shared);view='shared';return;}
+  if(el.dataset.receipt){await bridge('openReceipt',{index:Number(el.dataset.receipt)});return;}
   if(el.dataset.local){await bridge('openRecent',{index:Number(el.dataset.local)});return;}
   if(act==='signin'){await bridge('signIn');say('Finish signing in in your browser. You’ll come straight back here.');}
   if(act==='signout'){await bridge('signOut');await load();view='start';}
@@ -158,7 +167,7 @@ root.addEventListener('click',e=>{
    job=await local('/build','POST',{prompt:brief});render();
    while(job.status==='building'){await new Promise(r=>setTimeout(r,700));job=await local('/jobs/'+job.id);render();}
    if(job.status==='failed')throw new Error(job.error||'The build failed.');
-   built=await local('/artifacts/'+job.artifactId);report=null;share=null;view='built';
+   built=await local('/artifacts/'+job.artifactId);lineage=await local(`/artifacts/${job.artifactId}/lineage`).catch(()=>null);report=null;share=null;view='built';
    if(signedIn&&companies().length){builtView();void loadPeople();}
   }
   if(act==='audio'){

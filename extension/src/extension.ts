@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { randomBytes,createHash } from 'node:crypto';
-import { mkdir,writeFile } from 'node:fs/promises';
+import { mkdir,writeFile,readFile } from 'node:fs/promises';
 import { join,basename } from 'node:path';
 type Recent={name:string;uri:string};
+type Receipt={name:string;uri:string;hash:string;toolId?:string;at:string};
 // Two backends. The local builder (127.0.0.1, `npm start`) builds and checks tools in a sandbox on this machine.
 // Common Ground (the hosted service, commonGround.server) holds your account, your company and fund, who may receive
 // what, and the exact files of each shared tool. Signing in goes through the browser and back via a vscode:// link.
@@ -16,7 +17,7 @@ export function activate(context:vscode.ExtensionContext){
  const server=()=>vscode.workspace.getConfiguration('commonGround').get<string>('server','https://common-ground-theta.vercel.app').replace(/\/+$/,'');
  async function api(path:string,method='GET',body?:unknown){
   // Only the compiled view's small API allowlist. No arbitrary network proxy or file access.
-  if(!/^\/(state|health|demo-identities|demo-session|preferences|build|audio-brief|audit|jobs\/[a-z0-9-]+|artifacts\/[a-z0-9-]+(?:\/(matches|publish|revoke|dismiss|adopt|run|package|evidence))?)$/.test(path))throw new Error('Unsupported route');
+  if(!/^\/(state|health|demo-identities|demo-session|preferences|build|audio-brief|audit|jobs\/[a-z0-9-]+|artifacts\/[a-z0-9-]+(?:\/(matches|publish|revoke|dismiss|adopt|run|package|evidence|lineage|drift))?)$/.test(path))throw new Error('Unsupported route');
   if(!['GET','POST','PUT'].includes(method))throw new Error('Unsupported method');
   if((path==='/build'||path==='/candidate'||path.endsWith('/run')||path.endsWith('/adopt'))&&!vscode.workspace.isTrusted)throw new Error('Trust your workspace before running factory operations.');
   const token=await context.secrets.get('session');
@@ -38,7 +39,8 @@ export function activate(context:vscode.ExtensionContext){
   if(!response.ok)throw new Error(data.error||`Request failed (${response.status})`);return data;
  }
  // writes a verified package into a fresh folder next to where the person chooses; never runs anything
- async function savePackage(pkg:any,label:string){
+ const receipts=()=>context.globalState.get<Receipt[]>('receipts',[]);
+ async function savePackage(pkg:any,label:string,toolId?:string){
   if(!vscode.workspace.isTrusted)throw new Error('Trust your workspace before downloading code.');
   const names=Object.keys(pkg?.files||{});
   if(!names.length||names.some(n=>!FILE_OK.test(n)||basename(n)!==n||typeof pkg.files[n]!=='string'))throw new Error('Unsupported package file');
@@ -49,6 +51,8 @@ export function activate(context:vscode.ExtensionContext){
   const folder=join(parent[0].fsPath,`${safe}-${String(pkg.hash).slice(0,8)}-${Date.now()}`);await mkdir(folder,{recursive:false});
   for(const n of names)await writeFile(join(folder,n),pkg.files[n],{flag:'wx'});
   const uri=vscode.Uri.file(folder);await context.globalState.update('recents',[{name:safe,uri:uri.toString()},...recents()].slice(0,10));
+  // a receipt of the sealed version, so the factory can tell later whether this copy has drifted
+  await context.globalState.update('receipts',[{name:safe,uri:uri.toString(),hash:String(pkg.hash),toolId,at:new Date().toISOString()},...receipts()].slice(0,20));
   await vscode.commands.executeCommand('vscode.openFolder',uri,{forceNewWindow:true});return {ok:true};
  }
  async function signIn(){
@@ -78,6 +82,11 @@ export function activate(context:vscode.ExtensionContext){
    else if(m.action==='signIn'){await signIn();data={ok:true};}
    else if(m.action==='signOut'){await context.secrets.delete('hostedToken');data={ok:true};}
    else if(m.action==='recents')data=recents();
+   else if(m.action==='receipts'){
+    // drift: compare each saved copy's code with the version the factory sealed
+    data=await Promise.all(receipts().map(async(r,i)=>{try{const src=await readFile(join(vscode.Uri.parse(r.uri).fsPath,'inspector.js'),'utf8');const h=createHash('sha256').update(src).digest('hex');return {...r,index:i,state:h===r.hash?'sealed':'drifted'};}catch{return {...r,index:i,state:'missing'};}}));
+   }
+   else if(m.action==='openReceipt'){const r=receipts()[m.index];if(!r)throw new Error('Unknown project');await vscode.commands.executeCommand('vscode.openFolder',vscode.Uri.parse(r.uri),{forceNewWindow:true});data={ok:true};}
    else if(m.action==='openRecent'){const r=recents()[m.index];if(!r)throw new Error('Unknown recent workspace');await vscode.commands.executeCommand('vscode.openFolder',vscode.Uri.parse(r.uri),{forceNewWindow:true});data={ok:true};}
    else if(m.action==='openFolder'){await vscode.commands.executeCommand('workbench.action.files.openFolder');data={ok:true};}
    else if(m.action==='openArtifact'){
@@ -93,7 +102,7 @@ export function activate(context:vscode.ExtensionContext){
    else if(m.action==='openHosted'){
     if(!/^[a-z0-9]+$/.test(m.toolId))throw new Error('Invalid tool');
     const pkg=await hosted(`tools/${m.toolId}/package`);
-    data=await savePackage(pkg,pkg.name);
+    data=await savePackage(pkg,pkg.name,m.toolId);
     if((data as any).ok)await hosted(`tools/${m.toolId}/uses`,'POST',{kind:'download'}).catch(()=>{});
    }
    else throw new Error('Unsupported editor action');
