@@ -1,0 +1,101 @@
+[
+  {
+    "company_id": "groq",
+    "company_name": "Groq",
+    "sector_label": "AI inference",
+    "relationship_evidence": "Described among Social Capital investments in the 2024 annual letter",
+    "source_url": "https://research.socialcapital.com/p/2024-annual-letter",
+    "source_date": "2025-06-03",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  },
+  {
+    "company_id": "palmetto",
+    "company_name": "Palmetto",
+    "sector_label": "Residential clean energy",
+    "relationship_evidence": "Social Capital led the announced Series C round",
+    "source_url": "https://palmetto.com/about/media-center/press-release/palmetto-raises-375-million-to-accelerate-residential-clean-energy-independence",
+    "source_date": "2022-02-24",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  },
+  {
+    "company_id": "saildrone",
+    "company_name": "Saildrone",
+    "sector_label": "Ocean observation and maritime systems",
+    "relationship_evidence": "Company about page lists Social Capital among backers",
+    "source_url": "https://www.saildrone.com/about",
+    "source_date": "undated; checked 2026-11-13",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  },
+  {
+    "company_id": "mast",
+    "company_name": "Mast Reforestation",
+    "sector_label": "Post-wildfire reforestation",
+    "relationship_evidence": "Social Capital co-led the announced Series B round",
+    "source_url": "https://www.mastreforest.com/news/mast-announces-market-first-restorative-carbon-removal-project",
+    "source_date": "2025-02-12",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  },
+  {
+    "company_id": "beast",
+    "company_name": "Beast Industries",
+    "sector_label": "Creator media and consumer products",
+    "relationship_evidence": "Discussed as an investment in the 2024 annual letter",
+    "source_url": "https://research.socialcapital.com/p/2024-annual-letter",
+    "source_date": "2025-06-03",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  },
+  {
+    "company_id": "slack",
+    "company_name": "Slack",
+    "sector_label": "Workplace communication",
+    "relationship_evidence": "Named as an early investment in the 2024 annual letter",
+    "source_url": "https://research.socialcapital.com/p/2024-annual-letter",
+    "source_date": "2025-06-03",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  },
+  {
+    "company_id": "yammer",
+    "company_name": "Yammer",
+    "sector_label": "Enterprise social communication",
+    "relationship_evidence": "Named as an early investment in the 2024 annual letter",
+    "source_url": "https://research.socialcapital.com/p/2024-annual-letter",
+    "source_date": "2025-06-03",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  },
+  {
+    "company_id": "netskope",
+    "company_name": "Netskope",
+    "sector_label": "Enterprise security",
+    "relationship_evidence": "Named as an early investment in the 2024 annual letter",
+    "source_url": "https://research.socialcapital.com/p/2024-annual-letter",
+    "source_date": "2025-06-03",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  },
+  {
+    "company_id": "intercom",
+    "company_name": "Intercom",
+    "sector_label": "Customer communication software",
+    "relationship_evidence": "Company funding announcement names The Social+Capital Partnership",
+    "source_url": "https://www.intercom.com/blog/silicon-valley-outsider-raised-30m-30-months/",
+    "source_date": "2014-01-22",
+    "current_ownership": "not_verified",
+    "need_status": "No internal tool request established by this source",
+    "checked_on": "2026-11-13"
+  }
+]

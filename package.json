@@ -1,31 +1,48 @@
 {
   "name": "common-ground-8090",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "imports": {
     "#*": "./agent/*",
     "#evals/*": "./evals/*"
   },
   "scripts": {
-    "build": "eve build",
-    "deploy": "eve deploy",
-    "dev": "eve dev",
-    "eval": "eve eval",
-    "start": "eve start",
-    "typecheck": "tsc"
+    "dev": "tsx watch server/index.ts",
+    "start": "tsx server/index.ts",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "check": "npm run typecheck && npm test && npm run build",
+    "agent:dev": "eve dev --no-ui --port 8000",
+    "agent:build": "eve build",
+    "package:extension": "npm run build && cd extension && npx @vscode/vsce package --no-dependencies --allow-missing-repository -o ../common-ground-0.1.0.vsix",
+    "hydra:seed": "tsx scripts/seed-hydra.ts"
   },
   "dependencies": {
-    "@vercel/connect": "2.7.0",
+    "@fastify/static": "^10.1.11",
+    "@hydradb/sdk": "^2.1.8",
+    "@vercel/connect": "^2.9.3",
     "ai": "^7.0.172",
+    "csv-parse": "^7.0.3",
+    "dotenv": "^18.0.10",
     "eve": "^1.0.0-rc.17",
+    "fastify": "^5.12.8",
+    "quickjs-emscripten": "^0.32.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "26.x",
-    "typescript": "7.0.2"
+    "@types/vscode": "^1.146.0",
+    "@vscode/vsce": "^4.1.1",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "7.0.2",
+    "vite": "^8.3.8"
   },
   "engines": {
     "node": "26.x"
-  }
-
+  },
+  "private": true,
+  "description": "Common Ground: permission-aware software reuse inside your editor",
+  "license": "MIT"
 }
