@@ -66,7 +66,7 @@ function side() {
     + `<button type="button" class="org-btn" data-act="orgs" aria-haspopup="menu" aria-expanded="false">${fav(o)}<span><b>${esc(o.name)}</b><small>${kindLabel}</small></span>${ic('chev', 'i chev')}</button>`
     + `<ul class="nav-l">${navItems().map(([k, l, i, c]) => `<li><a href="${href(o.id, k)}" ${r.page === k ? 'aria-current="page"' : ''}>${ic(i)}${l}${c != null ? `<span class="n num">${c}</span>` : ''}</a></li>`).join('')}</ul>`
     + `<div class="side-foot">`
-    + (admin() ? `<div class="invite-card"><b>${isFund() ? 'Invite portfolio companies' : 'Invite your team'}</b><p>${isFund() ? 'One link for every company. Each signs in with Google.' : 'One link for everyone. They sign in with Google.'}</p>${inv ? `<button type="button" class="b is-full" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy invite link</button>` : `<button type="button" class="b is-full" data-act="mk-inv" data-kind="${isFund() ? 'company' : 'member'}">${ic('link')}Create invite link</button>`}</div>` : '')
+    + (admin() ? `<div class="invite-card"><b>${isFund() ? 'Invite another company' : 'Invite engineers to '+esc(V.org.name)}</b><p>${isFund() ? 'Recipients create their own company in this fund.' : 'Recipients become teammates inside this company. To add another company, use the fund workspace.'}</p>${inv ? `<button type="button" class="b is-full" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy ${isFund()?'company':'engineer'} invitation</button>` : `<button type="button" class="b is-full" data-act="mk-inv" data-kind="${isFund() ? 'company' : 'member'}">${ic('link')}Create invite link</button>`}</div>` : '')
     + `<a class="b is-full" href="${VSIX}" download>${ic('download')}VS Code extension</a>`
     + `<button type="button" class="me-btn" data-act="me">${av(ME)}<span><b>${esc(ME.name)}</b><small>${esc(ME.email)}</small></span></button></div>`;
 }
@@ -101,7 +101,7 @@ function workspaceNext() {
 function setupPage() {
   const o=V.org, fund=isFund(), isLead=admin(), inv=fund?companyInv():memberInv();
   const row=(done,title,description,action)=>`<li class="${done?'is-done':''}"><span class="t"><b>${title.replace(/^\d+\. /,'')}</b><small>${description}</small></span>${action||''}</li>`;
-  const link=inv?`<button class="b is-accent" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy ${fund?'company':'team'} invitation</button>`:`<button class="b is-accent" data-act="mk-inv" data-kind="${fund?'company':'member'}">Create invitation</button>`;
+  const link=inv?`<button class="b is-accent" data-act="copy" data-text="${esc(inviteUrl(inv.code))}">${ic('copy')}Copy ${fund?'company':'engineer'} invitation</button>`:`<button class="b is-accent" data-act="mk-inv" data-kind="${fund?'company':'member'}">Create invitation</button>`;
   if(fund){
     const cos=V.companies||[], mapped=cos.filter(c=>c.status==='joined'), receiving=cos.filter(c=>c.settings?.participating!==false), policy=o.settings?.crossCompany;
     return header('Give good work a way to travel.', 'You set up the network. Company admins set up their teams. Engineers stay in the IDE.')
@@ -358,9 +358,9 @@ async function ensureInv(kind) { const have = kind === 'company' ? companyInv() 
 async function inviteDialog(kind) {
   const inv = await ensureInv(kind).catch((e) => toast(e.message)); if (!inv) return;
   const url = inviteUrl(inv.code), company = kind === 'company';
-  dialog(company ? 'Invite your portfolio companies' : isFund() ? 'Invite your fund team' : `Invite people to ${esc(V.org.name)}`,
+  dialog(company ? 'Invite your portfolio companies' : isFund() ? 'Invite your fund team' : `Invite engineers to ${esc(V.org.name)}`,
     `<div class="link-row"><input class="in" readonly value="${esc(url)}" onfocus="this.select()" aria-label="Invite link"><button type="button" class="b is-primary" data-copy>${ic('copy')}Copy</button></div>`
-    + `<p class="note" style="margin:16px 0 0">${company ? 'Send this one link to every founder or engineering lead. Each signs in with Google, names their company and lands in its own workspace with a link for their team.' : 'Anyone with this link joins after signing in with Google. Turn it off in Settings when you’re done.'}</p>`,
+    + `<p class="note" style="margin:16px 0 0">${company ? 'Send this one link to every founder or engineering lead. Each signs in with Google, names their company and lands in its own workspace with a link for their team.' : `This link adds people to ${esc(V.org.name)}. It does not create a separate company. For another portfolio company, send the fund’s company invitation instead.`}</p>`,
     [{ label: 'Done' }], `${plural(inv.uses, 'person', 'people')} joined so far · ${left(inv.expiresAt)}`)
     .querySelector('[data-copy]').addEventListener('click', () => copy(url));
 }

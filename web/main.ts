@@ -11,6 +11,7 @@ const hosted=(path:string,method='GET',body?:any)=>bridge('hosted',{path,method,
 const local=(path:string,method='GET',body?:any)=>bridge('request',{path,method,body});
 
 // ── state ──
+let companyId='';
 let signedIn=false,server='',me:any=null,orgs:any[]=[],shared:any[]=[],recents:any[]=[],receipts:any[]=[],lineage:any=null;
 let builder:'unknown'|'ready'|'off'='unknown', builderLabel='';
 let refreshEpoch=0,refreshInFlight=false;
@@ -28,11 +29,19 @@ const logo=(o:any)=>o?.iconUrl?`<img class="logo" src="${esc(o.iconUrl)}" alt=""
 const ICON={file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',package:'<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7"/>',user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',back:'<path d="m15 18-6-6 6-6"/>',check:'<path d="M20 6 9 17l-5-5"/>'};
 const ic=(k:keyof typeof ICON)=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 const companies=()=>orgs.filter(o=>o.kind==='company');
+const currentCompany=()=>companies().find(o=>o.id===companyId);
+async function companyShares(){
+ if(!companyId)return [];
+ const r=await hosted(`shared?companyId=${companyId}`);
+ if(r.companyId!==companyId)throw new Error('The hosted service needs the company-selection update. Deploy the latest site, then click Refresh companies.');
+ return r.shared;
+}
 
 async function load(){
  refreshEpoch++;
  const a=await bridge('account');signedIn=a.signedIn;server=a.server;
- if(signedIn){try{const r=await hosted('me');me=r.user;orgs=r.orgs;shared=(await hosted('shared')).shared;}catch(e){signedIn=false;notice=(e as Error).message;noticeKind='bad';}}
+ me=null;orgs=[];shared=[];companyId='';
+ if(signedIn){try{const r=await bridge('workspace');me=r.user;orgs=r.orgs;companyId=r.companyId;shared=await companyShares();}catch(e){notice=(e as Error).message;noticeKind='bad';if(!me)signedIn=false;}}
  recents=await bridge('recents');receipts=await bridge('receipts').catch(()=>[]);
  builder='unknown';local('/health').then((h:any)=>{builder='ready';builderLabel=h.integrations?.builder||'';render();}).catch(()=>{builder='off';render();});
 }
@@ -45,26 +54,28 @@ function start(){
   <div class="actions"><button class="primary" data-act="signin">Sign in to Common Ground</button></div>
   <p class="muted">Your fund or company sends you a link to join. Setting one up? <a href="${esc(server)}/join/">Set up your fund</a>.</p>
   ${recentList()}`;
- const co=companies()[0];
- return `<h1>Common Ground</h1><p class="lede">${shared.length?`${shared.length} ${shared.length===1?'tool has':'tools have'} been shared with you.`:'Nothing has been shared with you yet. When someone in your company or portfolio shares a tool with you, it shows up here.'}</p>
+ const co=currentCompany();
+ return `<h1>Common Ground</h1><p class="lede">${!co?(companies().length?'Choose the company you’re working for.':'Create or join a company to start building and receiving tools.'):shared.length?`${shared.length} ${shared.length===1?'tool has':'tools have'} been shared with you at ${esc(co.name)}.`:`No tools have been shared with you at ${esc(co.name)} yet.`}</p>
   <div class="cols"><div>
    <h2>Start</h2><ul class="links">
-    <li><button data-act="buildview">${ic('plus')}Build a tool…</button></li>
+    <li><button data-act="buildview" ${!co?'disabled':''}>${ic('plus')}Build a tool…</button></li>
     <li><button data-act="openfolder">${ic('folder')}Open folder…</button></li>
    </ul>
    <h2>Shared with you</h2>${shared.length?`<ul class="rows">${shared.map((s:any)=>`<li><button class="row" data-shared="${esc(s.tool.id)}">${s.grant.scope==='portfolio'?logo(s.from):person(s.owner)}<span><b>${esc(s.tool.name)}</b><small>${esc(s.owner.name)}${s.from?` · ${esc(s.from.name)}`:''}</small></span><time>${ago(s.grant.at)}</time></button></li>`).join('')}</ul>`:'<p class="muted">Nothing yet.</p>'}
    ${receiptList()}
    ${recentList()}
   </div><div>
-   <h2>You</h2><p class="who">${person(me)}<span><b>${esc(me.name)}</b><small>${esc(co?co.name:'Not in a company yet')}${co?.fundId?' · in a fund portfolio':''}</small></span></p>
-   <ul class="links"><li><a href="${esc(server)}/dashboard/">${ic('user')}Open your dashboard</a></li><li><button data-act="signout">Sign out</button></li></ul>
+   <h2>You</h2><p class="who">${person(me)}<span><b>${esc(me.name)}</b><small>${esc(co?co.name:companies().length?'Choose a company below':'Not in a company yet')}${co?.fundId?' · in a fund portfolio':''}</small></span></p>
+   ${companies().length?`<label for="working-company">Working company</label><select id="working-company" ${busy?'disabled':''}><option value="" disabled ${!companyId?'selected':''}>Choose your company…</option>${companies().map(c=>`<option value="${esc(c.id)}" ${c.id===companyId?'selected':''}>${esc(c.name)} · ${esc(c.role||'member')}</option>`).join('')}</select><p class="muted">Build and receive tools for this company.</p>`:''}
+   <ul class="links"><li><button data-act="refreshcompanies">Refresh companies</button></li><li><a href="${esc(server)}/dashboard/${companyId?'#/'+esc(companyId)+'/setup':''}">${ic('user')}Open your dashboard</a></li><li><button data-act="signout">Sign out</button></li></ul>
    <h2>Builder</h2><p class="muted">${builder==='ready'?'The local builder is running. Tools you build are checked on this machine before anyone else can see them.':builder==='off'?'Building needs the local builder: run <span class="kbd">npm start</span> in the Common Ground repo. Receiving tools works without it.':'Looking for the local builder…'}</p>
   </div></div>`;
 }
 function receiptList(){
- if(!receipts.length)return '';
+ const visible=receipts.filter(r=>companyId&&r.companyId===companyId&&r.userId===me?.id&&r.server===server);
+ if(!visible.length)return '';
  const word=(r:any)=>r.state==='sealed'?`<span class="ok">Sealed ${esc(String(r.hash).slice(0,7))}</span>`:r.state==='drifted'?`<span class="warn">Drifted from ${esc(String(r.hash).slice(0,7))}</span>`:'<span class="muted">Folder missing</span>';
- return `<h2>Opened from Common Ground</h2><ul class="rows">${receipts.slice(0,6).map((r:any)=>`<li><button class="row" data-receipt="${r.index}">${ic('package')}<span><b>${esc(r.name)}</b><small>${word(r)}</small></span><time>${ago(r.at)}</time></button><button class="linkish" data-run-receipt="${r.index}">Run on solar sample</button></li>`).join('')}</ul>${receipts.some((r:any)=>r.state==='drifted')?'<p class="muted">A drifted copy has changed since it passed the factory’s checks. It still runs locally, but it isn’t the version that was shared.</p>':''}`;
+ return `<h2>Opened from Common Ground</h2><ul class="rows">${visible.slice(0,6).map((r:any)=>`<li><button class="row" data-receipt="${r.index}">${ic('package')}<span><b>${esc(r.name)}</b><small>${word(r)}</small></span><time>${ago(r.at)}</time></button><button class="linkish" data-run-receipt="${r.index}">Run on solar sample</button></li>`).join('')}</ul>${visible.some((r:any)=>r.state==='drifted')?'<p class="muted">A drifted copy has changed since it passed the factory’s checks. It still runs locally, but it isn’t the version that was shared.</p>':''}`;
 }
 function solarView(){
  const r=solarResult;
@@ -85,7 +96,7 @@ async function runSolarReceipt(receipt:any){
  solarReceipt=receipt;solarResult=null;view='solar';render();
  solarResult=await bridge('runSolar',{uri:receipt.uri,hash:receipt.hash});
 }
-function recentList(){return recents.length?`<h2>Recent</h2><ul class="links">${recents.slice(0,6).map((r:any,i:number)=>`<li><button data-local="${i}">${ic('folder')}${esc(r.name)}</button></li>`).join('')}</ul>`:'';}
+function recentList(){return recents.length?`<h2>Recent folders on this computer</h2><ul class="links">${recents.slice(0,6).map((r:any,i:number)=>`<li><button data-local="${i}">${ic('folder')}${esc(r.name)}</button></li>`).join('')}</ul>`:'';}
 function sharedView(){
  const s=active;
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>${esc(s.tool.name)}</h1>
@@ -115,7 +126,7 @@ function alreadyView(){
 }
 function builtView(){
  const a=built,passed=a.checks.filter((c:any)=>c.passed).length;
- const cos=companies();if(!share)share={orgId:cos[0]?.id||'',people:null,pick:new Set<string>(),team:true,name:a.name,description:'Finds missing, duplicate and off-grid readings in a sensor time series before they reach a model.',hours:16};
+ const cos=companies();if(!share)share={orgId:companyId,people:null,pick:new Set<string>(),team:true,name:a.name,description:'Finds missing, duplicate and off-grid readings in a sensor time series before they reach a model.',hours:16};
  const r=report?.report;
  return `<button class="back" data-act="start">${ic('back')}Start</button><h1>${esc(a.name)}</h1>
   <p class="lede">${passed===a.checks.length?`Passed all ${passed} checks.`:`${passed} of ${a.checks.length} checks passed; it can’t be shared until they all pass.`} ${a.provenance==='eve-generated'||a.provenance==='agent-generated'?'Written by the coding agent from your brief.':'Built from the offline reference template.'}${a.requirementId?` Filed in 8090’s Software Factory as requirement ${esc(String(a.requirementId).slice(0,12))}; the tool carries that link wherever it goes.`:''}</p>
@@ -156,7 +167,8 @@ function render(){
 // ── events ──
 root.addEventListener('input',e=>{const t=e.target as HTMLInputElement;if(t.id==='brief')brief=t.value;if(t.id==='desc')share.description=t.value;if(t.id==='hours')share.hours=Number(t.value)||1;});
 root.addEventListener('change',e=>{const t=e.target as HTMLInputElement;
- if(t.id==='co'){share.orgId=t.value;share.people=null;share.pick.clear();render();void loadPeople();}
+ if(t.id==='working-company'){void run(async()=>{await bridge('workspace',{companyId:t.value});share=null;active=null;already=null;view='start';await load();});}
+ if(t.id==='co'){void run(async()=>{await bridge('workspace',{companyId:t.value});companyId=t.value;share.orgId=t.value;share.toolId=null;share.people=null;share.pick.clear();await loadPeople();});}
  if(t.dataset.team!==undefined)share.team=t.checked;
  if(t.dataset.person){t.checked?share.pick.add(t.dataset.person):share.pick.delete(t.dataset.person);render();}
 });
@@ -170,29 +182,31 @@ root.addEventListener('click',e=>{
   if(el.dataset.receipt){await bridge('openReceipt',{index:Number(el.dataset.receipt)});return;}
   if(el.dataset.local){await bridge('openRecent',{index:Number(el.dataset.local)});return;}
   if(act==='signin'){await bridge('signIn');say('Finish signing in in your browser. You’ll come straight back here.');}
-  if(act==='signout'){await bridge('signOut');await load();view='start';}
+  if(act==='signout'){await bridge('signOut');active=null;built=null;share=null;job=null;await load();view='start';}
+  if(act==='refreshcompanies'){await load();view='start';}
   if(act==='start'){await load();view='start';}
   if(act==='openfolder')await bridge('openFolder');
   if(act==='buildview'||act==='recheck'){view='build';job=null;await local('/health').then((h:any)=>{builder='ready';builderLabel=h.integrations?.builder||'';}).catch(()=>{builder='off';});}
-  if(act==='download'){const r=await bridge('openHosted',{toolId:active.tool.id});if(r.cancelled)say('Cancelled. Nothing was saved.');else say('Saved and opened in a new window.');}
-  if(act==='takeit'){active=already;view='shared';const r=await bridge('openHosted',{toolId:already.tool.id});say(r.cancelled?'Cancelled. Nothing was saved.':'Saved and opened in a new window, bound to your company’s mapping.');return;}
+  if(act==='download'){const r=await bridge('openHosted',{toolId:active.tool.id,companyId});if(r.cancelled)say('Cancelled. Nothing was saved.');else say('Saved and opened in a new window.');}
+  if(act==='takeit'){active=already;view='shared';const r=await bridge('openHosted',{toolId:already.tool.id,companyId});say(r.cancelled?'Cancelled. Nothing was saved.':'Saved and opened in a new window, bound to your company’s mapping.');return;}
   if(act==='build'&&signedIn){
    // the portfolio's checked tools on this standard: shared with you, or your own company's
    const words=brief.toLowerCase().match(/[a-z]{5,}/g)||[];
    const pool:any[]=[...shared];
-   for(const c of companies()){const v=await hosted(`orgs/${c.id}`).catch(()=>null);for(const t of v?.tools||[])if(t.checks===7&&t.owner!==me.id&&!pool.some((x:any)=>x.tool.id===t.id))pool.push({tool:t,owner:v.members.find((m:any)=>m.user.id===t.owner)?.user||{name:'A teammate'},from:c,grant:{scope:'team'}});}
+   for(const c of companies().filter(c=>c.id===companyId)){const v=await hosted(`orgs/${c.id}`).catch(()=>null);for(const t of v?.tools||[])if(t.checks===7&&t.owner!==me.id&&!pool.some((x:any)=>x.tool.id===t.id))pool.push({tool:t,owner:v.members.find((m:any)=>m.user.id===t.owner)?.user||{name:'A teammate'},from:c,grant:{scope:'team'}});}
    const score=(x:any)=>words.filter((w:string)=>`${x.tool.name} ${x.tool.description||''}`.toLowerCase().includes(w)).length;
    const best=pool.map((x:any)=>[score(x),x] as [number,any]).sort((a,b)=>b[0]-a[0])[0];
    if(best&&best[0]>=2){already=best[1];view='already';return;}
   }
   if(act==='build'||act==='buildanyway'){
+   if(signedIn&&!companyId)throw new Error('Select your working company on Start first.');
    // the local builder keeps its own demo identity; the hosted account decides who can receive the result
    await local('/demo-session','POST',{userId:'fabio'}).catch(()=>{});
    job=await local('/build','POST',{prompt:brief});render();
    while(job.status==='building'){await new Promise(r=>setTimeout(r,700));job=await local('/jobs/'+job.id);render();}
    if(job.status==='failed')throw new Error(job.error||'The build failed.');
    built=await local('/artifacts/'+job.artifactId);lineage=await local(`/artifacts/${job.artifactId}/lineage`).catch(()=>null);report=null;share=null;view='built';
-   if(signedIn&&companies().length){builtView();void loadPeople();}
+   if(signedIn&&companyId){builtView();void loadPeople();}
   }
   if(act==='audio'){
    const input=document.createElement('input');input.type='file';input.accept='audio/*';
@@ -216,7 +230,7 @@ root.addEventListener('click',e=>{
 });
 window.addEventListener('message',e=>{
  if(e.data?.action==='offersChanged'){void refreshOffers();return;}
- if(e.data?.action==='signedIn'){void run(async()=>{await load();if(view==='built'&&signedIn&&companies().length){share=null;builtView();void loadPeople();}});return;}
+ if(e.data?.action==='signedIn'){void run(async()=>{await load();if(view==='built'&&signedIn&&companyId){share=null;builtView();void loadPeople();}});return;}
  if(e.data?.action==='showSettings'){window.open?.(`${server}/dashboard/`);return;}
  const p=pending.get(e.data?.id);if(p){pending.delete(e.data.id);e.data.error?p.reject(new Error(e.data.error)):p.resolve(e.data.data);}
 });
@@ -224,8 +238,8 @@ window.addEventListener('message',e=>{
 async function refreshOffers(){
  if(refreshInFlight||busy||!signedIn||view!=='start'||document.visibilityState!=='visible')return;
  refreshInFlight=true;const epoch=refreshEpoch;
- try{const x=await hosted('shared');if(epoch!==refreshEpoch||busy||view!=='start'||!signedIn)return;
-  if(JSON.stringify(x.shared)!==JSON.stringify(shared)){shared=x.shared;render();}
+ try{const next=await companyShares();if(epoch!==refreshEpoch||busy||view!=='start'||!signedIn)return;
+  if(JSON.stringify(next)!==JSON.stringify(shared)){shared=next;render();}
  }catch{/* Explicit actions surface authentication errors; polling stays quiet. */}
  finally{refreshInFlight=false;}
 }

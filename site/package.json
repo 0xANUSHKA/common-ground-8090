@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "dev": "node dev/serve.mjs",
-    "test": "node dev/test.mjs && node dev/sharing.test.mjs && node --test dev/navigation.test.mjs"
+    "test": "node dev/test.mjs && node dev/sharing.test.mjs && node --test dev/navigation.test.mjs && node --test dev/onboarding.test.mjs dev/hydra.test.mjs"
   }
 }

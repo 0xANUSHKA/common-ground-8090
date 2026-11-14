@@ -12,7 +12,7 @@ export async function sourceContext(companyIds:string[]) {
  const {HydraDBClient}=await import('@hydradb/sdk');
  const {buildString}=await import('@hydradb/sdk/helpers');
  const client=new HydraDBClient({token:process.env.HYDRADB_API_KEY});
- const result=await client.query({database:process.env.HYDRADB_DATABASE||'common_ground_demo',collections:companyIds.map(x=>'public_'+x),type:'knowledge',query:'Find source evidence for timestamped sensor data, CSV intake and reusable data completeness checks. Do not infer adoption or private company needs.'});
+ const result=await client.query({database:process.env.HYDRADB_DATABASE||'default-tenant',collections:companyIds.map(x=>'public_'+x),type:'knowledge',query:'Find source evidence for timestamped sensor data, CSV intake and reusable data completeness checks. Do not infer adoption or private company needs.'});
  return {provider:'HydraDB',text:buildString(result).slice(0,6000)};
 }
 export async function transcribe(base64:string, mime:string) {

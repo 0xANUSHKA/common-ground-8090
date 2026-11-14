@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import { newOffers } from './offers.js';
+import { chooseCompany } from './company-context.js';
 import { runDownloaded } from './run-downloaded.js';
 import { randomBytes,createHash } from 'node:crypto';
 import { mkdir,writeFile,readFile } from 'node:fs/promises';
 import { join,basename } from 'node:path';
 type Recent={name:string;uri:string};
-type Receipt={name:string;uri:string;hash:string;toolId?:string;at:string};
+type Receipt={name:string;uri:string;hash:string;toolId?:string;at:string;companyId?:string;userId?:string;server?:string};
 // Two backends. The local builder (127.0.0.1, `npm start`) builds and checks tools in a sandbox on this machine.
 // Common Ground (the hosted service, commonGround.server) holds your account, your company and fund, who may receive
 // what, and the exact files of each shared tool. Signing in goes through the browser and back via a vscode:// link.
@@ -33,7 +34,7 @@ export function activate(context:vscode.ExtensionContext){
  }
  async function hosted(path:string,method='GET',body?:unknown){
   // The hosted routes the view needs, and nothing else.
-  if(!/^(me|shared|suggest|tools|tools\/[a-z0-9]+\/(grants|package|uses)|grants\/[a-z0-9]+|orgs\/[a-z0-9]+)$/.test(path))throw new Error('Unsupported route');
+  if(!/^(me|shared(?:\?companyId=[a-z0-9]+)?|suggest|tools|tools\/[a-z0-9]+\/(grants|package(?:\?companyId=[a-z0-9]+)?|uses)|grants\/[a-z0-9]+|orgs\/[a-z0-9]+)$/.test(path))throw new Error('Unsupported route');
   if(!['GET','POST','DELETE'].includes(method))throw new Error('Unsupported method');
   const token=await context.secrets.get('hostedToken');if(token && await context.secrets.get('hostedServer')!==server())throw new Error('Sign in again to connect this Common Ground server.');if(!token)throw Object.assign(new Error('Sign in to Common Ground first.'),{status:401});
   const response=await fetch(`${server()}/api/${path}`,{method,headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:method==='GET'?undefined:JSON.stringify(body??{}),signal:AbortSignal.timeout(30000)});
@@ -41,9 +42,18 @@ export function activate(context:vscode.ExtensionContext){
   if(response.status===401){await context.secrets.delete('hostedToken');throw new Error('Your Common Ground sign-in expired. Sign in again.');}
   if(!response.ok)throw new Error(data.error||`Request failed (${response.status})`);return data;
  }
+ async function workspace(selected?:string){
+  const r=await hosted('me');
+  const key=`company:${server()}:${r.user.id}`;
+  if(selected!==undefined){
+   if(!r.orgs.some((o:any)=>o.kind==='company'&&o.id===selected))throw new Error('You are no longer a member of that company. Refresh companies.');
+   await context.globalState.update(key,selected);
+  }
+  return {...r,companyId:chooseCompany(r.orgs,context.globalState.get<string>(key))};
+ }
  // writes a verified package into a fresh folder next to where the person chooses; never runs anything
  const receipts=()=>context.globalState.get<Receipt[]>('receipts',[]);
- async function savePackage(pkg:any,label:string,toolId?:string){
+ async function savePackage(pkg:any,label:string,toolId?:string,scope?:{companyId:string;userId:string;server:string}){
   if(!vscode.workspace.isTrusted)throw new Error('Trust your workspace before downloading code.');
   const names=Object.keys(pkg?.files||{});
   if(!names.length||names.some(n=>!FILE_OK.test(n)||basename(n)!==n||typeof pkg.files[n]!=='string'))throw new Error('Unsupported package file');
@@ -55,7 +65,7 @@ export function activate(context:vscode.ExtensionContext){
   for(const n of names)await writeFile(join(folder,n),pkg.files[n],{flag:'wx'});
   const uri=vscode.Uri.file(folder);await context.globalState.update('recents',[{name:safe,uri:uri.toString()},...recents()].slice(0,10));
   // a receipt of the sealed version, so the factory can tell later whether this copy has drifted
-  await context.globalState.update('receipts',[{name:safe,uri:uri.toString(),hash:String(pkg.hash),toolId,at:new Date().toISOString()},...receipts()].slice(0,20));
+  await context.globalState.update('receipts',[{name:safe,uri:uri.toString(),hash:String(pkg.hash),toolId,at:new Date().toISOString(),...scope},...receipts()].slice(0,20));
   await vscode.commands.executeCommand('vscode.openFolder',uri,{forceNewWindow:true});return {ok:true};
  }
  async function signIn(){
@@ -85,6 +95,7 @@ export function activate(context:vscode.ExtensionContext){
    if(m.action==='request')data=await api(m.path,m.method,m.body);
    else if(m.action==='hosted')data=await hosted(m.path,m.method,m.body);
    else if(m.action==='account')data={signedIn:!!(await context.secrets.get('hostedToken')),server:server()};
+   else if(m.action==='workspace')data=await workspace(m.companyId);
    else if(m.action==='signIn'){await signIn();data={ok:true};}
    else if(m.action==='signOut'){await context.secrets.delete('hostedToken');data={ok:true};}
    else if(m.action==='recents')data=recents();
@@ -102,19 +113,23 @@ export function activate(context:vscode.ExtensionContext){
    else if(m.action==='openFolder'){await vscode.commands.executeCommand('workbench.action.files.openFolder');data={ok:true};}
    else if(m.action==='openArtifact'){
     if(!/^[a-z0-9-]+$/.test(m.artifactId))throw new Error('Invalid artifact');
-    data=await savePackage(await api(`/artifacts/${m.artifactId}/package`),'telemetry-inspector');
+    const w=await workspace();if(!w.companyId)throw new Error('Select your working company first.');
+    data=await savePackage(await api(`/artifacts/${m.artifactId}/package`),'telemetry-inspector',undefined,{companyId:w.companyId,userId:w.user.id,server:server()});
    }
    else if(m.action==='publishHosted'){
     // the locally checked package goes up as-is; the service re-verifies its hash before storing it
     if(!/^[a-z0-9-]+$/.test(m.artifactId)||!/^[a-z0-9]+$/.test(m.orgId))throw new Error('Invalid tool');
+    const w=await workspace();if(w.companyId!==m.orgId)throw new Error('Your working company changed. Select it again before sharing.');
     const art=await api(`/artifacts/${m.artifactId}`),pkg=await api(`/artifacts/${m.artifactId}/package`);
     data=await hosted('tools','POST',{provenance:art.provenance,requirementId:art.requirementId,name:m.name||art.name,description:m.description||'',hours:m.hours,orgId:m.orgId,hash:pkg.hash,files:pkg.files,checks:art.checks});
    }
    else if(m.action==='openHosted'){
-    if(!/^[a-z0-9]+$/.test(m.toolId))throw new Error('Invalid tool');
-    const pkg=await hosted(`tools/${m.toolId}/package`);
-    data=await savePackage(pkg,pkg.name,m.toolId);
-    if((data as any).ok)await hosted(`tools/${m.toolId}/uses`,'POST',{kind:'download'}).catch(()=>{});
+    if(!/^[a-z0-9]+$/.test(m.toolId)||!/^[a-z0-9]+$/.test(m.companyId))throw new Error('Select your working company first.');
+    const w=await workspace();if(w.companyId!==m.companyId)throw new Error('Your working company changed. Refresh Start before opening this tool.');
+    const pkg=await hosted(`tools/${m.toolId}/package?companyId=${m.companyId}`);
+    if(pkg.companyId!==m.companyId)throw new Error('The hosted service needs the company-selection update. Ask your deployer to deploy the latest site.');
+    data=await savePackage(pkg,pkg.name,m.toolId,{companyId:m.companyId,userId:w.user.id,server:server()});
+    if((data as any).ok)await hosted(`tools/${m.toolId}/uses`,'POST',{kind:'download',companyId:m.companyId}).catch(()=>{});
    }
    else throw new Error('Unsupported editor action');
    await webview.postMessage({id:m.id,data});
@@ -132,6 +147,7 @@ export function activate(context:vscode.ExtensionContext){
     context.globalState.update('recents',[]),context.globalState.update('receipts',[]),
     context.secrets.delete('hostedToken'),context.secrets.delete('hostedServer'),context.secrets.delete('session')
    ]);
+   for(const key of context.globalState.keys().filter(k=>k.startsWith('company:')))await context.globalState.update(key,undefined);
    panel?.dispose();await show();
    void vscode.window.showInformationMessage('Local Common Ground history cleared. Downloaded folders and server data were not deleted.');
   }),
@@ -142,8 +158,11 @@ export function activate(context:vscode.ExtensionContext){
   try{
    const token=await context.secrets.get('hostedToken');
    if(!token){offerToken='';offerIds=null;return;}
-   if(token!==offerToken){offerToken=token;offerIds=null;}
-   const result=await hosted('shared');
+   const w=await workspace();if(!w.companyId){offerIds=null;return;}
+   const scopedToken=`${token}:${w.companyId}`;
+   if(offerToken!==scopedToken){offerToken=scopedToken;offerIds=null;}
+   const result=await hosted(`shared?companyId=${w.companyId}`);
+   if(result.companyId!==w.companyId)return;
    if(token!==await context.secrets.get('hostedToken'))return;
    const next=newOffers(offerIds,result.shared);offerIds=next.current;
    if(!next.fresh.length)return;

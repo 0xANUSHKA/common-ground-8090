@@ -29,16 +29,25 @@ async function invite(code) {
   const o = inv.org, forCompany = inv.kind === 'company', icon = fav(o.iconUrl, o.name);
   const draw = (extra = '') => { preview.innerHTML = `<p class="pv-l">${forCompany ? 'Your fund' : 'Your team'}</p>${card(icon, o.name, `${inv.memberCount} ${inv.memberCount === 1 ? 'person' : 'people'}${inv.invitedBy ? ` · ${inv.invitedBy.name} invited you` : ''}`, [inv.invitedBy, ME].filter(Boolean))}${extra}`; };
   draw(forCompany?'<div class="setup-hierarchy invite-explainer"><div><span class="setup-number">01</span><h3>Choose your company</h3><p>Create one or connect a company you already administer.</p></div><div><span class="setup-number">02</span><h3>Make useful connections</h3><p>Map a sample and describe your work. You control publishing; each engineer controls receiving.</p></div></div>':'');
-  const head = `<h1>${forCompany ? `Bring your company into ${esc(o.name)}` : `Join ${esc(o.name)}`}</h1>`;
+  const head = `<h1>${forCompany ? `Create your company in ${esc(o.name)}` : `Join ${esc(o.name)}`}</h1>`;
   if (!ME) { form.innerHTML = head + google(`/join/?invite=${encodeURIComponent(code)}`) + '<p class="err" id="err"></p>'; return; }
   if (!forCompany) {
-    form.innerHTML = head + `<p style="margin:0 0 18px;color:var(--mute)">Signed in as ${esc(ME.email)}</p><p class="err" id="err" role="alert"></p><div class="join-act"><button type="submit" class="btn is-blue">Join</button></div>`;
-    form.onsubmit = async (e) => { e.preventDefault(); try { const r = await api(`invites/${encodeURIComponent(code)}/accept`, { method: 'POST' }); location.href = dash(r.orgId, 'setup'); } catch (x) { err(x.message); } };
+    const teamLabel=o.kind==='company'?'an engineer':'a fund team member';
+    const existing=ORGS.some(x=>x.id===o.id);
+    const introduction=`<p class="setup-kicker">${o.kind==='company'?'ENGINEER INVITATION':'FUND TEAM INVITATION'}</p><h1>${existing?'You already belong to':'Join the team at'} ${esc(o.name)}</h1><p class="setup-intro">This invitation adds you as ${teamLabel} inside <strong>${esc(o.name)}</strong>. It does not create your own company.</p><p>Signed in as ${esc(ME.email)}</p>`;
+    form.innerHTML=introduction+(existing
+      ? `<a class="btn is-blue" href="${dash(o.id,'setup')}">Open ${esc(o.name)}</a><p class="setup-note">Joined the wrong company? <a href="${dash(o.id,'settings')}">Open Settings to leave</a>.</p>`
+      : `<label class="fld"><span><input name="confirmTeam" type="checkbox" required> I want to join ${esc(o.name)} as ${teamLabel}.</span></label><p class="err" id="err" role="alert"></p><div class="join-act"><button type="submit" class="btn is-blue" disabled>Join ${esc(o.name)} as ${teamLabel}</button></div>`)
+      + `<div class="personal-company"><b>Creating your own company instead?</b><p>Ask the fund admin for the <strong>company invitation</strong>. That link lets you create a separate company in the same fund.</p><a href="/join/">Back to workspace setup →</a></div>`;
+    if(existing)return;
+    let saving=false;
+    form.onchange=()=>{form.querySelector('button[type="submit"]').disabled=saving||!F('confirmTeam').checked;};
+    form.onsubmit=async(e)=>{e.preventDefault();if(saving||!F('confirmTeam').checked)return;saving=true;form.querySelector('button[type="submit"]').disabled=true;try{const r=await api(`invites/${encodeURIComponent(code)}/accept`,{method:'POST'});location.href=dash(r.orgId,'setup');}catch(x){err(x.message);saving=false;form.querySelector('button[type="submit"]').disabled=false;}};
     return;
   }
-  const joined = ORGS.filter(x => x.kind === 'company' && x.fundId === o.id);
+  const joined = ORGS.filter(x => x.kind === 'company' && x.fundId === o.id && ['owner','admin'].includes(x.role));
   const mine = ORGS.filter(x => x.kind === 'company' && ['owner', 'admin'].includes(x.role) && !x.fundId);
-  let pick = null, saving = false;
+  let pick = mine.length ? null : 'new', saving = false;
   const draft = {name:'',site:''};
   const render = () => {
     form.innerHTML = `<p class="setup-kicker">COMPANY INVITATION</p>` + head
@@ -109,7 +118,7 @@ function start() {
       if(!created)created=(await api('orgs',{method:'POST',body:{kind,...draft}})).org;
       const {invite:link}=await api(`orgs/${created.id}/invites`,{method:'POST',body:{kind:fund?'company':'member'}});
       step=fund?2:1;
-      form.innerHTML=progress()+`<p class="setup-kicker">${esc(created.name)} / READY TO INVITE</p><h1>${fund?'Your network starts with one introduction.':'Bring in your first engineer.'}</h1><p class="setup-intro">${fund?'Send this to a company lead. They register their own company, map a sample, then invite their engineers.':'Send this to a teammate. They join your company and install the extension. You control publishing rights in Team settings.'}</p><label class="fld"><span>${fund?'Company admin invitation':'Engineer invitation'}</span><input id="invite-url" readonly value="${esc(location.origin+'/join/?invite='+link.code)}"></label><button type="button" class="btn is-blue is-full" data-copy>Copy invitation</button><p id="copy-result" class="setup-note" role="status">Anyone with this link can join. It expires in 30 days; turn it off in Settings.</p><div class="next-owner"><b>Next: ${fund?'the company admin':'your teammate'}</b><p>${fund?'They own their company setup. You can track readiness from your fund workspace.':'They finish sign-in and open Common Ground in VS Code or Cursor.'}</p></div>${fund?`<div class="personal-company"><b>Building tools yourself, too?</b><p>Create or connect your company in this network using this same account.</p><a class="btn is-full" href="/join/?invite=${encodeURIComponent(link.code)}">Set up my own company →</a></div>`:''}<a class="btn is-full" href="${dash(created.id,'setup')}">${fund?'Open fund workspace':'Continue company setup'} →</a>`;
+      form.innerHTML=progress()+`<p class="setup-kicker">${esc(created.name)} / READY TO INVITE</p><h1>${fund?'Your network starts with one introduction.':'Bring in your first engineer.'}</h1><p class="setup-intro">${fund?'Send this to a company lead. They register their own company, map a sample, then invite their engineers.':'Send this to a teammate. They join your company and install the extension. You control publishing rights in Team settings.'}</p><label class="fld"><span>${fund?'Company invitation — creates a separate company':'Engineer invitation — joins this company'}</span><input id="invite-url" readonly value="${esc(location.origin+'/join/?invite='+link.code)}"></label><button type="button" class="btn is-blue is-full" data-copy>Copy ${fund?'company':'engineer'} invitation</button><p id="copy-result" class="setup-note" role="status">Anyone with this link can join. It expires in 30 days; turn it off in Settings.</p><div class="next-owner"><b>Next: ${fund?'the company admin':'your teammate'}</b><p>${fund?'They own their company setup. You can track readiness from your fund workspace.':'They finish sign-in and open Common Ground in VS Code or Cursor.'}</p></div>${fund?`<div class="personal-company"><b>Building tools yourself, too?</b><p>Create or connect your company in this network using this same account.</p><a class="btn is-full" href="/join/?invite=${encodeURIComponent(link.code)}">Set up my own company →</a></div>`:''}<a class="btn is-full" href="${dash(created.id,'setup')}">${fund?'Open fund workspace':'Continue company setup'} →</a>`;
       draw();form.onsubmit=e=>e.preventDefault();
     } catch(x){err(x.message);}finally{saving=false;for(const button of form.querySelectorAll('button'))button.disabled=false;}
   };

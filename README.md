@@ -85,7 +85,7 @@ More detail: [architecture and limitations](docs/ARCHITECTURE.md), [product brie
 | ElevenLabs Scribe | Audio brief → editable transcript → build. Never grants sharing permission by voice. | Live call verified | `ELEVENLABS_API_KEY`, then **use a recording…** in Build |
 | Vercel | Hosting and the API function | Live | `site/`, `vercel deploy --prod` |
 | Eve + Vercel AI Gateway | Alternative live agent: generates source, calls `submit_candidate`, repairs on failures | Wired; Gateway blocked by billing verification | `AI_GATEWAY_API_KEY`, `BUILD_PROVIDER=eve`, `npm run agent:dev` |
-| HydraDB v2 | Company-scoped context collections for fit evidence; queried only after policy selects eligible collections | Adapter only, not connected | `HYDRADB_API_KEY`, then `npm run hydra:seed` |
+| HydraDB v2 | Company-scoped context collections for fit evidence; queried only after policy selects eligible collections | Live ingestion/retrieval verified locally; hosted workflow retrieval needs deployment credentials | `HYDRADB_API_KEY`, `HYDRADB_DATABASE` (use the existing database; this workspace uses `default-tenant`) |
 
 Keys are server-only, in the ignored `.env`. Never put them in the webview, source, screenshots or Git. A configured key doesn't imply a successful live call, and the offline template stays plainly labeled. 8090's external API records the requirement; Common Ground's factory executes the build and the checks. Composio has no role.
 

@@ -1,5 +1,7 @@
 # Starting a fresh two-person rehearsal
 
+For the current purge and deployment commands, use [RESET-AND-DEPLOY.md](RESET-AND-DEPLOY.md).
+
 Both editors must use `https://common-ground-theta.vercel.app` as their Common Ground server. The live service already uses shared Upstash Redis for accounts, companies, mappings, briefs, published packages, grants and reuse. Running the website locally uses an in-memory development database and will not synchronize with production.
 
 Each computer has separate editor history and downloaded projects. The local factory also stores its own build records in `.local/common-ground.sqlite`. Git synchronizes application code, not these runtime databases.
@@ -15,7 +17,7 @@ The scoped hosted cleanup must cover Demo Fund (`2qnkjgc7g6`) and its five confi
 ## Each laptop
 
 1. Close old downloaded demo-project windows.
-2. Install Common Ground extension **0.1.2**. In the Command Palette run **Common Ground: Clear Local History**. It clears Common Ground's recent entries and receipts and signs out; it does not erase downloaded files or hosted data.
+2. Install Common Ground extension **0.1.3**. In the Command Palette run **Common Ground: Clear Local History**. It clears Common Ground's recent entries and receipts and signs out; it does not erase downloaded files or hosted data.
 3. Delete only the old generated demo folders you no longer want, using Finder. Check for edits first. Connor must do this on his laptop; remote revocation cannot erase downloaded code.
 4. Reopen Common Ground and sign in after the hosted reset is verified. Reload old dashboard tabs so they fetch current data.
 

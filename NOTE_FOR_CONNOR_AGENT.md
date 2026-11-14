@@ -137,3 +137,7 @@ This does not change account roles, API permissions, data, extension behavior or
 # Fresh rehearsal reset (14 November)
 
 Anushka wants to clear old demo activity **and redo onboarding**. See `docs/FRESH-REHEARSAL.md` for exact scope and current blockers. Hosted Upstash is already shared; do not provision a second DB. Hosted cleanup is still pending team access. Extension 0.1.2 adds **Common Ground: Clear Local History**, which signs out and clears receipts/recents only; it deliberately does not delete downloaded folders or claim to reset server data. Rebuild with `npm run package:site` before your next deployment so the download includes 0.1.2.
+
+## Urgent: company selection, invitation safety, and authorized full rehearsal reset
+
+Read **docs/RESET-AND-DEPLOY.md** next. User selected **Connor will run the purge script**. Ship the latest site and **extension 0.1.3 on both laptops**; the editor now needs matching scoped API behavior. Do not silently pick the first company. Do not claim the live purge happened—it is pending your authorized hosted environment. The new scripts preview exact records and require that preview's confirmation fingerprint. Hydra is live-tested locally; production still needs the same workspace's key and `HYDRADB_DATABASE=default-tenant` before deployment.

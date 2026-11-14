@@ -83,7 +83,7 @@ All secrets stay in local ignored `.env` or Vercel's server environment; never p
 | 8090 | `SOFTWARE_FACTORY_API_KEY`; FEATURE requirement through external API | Live requirements write verified |
 | ElevenLabs | `ELEVENLABS_API_KEY`; Scribe recording → editable brief | Real transcription verified |
 | Vercel AI Gateway | `AI_GATEWAY_API_KEY`; alternative Eve inference | Key exists locally; first inference blocked by billing verification |
-| HydraDB | `HYDRADB_API_KEY`, `HYDRADB_DATABASE`; optional local evidence adapter | Not connected; recurring subscription explicitly declined |
+| HydraDB | `HYDRADB_API_KEY`, `HYDRADB_DATABASE=default-tenant`; public evidence and company-scoped workflow retrieval | Free workspace connected and live-tested locally; set production environment variables before deploying hosted retrieval |
 | Hosted service | `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Connor's deployment; local tests do not prove production configuration |
 
 8090 stores requirements, not execution. HydraDB is not the hosted database (Upstash is). Composio has no runtime role.

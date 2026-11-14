@@ -5,6 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { cmd, pipeline, getJSON, setJSON, getMany, kvReady } from './_kv.js';
 import { createHash } from 'node:crypto';
 import { INSPECTOR } from './_demo-tool.js';
+import {hydraReady,syncCompanyBrief,lookupCompanyBrief} from './_hydra.js';
 import { authReady, sessionUser, startSession, endSession, googleStart, googleFinish, safeNext, extensionToken } from './_auth.js';
 
 const DAY = 86400000;
@@ -194,6 +195,7 @@ on('PATCH', 'orgs/:id', async (req, res, me, p) => {
       columns: Array.isArray(m.columns) ? m.columns.slice(0, 200).map((c) => clean(c, 80)) : [], result: { state: ['verified', 'failed', 'draft'].includes(r.state) ? r.state : 'draft', detail: clean(r.detail, 200) }, at: now() };
     if (org.fundId) org.status = org.mapping.result.state === 'verified' ? 'joined' : 'invited';
   }
+  if(org.kind==='company'&&(b.needs!=null||b.name!=null)&&hydraReady())org.hydra=await syncCompanyBrief(org).catch(()=>({state:'unavailable'}));
   await setJSON(K.org(org.id), org); await log(org.id, me.name, b.mapping ? `Mapping ${org.mapping.result.state}` : b.settings ? 'Changed settings' : 'Edited details', org.name);
   return { org };
 });
@@ -321,20 +323,30 @@ on('GET', 'tools/mine', async (req, res, me) => {
 });
 const PKG_FILES = /^[A-Za-z0-9_.-]{1,80}\.(js|json|md|csv|txt)$/;
 // can this person open the tool's files: its author, their company, or someone a live share reaches
-async function canOpenTool(t, uid) {
-  if (t.owner === uid) return !!(await membership(t.orgId, uid));
+const grantCompany = (g,t) => g.scope === 'portfolio' ? g.target.companyId : t.orgId;
+async function requestedCompany(value, uid) {
+  if (value === undefined) return null; // Legacy clients retain account-wide behavior.
+  if (typeof value !== 'string' || !/^[a-z0-9]+$/.test(value)) throw fail(400, 'Select your working company.');
+  const co = await getJSON(K.org(value));
+  if (co?.kind !== 'company' || !(await membership(value, uid))) throw fail(404, 'You are not a member of this company.');
+  return co;
+}
+async function canOpenTool(t, uid, companyId) {
+  if (companyId && !(await membership(companyId, uid))) return false;
+  if (t.owner === uid) return (!companyId || companyId === t.orgId) && !!(await membership(t.orgId, uid));
   const gs = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean), cache = { [t.id]: t };
-  for (const g of gs) if (await grantReaches(g, uid, cache)) return true;
+  for (const g of gs) if ((!companyId || grantCompany(g,t) === companyId) && await grantReaches(g, uid, cache)) return true;
   return false;
 }
 on('GET', 'tools/:id/package', async (req, res, me, p) => {
-  const t = await getJSON(K.tool(p.id)); if (!t || !(await canOpenTool(t, me.id))) throw fail(404, 'This tool isn’t shared with you.');
+  const context = await requestedCompany(req.query.companyId, me.id);
+  const t = await getJSON(K.tool(p.id)); if (!t || !(await canOpenTool(t, me.id, context?.id))) throw fail(404, 'This tool isn’t shared with you in this company.');
   const pkg = await getJSON(K.pkg(t.id)); if (!pkg) throw fail(404, 'This tool was registered by hand and has no files to download.');
   // bind it to the recipient's own mapping of the standard: the checked code stays byte-identical, only binding.json changes
-  if (!(await membership(t.orgId, me.id))) {
+  if (context ? context.id !== t.orgId : !(await membership(t.orgId, me.id))) {
     const grants = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean);
-    let mine = null;
-    for (const grant of grants) if (grant.target.companyId && await grantReaches(grant, me.id, { [t.id]: t })) { mine = await getJSON(K.org(grant.target.companyId)); break; }
+    let mine = context;
+    if (!mine) for (const grant of grants) if (grant.target.companyId && await grantReaches(grant, me.id, { [t.id]: t })) { mine = await getJSON(K.org(grant.target.companyId)); break; }
     if (mine) {
       const m = mine.mapping, std = STANDARD.name;
       pkg.files['binding.json'] = JSON.stringify({ standard: std, company: mine.name, source: m.source, time: m.binding.timeColumn, value: m.binding.signalColumn, unit: m.binding.unit || '', timeBasis: m.binding.timeBasis, cadenceSeconds: m.binding.cadenceSeconds, skipUnitsRow: m.binding.skipUnitsRow }, null, 2);
@@ -342,6 +354,7 @@ on('GET', 'tools/:id/package', async (req, res, me, p) => {
       pkg.reboundTo = mine.name;
     }
   }
+  if (context) pkg.companyId = context.id;
   return pkg;
 });
 const canManageTool = async (t, uid) => t.owner === uid || (t.orgId && isAdmin(await membership(t.orgId, uid)));
@@ -366,7 +379,7 @@ on('POST', 'tools/:id/grants', async (req, res, me, p) => {
   } else if (b.userId) {
     const u = await getJSON(K.user(b.userId)); if (!u || u.id === me.id) throw fail(404, 'No such person.');
     const from = await getJSON(K.org(t.orgId)), mf = await membership(from.id, me.id);
-    if (await membership(from.id, u.id)) { if (!mf?.publisher) throw fail(403, 'You need Publisher.'); g = { ...base, scope: 'team', target: { type: 'user', userId: u.id }, expiresAt: new Date(Date.now() + 7 * DAY).toISOString() }; }
+    if ((!b.companyId || b.companyId === from.id) && await membership(from.id, u.id)) { if (!mf?.publisher) throw fail(403, 'You need Publisher.'); g = { ...base, scope: 'team', target: { type: 'user', userId: u.id }, expiresAt: new Date(Date.now() + 7 * DAY).toISOString() }; }
     else {
       if (!mf?.exporter) throw fail(403, 'You need Exporter to share outside your company.');
       const toId = String(b.companyId || ''); const to = await getJSON(K.org(toId)); if (!to || !(await membership(to.id, u.id))) throw fail(400, 'Pick their company.');
@@ -387,6 +400,7 @@ on('DELETE', 'grants/:id', async (req, res, me, p) => {
   return { ok: true };
 });
 on('GET', 'shared', async (req, res, me) => {
+  const context = await requestedCompany(req.query.companyId, me.id);
   const orgIds = await cmd('SMEMBERS', K.uorgs(me.id));
   const gids = new Set(await cmd('SMEMBERS', K.ugrants(me.id))); for (const o of orgIds) for (const g of await cmd('SMEMBERS', K.ogrants(o))) gids.add(g);
   const gs = (await getMany([...gids].map(K.grant))).filter(Boolean), cache = {}, out = [];
@@ -394,10 +408,11 @@ on('GET', 'shared', async (req, res, me) => {
   for (const g of gs) {
     if (!(await grantReaches(g, me.id, cache))) continue;
     const t = cache[g.toolId]; if (pref.muted.includes(t.owner) || pref.mode === 'off' || (pref.mode === 'company' && g.scope === 'portfolio')) continue;
+    if (context && (grantCompany(g,t) !== context.id || out.some(x=>x.tool.id===t.id))) continue;
     const owner = await getJSON(K.user(t.owner)), from = t.orgId && await getJSON(K.org(t.orgId));
     out.push({ grant: g, tool: t, owner: pub(owner), from: from && { id: from.id, name: from.name, iconUrl: from.iconUrl } });
   }
-  return { shared: out };
+  return { shared: out, ...(context ? {companyId:context.id} : {}) };
 });
 
 // the factory's last step: who should get this, other than its maker. Candidates come from the fund's ontology:
@@ -413,50 +428,54 @@ on('POST', 'suggest', async (req, res, me) => {
   if (!mine.publisher || (tool && tool.checks !== 7)) return { standard: STANDARD.name, suggestions: [], note: 'A checked tool and Publisher permission are required before sharing.' };
   const about = words(`${b.name || tool?.name || ''} ${b.text || tool?.description || ''}`);
   const candidate = tool || { id: 'preview', orgId: org.id, owner: me.id };
-  const already = new Set((tool?.uses || []).map(x => x.uid));
+  const already = new Set((tool?.uses || []).map(x => `${x.uid}:${x.companyId}`));
   if (tool) for (const g of (await getMany((await cmd('SMEMBERS', K.tgrants(tool.id))).map(K.grant))).filter(Boolean)) {
     if (g.revoked || Date.parse(g.expiresAt) <= Date.now()) continue;
-    if (g.target.userId) already.add(g.target.userId);
-    else for (const id of Object.keys(await members(g.target.orgId))) if (await grantReaches(g, id)) already.add(id);
+    if (g.target.userId) already.add(`${g.target.userId}:${grantCompany(g,tool)}`);
+    else for (const id of Object.keys(await members(g.target.orgId))) if (await grantReaches(g, id)) already.add(`${id}:${g.target.orgId}`);
   }
   const fund = org.fundId && await getJSON(K.org(org.fundId));
   const history = (await cmd('LRANGE', K.reuse(fund?.id || org.id), 0, 199)).map(x => JSON.parse(x));
   const peers = fund ? (await getMany((await cmd('SMEMBERS', K.fundcos(fund.id))).map(K.org))).filter(c => c && c.id !== org.id) : [];
-  const out = [];
+  const out = [];let hydraUsed=false;
   for (const company of [org, ...peers]) {
     const portfolio = company.id !== org.id;
     const users = (await getMany(Object.keys(await members(company.id)).map(K.user))).filter(Boolean);
+    let retrieval,lookedUp=false;
     for (const u of users) {
-      if (u.id === me.id || already.has(u.id)) continue;
+      if (u.id === me.id || already.has(`${u.id}:${company.id}`)) continue;
       const target = { userId: u.id, ...(portfolio ? { companyId: company.id } : {}) };
       const grant = { toolId: candidate.id, issuer: me.id, scope: portfolio ? 'portfolio' : 'team', target: { type: 'user', ...target }, expiresAt: new Date(Date.now() + DAY).toISOString() };
       // Eligibility is checked before returning names, workflow evidence, or ranking.
       if (!(await grantReaches(grant, u.id, { [candidate.id]: candidate }))) continue;
+      if(!lookedUp){lookedUp=true;retrieval=await lookupCompanyBrief(company,`${b.name||tool?.name||''} ${b.text||tool?.description||''}`).catch(()=>null);if(retrieval)hydraUsed=true;}
       const overlap = [...words(company.needs)].filter(w => about.has(w));
-      const prior = history.filter(e => e.uid === u.id).map(e => ({ e, count: [...words(e.tool)].filter(w => about.has(w)).length })).sort((a,b) => b.count-a.count)[0];
-      if (!overlap.length && !prior?.count) continue; // a compatible schema alone is not evidence of need
+      const prior = history.filter(e => e.uid === u.id && e.to?.id === company.id).map(e => ({ e, count: [...words(e.tool)].filter(w => about.has(w)).length })).sort((a,b) => b.count-a.count)[0];
+      if (!overlap.length && !prior?.count && !retrieval) continue; // a compatible schema alone is not evidence of need
       const evidence = [];
+      if(retrieval)evidence.push({kind:'hydra-brief',source:`${company.name} · HydraDB workflow retrieval`,text:company.needs,score:retrieval.score,sourceId:retrieval.source});
       if (overlap.length) evidence.push({ kind: 'company-brief', source: `${company.name} · shared workflow brief`, text: company.needs, matched: overlap });
       if (prior?.count) evidence.push({ kind: 'reuse', source: 'Recorded adoption', text: `Previously ${prior.e.kind === 'adapt' ? 'adapted' : 'downloaded'} ${prior.e.tool}.`, at: prior.e.at });
       const map = company.mapping?.binding;
       const reasons = [...evidence.map(e => `${e.source}: ${e.text}`), portfolio && map ? `Compatible mapping: ${map.timeColumn} → time; ${map.signalColumn} → value.` : 'Same company; receiving is enabled.'];
-      out.push({ kind: 'person', target, user: pub(u), company: { id: company.id, name: company.name, iconUrl: company.iconUrl }, portfolio, score: overlap.length + (prior?.count || 0) * 2, reasons, evidence, basis: 'workflow-and-reuse' });
+      out.push({ kind: 'person', target, user: pub(u), company: { id: company.id, name: company.name, iconUrl: company.iconUrl }, portfolio, score: overlap.length + (prior?.count || 0) * 2 + (retrieval?.score||0), reasons, evidence, basis: 'workflow-and-reuse' });
     }
   }
   out.sort((a,b) => b.score-a.score || a.user.id.localeCompare(b.user.id));
   const limit = Math.min(3, Math.max(1, Number(fund?.settings?.maxOpenOffers) || 2));
-  return { standard: STANDARD.name, suggestions: out.slice(0,limit), method: 'Permission-filtered workflow keywords and recorded reuse; no model inference.', note: out.length ? 'Suggestions are optional. Review the evidence before sharing this version.' : 'No evidenced match among eligible people. A company admin can add a shared workflow brief in Get started. A matching schema alone is not enough.' };
+  return { standard: STANDARD.name, suggestions: out.slice(0,limit), method: hydraUsed?'Permission-filtered HydraDB retrieval, workflow keywords and recorded reuse.':'Permission-filtered workflow keywords and recorded reuse; no model inference.', note: out.length ? 'Suggestions are optional. Review the evidence before sharing this version.' : 'No evidenced match among eligible people. A company admin can add a shared workflow brief in Get started. A matching schema alone is not enough.' };
 });
 
 // someone downloaded or adapted a tool they can see: counts toward reuse, for the tool's company, theirs and the fund
 on('POST', 'tools/:id/uses', async (req, res, me, p) => {
+  const context = await requestedCompany(req.body?.companyId, me.id);
   const t = await getJSON(K.tool(p.id)); if (!t) throw fail(404, 'Not found.');
   const kind = req.body?.kind === 'adapt' ? 'adapt' : 'download';
-  let toCo = (await membership(t.orgId, me.id)) ? t.orgId : null;
+  let toCo = context?.id || ((await membership(t.orgId, me.id)) ? t.orgId : null);
   if (!toCo) { const gs = (await getMany((await cmd('SMEMBERS', K.tgrants(t.id))).map(K.grant))).filter(Boolean), cache = { [t.id]: t };
     for (const g of gs) if (await grantReaches(g, me.id, cache)) { toCo = g.target.companyId || g.target.orgId || t.orgId; break; } }
-  if (!toCo || t.owner === me.id || !(await canOpenTool(t, me.id))) throw fail(404, 'Not found.');
-  t.uses ||= []; if (t.uses.some((u) => u.uid === me.id && u.kind === kind)) return { ok: true, already: true };
+  if (!toCo || t.owner === me.id || !(await canOpenTool(t, me.id, context?.id))) throw fail(404, 'Not found.');
+  t.uses ||= []; if (t.uses.some((u) => u.uid === me.id && u.kind === kind && (!context || u.companyId === toCo))) return { ok: true, already: true };
   const [from, to] = await getMany([K.org(t.orgId), K.org(toCo)]);
   const ev = { at: now(), toolId: t.id, tool: t.name, kind, hours: t.hours || 0, uid: me.id, by: me.name, from: from && { id: from.id, name: from.name, iconUrl: from.iconUrl }, to: to && { id: to.id, name: to.name, iconUrl: to.iconUrl } };
   t.uses.push({ at: ev.at, uid: me.id, companyId: toCo, kind }); t.uses = t.uses.slice(-200);
