@@ -85,3 +85,15 @@ metadata isolation, transactional operations, rate limits and full-package signa
 
 8090 requirements and ElevenLabs transcription have real verified calls. Claude now works without adding a Vercel
 payment method. AI Gateway remains billing-blocked; HydraDB was explicitly deferred (no subscription authorized).
+
+## Invitation login follow-up
+
+Found and fixed a separate navigation bug: the public header's Sign in link on `/join/?invite=...`
+dropped the invitation and returned to the user's existing dashboard. Header sign-in now preserves
+the invitation through the sign-in page and signed OAuth state. The main Continue with Google button
+already preserved it. Two regression tests cover the actual header renderer and OAuth state round-trip.
+
+This is a possible explanation for Connor landing in his existing SocialAcolyte workspace; the exact
+link/navigation path still needs confirming. Login alone does not create a company or assign an admin role.
+Deploy the updated `site/nav.js`; no extension rebuild is needed for this follow-up. Immediate workaround:
+while already signed in, reopen the original fund company invitation and use its main form.
