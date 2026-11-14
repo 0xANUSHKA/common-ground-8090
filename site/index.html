@@ -1,42 +1,33 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Common Ground</title>
-<meta name="description" content="Common Ground is a software factory for venture portfolios. Every tool an agent builds is checked, sealed, and suggested to whoever else in the portfolio should have it.">
-<meta name="theme-color" content="#0a0a0b">
-<link rel="preload" as="image" href="./img/night.webp" type="image/webp" fetchpriority="high">
-<link rel="icon" href="./logo.svg" type="image/svg+xml">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Common Ground — Good work travels further.</title>
+<meta name="description" content="A software factory for connected companies. Build a checked tool, find who else needs it, and share an exact version inside their editor.">
+<meta name="theme-color" content="#f4f1e9">
+<link rel="icon" href="./art/mark.svg" type="image/svg+xml">
+<link rel="preload" as="image" href="./art/common-ground-atlas.webp" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&display=swap">
-<link rel="stylesheet" href="./base.css">
-<link rel="stylesheet" href="./film/section.css">
-<link rel="stylesheet" href="./site.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="./base.css"><link rel="stylesheet" href="./film/section.css"><link rel="stylesheet" href="./site.css"><link rel="stylesheet" href="./atlas.css">
 </head>
-<body>
-
+<body class="atlas-home">
 <header class="nav">
-  <a class="nav-brand" href="./"><img class="logo" src="./logo.svg" alt=""><span>Common Ground</span></a>
-  <nav class="nav-tabs" aria-label="Pages"><a href="./" aria-current="page">Overview</a><a href="./dashboard/" data-dash-tab>Dashboard</a></nav>
-  <div class="nav-links"></div>
-  <div class="nav-user" data-nav-user data-root="./"></div>
+<a aria-label="Common Ground home" class="nav-brand" href="./"><img class="logo" src="./art/mark.svg" alt=""><span>Common Ground</span></a>
+<nav class="nav-tabs" aria-label="Pages"><a href="#factory">The factory</a><a href="#standard">Common ground</a><a href="./dashboard/" data-dash-tab>Workspace</a></nav>
+<div class="nav-links"></div><div class="nav-user" data-nav-user data-root="./"></div>
 </header>
-
 <main>
-  <!-- image: Europe at night, from the ISS -->
-  <section class="hero has-bg bg-night" id="top">
-    <div class="hero-copy">
-      <h1>One software factory for the whole portfolio.</h1>
-      <p class="lede">Agents at your companies build tools every day. The factory checks each one, seals the exact version, and reads the fund’s ontology to find who else should have it.</p>
-      <div class="hero-act">
-        <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
-        <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
-      </div>
-      <p class="more"><a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a><span>Also runs in Cursor.</span></p>
-    </div>
-    <div class="hero-film">
-<section class="film" id="film" data-tour-root data-driver="manual" data-captions="off" aria-label="Common Ground, a short film">
+<section class="atlas-hero" id="top">
+<div class="edition"><span>Software factory / Portfolio edition</span><span>Built at 8090 EVOLVE · 2026</span></div>
+<div class="atlas-hero-grid">
+<div class="atlas-copy"><h1>Good work<br><em>travels further.</em></h1><p>A useful tool shouldn’t end with the person who built it.</p><p class="hero-detail">Build, check, and share software between connected companies. Common Ground finds the next team it can help—and brings it into their editor.</p><div class="hero-act"><a class="btn is-primary is-lg" href="./join/">Find your workspace <span aria-hidden="true">↗</span></a><a class="text-action" href="#factory">See it work <span aria-hidden="true">↓</span></a></div><div class="hero-note"><span class="registration-mark" aria-hidden="true">+</span><span>One checked version.<br>A new context. No rebuild.</span></div></div>
+<figure class="atlas-plate"><img src="./art/common-ground-atlas.webp" width="1536" height="1024" alt="An engraved coastal landscape, with a fine red line connecting a research vessel to a solar facility." fetchpriority="high"><figcaption><span>Fig. 01 — Different industries. Common ground.</span><span>Ocean → Solar</span></figcaption></figure>
+</div>
+<ol class="process-rule" aria-label="Factory process"><li><span>01</span>Build from a brief</li><li><span>02</span>Check the exact code</li><li><span>03</span>Find a useful connection</li><li><span>04</span>Reuse in the editor</li></ol>
+</section>
+<section class="screen-section" id="factory"><div class="atlas-wrap"><div class="section-heading"><p class="folio">01 / The factory in motion</p><h2>One build.<br><em>Another team’s head start.</em></h2><p>From a requirement to a checked tool. From one engineer’s workspace to another.<br><small>Illustrative walkthrough · people and activity shown are examples.</small></p></div>
+<div class="hero-film"><section class="film" id="film" data-tour-root data-driver="manual" data-captions="off" aria-label="Common Ground, a short film">
   <div class="film-stage" data-tour-stage>
     <p class="film-mark"><img class="logo" src="./logo.svg" alt="">Common Ground</p>
     <div class="film-intro" aria-hidden="true">
@@ -254,109 +245,11 @@
       </div>
     </div>
   </div>
-</section>
-    </div>
-  </section>
-
-  <!-- image: Nile delta at night, behind the factory line -->
-  <section class="sec has-bg bg-nile" id="factory" data-lazy-bg>
-    <div class="wrap">
-      <h2>Building software is cheap now. <span>Getting it to the right people isn’t.</span></h2>
-      <p class="sub">So the line doesn’t stop when the code passes. It ends by deciding who else should have it.</p>
-      <div class="phases" aria-hidden="true"><span>Build</span><span class="is-dist">Distribute</span></div>
-      <ol class="line">
-        <li><span class="ln-n">1</span><h3>Requirement</h3><p>“Find missing timestamps and duplicates. Never guess a timezone.” Filed in 8090’s Software Factory before any code.</p></li>
-        <li><span class="ln-n">2</span><h3>Blueprint</h3><p>Planned against the fund’s standard: read time and value, return a completeness report, pass seven named checks.</p></li>
-        <li><span class="ln-n">3</span><h3>Built</h3><p>One function, written to the blueprint. It never sees a company’s column names.</p></li>
-        <li><span class="ln-n">4</span><h3>Seven checks</h3><p>In a sandbox the agent can’t touch, on real NOAA and NREL data. First run <span class="is-bad">6 of 7</span>. Repaired, <span class="is-ok">7 of 7</span>.</p></li>
-        <li><span class="ln-n">5</span><h3>Sealed</h3><p>The passing code is fixed by its hash, c54c31b, with its requirement and blueprint attached.</p></li>
-        <li class="is-peak"><span class="ln-n">6</span><h3>Suggested</h3><p>The factory reads the ontology. Palmetto maps its solar data to the same standard, and Maya adapted a tool like this last month. It suggests Maya.</p></li>
-        <li><span class="ln-n">7</span><h3>Rebound</h3><p>Palmetto’s mapping swaps in: measured_on for time, ac_power__423 for value. Same hash.</p></li>
-        <li><span class="ln-n">8</span><h3>Counted</h3><p>Each reuse is counted in hours not rebuilt. A copy that drifts from the seal is flagged.</p></li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="scenario-context" style="max-width:1040px;margin:0 auto;padding:30px var(--gutter);border-top:1px solid var(--line)"><p class="eyebrow">WHY THESE COMPANIES?</p><h2>Different industries. A reusable piece of work.</h2><p style="max-width:760px;line-height:1.7;color:var(--mute)">The portfolio is an example of a large organization's distribution problem. Ocean, solar and field-sensor teams can all need time-series completeness checks. These public company references make that overlap concrete; they are not customers or confirmed participants. People, workflow briefs and reuse in the demo are illustrative.</p><p style="max-width:760px;line-height:1.7;color:var(--mute)">In a real deployment, company admins provide their team's workflow context. The factory filters by permission, then shows the evidence behind a recommendation. Compatible columns alone do not prove someone needs a tool.</p></section>
-  <!-- images: a Saildrone vessel and a solar array, edge to edge -->
-  <section class="sec reuse has-bg bg-streams" id="reuse" data-lazy-bg>
-    <div class="wrap">
-      <h2>Built once at Saildrone. <span>Running at Palmetto.</span></h2>
-    </div>
-    <div class="diptych">
-      <figure><img src="./img/saildrone-arctic.webp" alt="An orange Saildrone vessel at sea" width="2000" height="1500" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/saildrone.png" alt=""><b>Saildrone</b>ocean data</figcaption></figure>
-      <figure><img src="./img/solar-desert.webp" alt="Solar panels in the desert" width="2000" height="1235" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/palmetto.png" alt=""><b>Palmetto</b>solar data</figcaption></figure>
-    </div>
-    <div class="wrap">
-      <dl class="tally">
-        <div><dt>illustrative build-hours estimate</dt><dd>16</dd></div>
-        <div><dt>potential hours · three example reuses</dt><dd>48</dd></div>
-      </dl>
-      <p class="tally-note">Illustrative scenario, not measured savings or company adoption. Public NREL solar data stands in for a solar team’s data.</p>
-    </div>
-  </section>
-
-  <!-- images: leaf venation behind; each mapped company's own work in a strip -->
-  <section class="sec has-bg bg-veins" id="standard" data-lazy-bg>
-    <div class="wrap">
-      <div class="std">
-        <div class="std-copy">
-          <h2>The ontology is the factory’s context.</h2>
-          <p class="sub">The fund holds one standard. Each company maps its data to it once. Tools are written against the standard, never a company’s columns, so they travel.</p>
-        </div>
-        <figure class="std-map">
-          <figcaption><img class="logo" src="./logo.svg" alt=""><b>Sensor time-series v1</b><span>held by the fund</span></figcaption>
-          <table class="map">
-            <thead><tr><th scope="col">Field</th><th scope="col"><span><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</span><small>NOAA mission 1045</small></th><th scope="col"><span><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto</span><small>NREL PVDAQ sample</small></th></tr></thead>
-            <tbody>
-              <tr><th scope="row">time</th><td>time</td><td>measured_on</td></tr>
-              <tr><th scope="row">value</th><td>WIND_<wbr>SPEED_<wbr>MEAN</td><td>ac_power_<wbr>_423</td></tr>
-              <tr><th scope="row">unit</th><td>m s-1, in row two</td><td>kept separately</td></tr>
-              <tr><th scope="row">time basis</th><td>UTC</td><td>local</td></tr>
-              <tr><th scope="row">cadence</th><td>1 minute</td><td>1 minute</td></tr>
-            </tbody>
-          </table>
-          <p class="std-note">The public samples’ own column names. Carry Saildrone’s units-row setting to Palmetto and one reading vanishes; the binding check refuses it.</p>
-        </figure>
-      </div>
-      <ul class="mapped" aria-label="Mapped to the standard">
-        <li><figure><img src="./img/saildrone-dock.webp" alt="A Saildrone vessel at a dock" width="2000" height="1123" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone<small>mapped</small></figcaption></figure></li>
-        <li><figure><img src="./img/solar-aerial.webp" alt="A solar farm from above" width="2000" height="1125" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/palmetto.png" alt="">Palmetto<small>mapped</small></figcaption></figure></li>
-        <li><figure><img src="./img/seedlings.webp" alt="Pine seedlings for reforestation" width="2000" height="1334" loading="lazy" decoding="async"><figcaption><img class="fav" src="./film/favicons/mast.png" alt="">Mast Reforestation<small>mapped</small></figcaption></figure></li>
-      </ul>
-      <p class="mapped-more"><b>Invited</b> Groq, Netskope</p>
-      <div class="prims">
-        <h3>What the ontology gives a fund</h3>
-        <dl>
-          <div><dt>A standard</dt><dd>The fields every tool is written against, versioned.</dd></div>
-          <div><dt>A mapping per company</dt><dd>Its own columns, bound to the standard once.</dd></div>
-          <div><dt>Three permissions per person</dt><dd>Can share. Can share across the portfolio. Receives.</dd></div>
-          <div><dt>Grants</dt><dd>Named people, one exact version, an expiry date.</dd></div>
-          <div><dt>Reuse</dt><dd>The measure. Every rebind is counted; drifted copies are flagged.</dd></div>
-        </dl>
-      </div>
-    </div>
-  </section>
-
-  <!-- image: Mackenzie River outflow -->
-  <section class="sec has-bg bg-outflow" id="spread" data-lazy-bg>
-    <div class="wrap">
-      <h2>One link puts the factory in every editor.</h2>
-      <ol class="spread">
-        <li><span class="sp-n">1</span><h3>The fund</h3><p>Sets the standard and sends one link to its companies.</p></li>
-        <li><span class="sp-n">2</span><h3>Each company</h3><p>Maps its data once and sends a link to its engineers.</p></li>
-        <li><span class="sp-n">3</span><h3>Their engineers</h3><p>Install the extension. Every tool their agents finish goes down the line.</p></li>
-      </ol>
-      <p class="more spread-more">The fund tracks registered tools, recorded reuse and author-estimated rebuild effort in one console. <a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
-    </div>
-  </section>
-
-  <!-- image: the 1901 Eastern Telegraph cable map, inverted to sit on the dark page -->
-  <section class="sec has-bg bg-telegraph" id="security" data-lazy-bg>
-    <div class="wrap">
-      <h2>Delivery is checked too.</h2>
-      <p class="sub">Tools go to named people only. Pick one and run the check the server runs.</p>
-      <div class="gate" data-gate>
+</section></div><div class="film-caption"><span>Requirement → build → verify → share → reuse</span><button type="button" class="film-toggle" data-film-toggle>Pause walkthrough</button><a href="./download/common-ground.vsix" download>Download for VS Code & Cursor ↗</a></div></div></section>
+<section class="atlas-case atlas-wrap" id="standard"><div class="section-heading"><p class="folio">02 / A connection worth making</p><h2>An ocean team.<br>A solar team.<br><em>The same missing minute.</em></h2><p>One studies conditions at sea. The other monitors energy production. Both need to know when their sensors stopped reporting.</p></div><div class="specimens"><figure><div class="specimen-label"><span>A / At sea</span><span>NOAA sample</span></div><img src="./img/saildrone-arctic.webp" width="2000" height="1500" alt="An orange ocean research vessel at sea" loading="lazy"><figcaption><b>Ocean telemetry</b><span>time + WIND_SPEED_MEAN</span></figcaption></figure><figure><div class="specimen-label"><span>B / On land</span><span>NREL sample</span></div><img src="./img/solar-desert.webp" width="2000" height="1235" alt="A solar array in the desert" loading="lazy"><figcaption><b>Solar telemetry</b><span>measured_on + ac_power__423</span></figcaption></figure></div>
+<div class="binding-strip"><span class="binding-title">The shared contract</span><code>time + value + cadence</code><span>One inspector. Each company’s own mapping.</span></div><p class="case-note">The current factory makes sensor time-series completeness checkers. Shared workflow briefs and prior reuse provide evidence of need; permissions decide who is eligible. A compatible schema alone does not trigger a recommendation. Public samples demonstrate the connection; they do not imply customer adoption.</p></section>
+<section class="atlas-roles atlas-wrap"><div class="section-heading"><p class="folio">03 / Clear ownership</p><h2>A shared network.<br><em>Individual control.</em></h2></div><ol class="role-index"><li><span>01</span><div><h3>The fund sets the boundary.</h3><p>Invite portfolio companies and choose whether work can travel between them. Network membership does not grant access to every company’s code.</p></div></li><li><span>02</span><div><h3>The company supplies the context.</h3><p>Map a sample, describe the work, and authorize publishers. One account can manage the fund and participate in its own company.</p></div></li><li><span>03</span><div><h3>The engineer stays in their editor.</h3><p>Review why a checked tool might help someone. Approve the share. The recipient gets that version in VS Code or Cursor, with receiving controls of their own.</p></div></li></ol></section>
+<section class="atlas-security atlas-wrap" id="security"><div class="section-heading"><p class="folio">04 / Permission to travel</p><h2>Useful doesn’t mean<br><em>available to everyone.</em></h2><p>Try this illustrative permission check. Select a person, then change receiving or revoke the share.</p></div>      <div class="gate" data-gate>
         <div class="gate-left">
           <p class="gate-tool"><span class="cg-lg" data-lilguy="fabio-sd"></span><span><b>telemetry-inspector</b><small>c54c31b · Fabio · <img class="fav" src="./film/favicons/saildrone.png" alt="">Saildrone</small></span><em>7 of 7 checks</em></p>
           <p class="gate-l" id="gate-l">Share with</p>
@@ -375,34 +268,9 @@
           <ol class="gate-checks" aria-live="polite" data-checks></ol>
           <div class="gate-out" data-out></div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- image: Webb’s First Deep Field -->
-  <section class="sec end has-bg bg-deep" data-lazy-bg>
-    <div class="wrap">
-      <h2>Build it at one company. <span>Run it at the next.</span></h2>
-      <div class="hero-act">
-        <a class="btn is-primary is-lg" href="./join/">Set up your fund</a>
-        <a class="btn is-lg" href="./download/common-ground.vsix" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Download for VS Code</a>
-      </div>
-      <p class="more"><a href="./signin/">Explore a demo fund<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a></p>
-    </div>
-  </section>
+      </div></section>
+<section class="atlas-end"><div class="atlas-wrap"><span class="folio">Common Ground / Start a new connection</span><h2>Give good work<br><em>somewhere to go.</em></h2><a class="btn is-primary is-lg" href="./join/">Find your workspace ↗</a><a class="text-action" href="./signin/">Explore the demo network →</a><img src="./art/connection.svg" width="220" height="120" alt="" loading="lazy"></div></section>
 </main>
-
-<footer class="foot">
-  <div class="wrap">
-    <p class="foot-brand"><img class="logo" src="./logo.svg" alt=""><b>Common Ground</b><span>Built at 8090 EVOLVE 2026 · MIT · <a href="https://github.com/0xANUSHKA/common-ground-8090">Source</a></span></p>
-    <div class="foot-credits">
-      <p>Favicons belong to their companies. Companies are public Social Capital investment references; people and sharing are illustrative. Sample data: NOAA PMEL (CC0), NREL PVDAQ (CC BY 4.0).</p>
-      <p>Images: Europe at night, ISS crew, NASA · Nile delta at night, ISS crew, NASA · Saildrone vessels in the Arctic and at the S-MODE dock, NOAA · Solar array in the desert, public domain · Solar farm at Krishnapuram Tatipudi Water Works, Wikimedia Commons, CC BY-SA 4.0 · Pine seedlings, USDA Forest Service · Farmland, Minnesota, NASA Earth Observatory · Braided streams, Katmai National Park · Walnut leaf venation, <a href="https://commons.wikimedia.org/wiki/File:Macro_image_-_Walnut_Leaf_-_Venation_Structure.jpg">Cristian V.</a>, CC BY 4.0 · Mackenzie River outflow, Landsat 8, NASA/USGS · Eastern Telegraph Company cable map, 1901, public domain · Webb’s First Deep Field, NASA, ESA, CSA, STScI.</p>
-    </div>
-  </div>
-</footer>
-
-<script type="module" src="./nav.js"></script>
-<script type="module" src="./site.js"></script>
-</body>
-</html>
+<footer class="atlas-footer atlas-wrap"><div><a aria-label="Common Ground home" class="nav-brand" href="./"><img class="logo" src="./art/mark.svg" alt=""><span>Common Ground</span></a><p>A software factory for connected companies.</p></div><div><a href="https://github.com/0xANUSHKA/common-ground-8090">Source ↗</a><span>8090 EVOLVE · 2026</span></div><p class="art-credit">Original atlas illustration generated for Common Ground. Research vessel imagery: NOAA. Solar array: public domain. Sample data: NOAA PMEL (CC0), NREL PVDAQ (CC BY 4.0). Company names, people and activity in the walkthrough are illustrative; no customer affiliation is implied.</p></footer>
+<script type="module" src="./nav.js"></script><script type="module" src="./site.js"></script>
+</body></html>

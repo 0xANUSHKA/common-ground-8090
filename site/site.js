@@ -19,6 +19,7 @@ gate(document.querySelector('[data-gate]'));
 const root = document.getElementById('film');
 const q = new URLSearchParams(location.search);
 const frozen = q.has('t') || q.has('record');
+let userPaused = false;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // title sequence: the logo and name, two lines, then the window rises in
@@ -35,15 +36,23 @@ const titles = (t) => {
 const tour = film(root);
 tour.onFrame = titles;
 titles(reduced && !frozen ? 99 : tour.t);
+const toggle = document.querySelector('[data-film-toggle]');
+if(toggle){
+  toggle.textContent = reduced || frozen ? 'Play walkthrough' : 'Pause walkthrough';
+  toggle.addEventListener('click',()=>{
+    if(tour.playing){userPaused=true;tour.pause();toggle.textContent='Play walkthrough';}
+    else{userPaused=false;tour.play();toggle.textContent='Pause walkthrough';}
+  });
+}
 
 if (!frozen && !reduced) {
   let visible = false, ready = false, hold = 0;
-  const go = () => { if (visible && ready && !tour.playing && !hold) tour.play(); };
+  const go = () => { if (visible && ready && !tour.playing && !hold && !userPaused) tour.play(); };
   tour.api.ready.then(() => { ready = true; go(); });
   // play while on screen, pause when scrolled away
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) go(); else tour.pause(); }, { threshold: .35 }).observe(root);
   // at the end, hold the last frame for a beat, then play again from the logo
   root.addEventListener('tour:end', () => {
-    hold = setTimeout(() => { hold = 0; tour.render(0, true); go(); }, 2600);
+    hold = setTimeout(() => { hold = 0; if(!userPaused){tour.render(0, true); go();} }, 2600);
   });
 }

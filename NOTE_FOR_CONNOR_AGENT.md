@@ -128,3 +128,9 @@ Deploy the current `main` from `site/` as usual. No new keys, database migration
 - Cosmetic changes: clearer role labels, workspace cards, compact permission summary, responsive layout, and explicit completion/continuation states.
 
 Validated with the local real API + local Google stand-in: create fund, create own company, save ocean mapping, save brief, switch fund/company, reopen invitation, and generic dashboard returning to the last company. Checked the invitation at 390px. Hosted tests include five new membership/retry regressions; prior sharing and OAuth-navigation checks pass. This is UI/flow hardening, not a claim that all production security gaps above are solved.
+
+## Visual redesign: field atlas
+
+The public site, sign-in/onboarding and dashboard now use a coherent paper/ink/vermilion identity. The landing page has original generated atlas artwork, a custom vector mark and colophon, an editorial layout, the existing working film, and the permission demonstration. The film now has pause/play controls. New assets and the exact generation prompt are in `site/art/`; the raster is a ~480 KB WebP. `atlas.css` styles public pages; `dashboard/atlas-console.css` keeps the working UI restrained.
+
+This does not change account roles, API permissions, data, extension behavior or deployment requirements. The onboarding changes from the previous commit remain intact. Deploy `site/` including `art/` and both new CSS files. The walkthrough and company examples remain explicitly illustrative.
