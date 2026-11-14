@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "common-ground-site", "runtimeExecutable": "node", "runtimeArgs": ["site/dev/serve.mjs"], "port": 3000 },
+    { "name": "common-ground-site-static", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "http.server", "8091", "--bind", "127.0.0.1", "--directory", "site"], "port": 8091 }
+  ]
+}

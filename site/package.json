@@ -1,1 +1,9 @@
-{ "name": "common-ground-site", "private": true, "type": "module" }
+{
+  "name": "common-ground-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node dev/serve.mjs",
+    "test": "node dev/test.mjs"
+  }
+}
